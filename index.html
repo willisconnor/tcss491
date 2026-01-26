@@ -21,6 +21,27 @@
     <script type="text/javascript" src="./scenemanager.js"></script>
     <script type="text/javascript" src="./main.js"></script>
 </head>
+<style>
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        background: #2c2c2c;
+        overflow: hidden;
+    }
+
+    #gameWorld {
+        max-width: 100vw;
+        max-height: 100vh;
+        width: auto;
+        height: auto;
+        background: white;
+        border: 1px solid black;
+
+    }
+</style>
 <body style="display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #84C2E8;">
     <canvas id="gameWorld" width="1472" height="666" style="background: white; border: 1px solid black" tabindex="0" autofocus></canvas>
 </body>
