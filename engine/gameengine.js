@@ -13,7 +13,20 @@ class GameEngine {
         this.click = null;
         this.mouse = null;
         this.wheel = null;
-        this.keys = {};
+        this.keys = {
+            "ShiftLeft" : false,
+            "ArrowRight" : false,
+            "ArrowUp" : false,
+            "ArrowDown" : false,
+            "ArrowLeft" : false,
+            "Space" : false,
+            "KeyD" : false,
+            "KeyW" : false,
+            "KeyS" : false,
+            "KeyA" : false,
+            // X is for testing death animation
+            "KeyX" : false
+        };
 
         // Options and the Details
         this.options = options || {
@@ -72,8 +85,8 @@ class GameEngine {
             this.rightclick = getXandY(e);
         });
 
-        this.ctx.canvas.addEventListener("keydown", event => this.keys[event.key] = true);
-        this.ctx.canvas.addEventListener("keyup", event => this.keys[event.key] = false);
+        this.ctx.canvas.addEventListener("keydown", event => this.keys[event.code] = true);
+        this.ctx.canvas.addEventListener("keyup", event => this.keys[event.code] = false);
     };
 
     addEntity(entity) {
@@ -114,6 +127,6 @@ class GameEngine {
         this.draw();
     };
 
-};
+}
 
 // KV Le was here :)
