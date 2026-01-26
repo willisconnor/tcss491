@@ -3,17 +3,25 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Game Project Title Goes Here</title>
+    <title>RPG (Rat Playing Game)</title>
 
     <script type="text/javascript" src="./engine/assetmanager.js"></script>
-    <script type="text/javascript" src="./engine/timer.js"></script>
+    <script type="text/javascript" src="./engine//timer.js"></script>
     <script type="text/javascript" src="./engine/gameengine.js"></script>
     <script type="text/javascript" src="./engine/util.js"></script>
     <script type="text/javascript" src="./engine/animator.js"></script>
+    <script type="text/javascript" src="./engine/boundingbox.js"></script>
+
+    <script type="text/javascript" src="./entities/background.js"></script>
+    <script type="text/javascript" src="./entities/cat.js"></script>
     <script type="text/javascript" src="./entities/rat.js"></script>
+    <script type="text/javascript" src="./entities/snake.js"></script>
+    <script type="text/javascript" src="./entities/stuartbig.js"></script>
+
+    <script type="text/javascript" src="./scenemanager.js"></script>
     <script type="text/javascript" src="./main.js"></script>
 </head>
-<body>
-<canvas id="gameWorld" width="1024" height="768" style="background: white; border: 1px solid black" tabindex="0" autofocus></canvas>
+<body style="display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #84C2E8;">
+    <canvas id="gameWorld" width="1472" height="666" style="background: white; border: 1px solid black" tabindex="0" autofocus></canvas>
 </body>
 </html>
