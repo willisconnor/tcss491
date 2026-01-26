@@ -1,7 +1,5 @@
 // Author: Christina Blackwell
 
-const DEFAULT_SCALE = 2;
-
 class Rat {
     constructor(game) {
         this.game = game;
@@ -15,7 +13,7 @@ class Rat {
         this.loadAnimations();
         // 0 = left, 1 = right, 2 = down, 3 = up
         this.facing = 0;
-        this.scale = DEFAULT_SCALE;
+        this.scale = 2;
         this.animator = this.animations.get("idle")[this.facing];
         this.x = (this.canvas.width / 2) - ((this.animator.width * this.scale) / 2);
         this.y = (this.canvas.height / 2) - ((this.animator.height * this.scale) / 2);
@@ -28,16 +26,16 @@ class Rat {
         this.animations.get("idle")[1] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[1]),
             0, 106, 48, 38, 3, 0.7, 0);
         this.animations.get("idle")[2] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[1]),
-            0, 6, 48, 33, 3, 0.7, 0);
+            0, 6, 48, 33, 3, 0.7, 0, -2.4);
         this.animations.get("idle")[3] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[1]),
-            0, 148, 48, 44, 3, 0.7, 0);
+            0, 148, 48, 44, 3, 0.7, 0, -2.4);
 
         this.animations.get("walk")[0] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[0]),
             0, 74, 48, 18, 3, 0.15, 0, 0, 14);
         this.animations.get("walk")[1] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[0]),
             0, 122, 48, 18, 3, 0.15, 0, 0, 14);
         this.animations.get("walk")[2] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[0]),
-            0, 22, 48, 22, 3, 0.15, 0);
+            0, 22, 48, 22, 3, 0.15, 0, 0, 14);
         this.animations.get("walk")[3] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[0]),
             0, 164, 48, 24, 3, 0.15, 0, 0, 14);
 
@@ -46,7 +44,7 @@ class Rat {
         this.animations.get("run")[1] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[0]),
             0, 122, 48, 18, 3, 0.1, 0, 0, 14);
         this.animations.get("run")[2] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[0]),
-            0, 22, 48, 22, 3, 0.1, 0);
+            0, 22, 48, 22, 3, 0.1, 0, 0, 14);
         this.animations.get("run")[3] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[0]),
             0, 164, 48, 24, 3, 0.1, 0, 0, 14);
 
@@ -124,8 +122,10 @@ class Rat {
         }
         if (this.x < 0 && this.facing === 0) this.x = 0;
         if (this.y < 0 && this.facing === 3) this.y = 0;
-        if (this.y + (this.animator.height * this.scale) > this.canvas.height && this.facing === 2) {
-            this.y = this.canvas.height - (this.animator.height * this.scale);
+
+        let padding = this.animator.yOffset * this.scale;
+        if (this.y + (this.animator.height * this.scale) + padding > this.canvas.height && this.facing === 2) {
+            this.y = this.canvas.height - (this.animator.height * this.scale) - padding;
         }
     };
 
