@@ -33,13 +33,13 @@ class Rat {
             0, 148, 48, 44, 3, 0.7, 0);
 
         this.animations.get("walk")[0] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[0]),
-            0, 74, 48, 18, 3, 0.25, 0, 0, 14);
+            0, 74, 48, 18, 3, 0.15, 0, 0, 14);
         this.animations.get("walk")[1] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[0]),
-            0, 122, 48, 18, 3, 0.25, 0, 0, 14);
+            0, 122, 48, 18, 3, 0.15, 0, 0, 14);
         this.animations.get("walk")[2] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[0]),
-            0, 22, 48, 22, 3, 0.25, 0);
+            0, 22, 48, 22, 3, 0.15, 0);
         this.animations.get("walk")[3] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[0]),
-            0, 164, 48, 24, 3, 0.25, 0, 0, 14);
+            0, 164, 48, 24, 3, 0.15, 0, 0, 14);
 
         this.animations.get("run")[0] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[0]),
             0, 74, 48, 18, 3, 0.1, 0, 0, 14);
@@ -90,7 +90,7 @@ class Rat {
         }
 
         if (this.game.keys["ShiftLeft"]) {
-            targetSpeed = 150;
+            targetSpeed = 200;
             targetAnim = this.animations.get("run")[this.facing];
         }
 
