@@ -6,6 +6,8 @@ ASSET_MANAGER.queueDownload(RAT_SPRITES[0])
 ASSET_MANAGER.queueDownload(RAT_SPRITES[1])
 ASSET_MANAGER.queueDownload("./assets/global.png");
 
+ASSET_MANAGER.queueDownload("./assets/Level1LivingRoom.json");
+
 ASSET_MANAGER.downloadAll(() => {
     const canvas = document.getElementById("gameWorld");
     const ctx = canvas.getContext("2d");
