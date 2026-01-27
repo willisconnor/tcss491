@@ -16,10 +16,10 @@ class Snake {
         this.state = "idle"; // idle, biting, damaged, death
         this.facingRight = false; // Usually faces the player (Assuming the player is on the left)
 
-        // Load sprite sheet ('snake.png' in ASSET_MANAGER)
+    
         const sheet = ASSET_MANAGER.getAsset("./snake.png");
         
-        // Define animations (Adjust coordinates/frames based on your actual sprite sheet)
+        // Define animations (Adjust coordinates/frames)
         this.animations = {
             idle: new Animator(sheet, 0, 0, 64, 64, 4, 0.2, true),
             bite: new Animator(sheet, 0, 64, 64, 64, 5, 0.1, false),
