@@ -112,11 +112,24 @@ class Rat {
         }
 
         this.speed = targetSpeed;
-        if (this.facing === 0) this.x -= this.speed * this.game.clockTick;
-        if (this.facing === 1) this.x += this.speed * this.game.clockTick;
-        if (this.facing === 2) this.y += this.speed * this.game.clockTick;
-        if (this.facing === 3) this.y -= this.speed * this.game.clockTick;
+        // stored your this.x and this.y into variable references
+        let newX = this.x;
+        let newY = this.y;
+        if (this.facing === 0) newX -= this.speed * this.game.clockTick;
+        if (this.facing === 1) newX += this.speed * this.game.clockTick;
+        if (this.facing === 2) newY += this.speed * this.game.clockTick;
+        if (this.facing === 3) newY -= this.speed * this.game.clockTick;
 
+        // check collision before applying movement
+        const width = this.animator.width * this.scale;
+        const height = this.animator.height * this.scale;
+
+        if (!this.game.collisionManager.checkCollision(newX, newY, width, height)) {
+            this.x = newX;
+            this.y = newY;
+        }
+
+        // canvas boundary checks
         if (this.x + (this.animator.width * this.scale) > this.canvas.width && this.facing === 1) {
             this.x = this.canvas.width - (this.animator.width * this.scale);
         }
@@ -127,7 +140,9 @@ class Rat {
         if (this.y + (this.animator.height * this.scale) + padding > this.canvas.height && this.facing === 2) {
             this.y = this.canvas.height - (this.animator.height * this.scale) - padding;
         }
-    };
+    }
+
+
 
     draw(ctx) {
         ctx.imageSmoothingEnabled = false;
