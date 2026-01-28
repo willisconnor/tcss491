@@ -4,6 +4,7 @@ const RAT_SPRITES = ["./assets/rats.png", "./assets/rats_extras.png"];
 
 ASSET_MANAGER.queueDownload(RAT_SPRITES[0])
 ASSET_MANAGER.queueDownload(RAT_SPRITES[1])
+ASSET_MANAGER.queueDownload("./assets/yorkie animation.png");
 gameEngine.collisionManager = new CollisionManager();
 
 ASSET_MANAGER.queueDownload("./assets/Level1LivingRoom.json");
