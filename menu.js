@@ -82,6 +82,7 @@ class Menu {
             // Start Button (Center)
             if (this.checkBounds(x, y, centerX, centerY - 80, this.btnW, this.btnH)) {
                 this.game.camera.menuActive = false;
+                this.game.camera.dialogueActive = true; // Trigger Stuart Big!
             }
             // Tutorial Button
             if (this.checkBounds(x, y, centerX, centerY, this.btnW, this.btnH)) {

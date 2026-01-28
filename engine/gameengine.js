@@ -13,6 +13,7 @@ class GameEngine {
         this.click = null;
         this.mouse = null;
         this.wheel = null;
+        this.typing = false; // When true, WASD won't move the rat
         this.keys = {
             "Escape": false, // Jayda added
             "ShiftLeft" : false,
@@ -63,42 +64,47 @@ class GameEngine {
 
     startInput() {
         const getXandY = e => ({
-            x: e.clientX - this.ctx.canvas.getBoundingClientRect().left,
-            y: e.clientY - this.ctx.canvas.getBoundingClientRect().top
+         x: e.clientX - this.ctx.canvas.getBoundingClientRect().left,
+         y: e.clientY - this.ctx.canvas.getBoundingClientRect().top
         });
 
-        this.ctx.canvas.addEventListener("mousemove", e => {
-            if (this.options.debugging) {
-                console.log("MOUSE_MOVE", getXandY(e));
-            }
-            this.mouse = getXandY(e);
+     this.ctx.canvas.addEventListener("mousemove", e => {
+         if (this.options.debugging) console.log("MOUSE_MOVE", getXandY(e));
+         this.mouse = getXandY(e);
         });
 
         this.ctx.canvas.addEventListener("click", e => {
-            if (this.options.debugging) {
-                console.log("CLICK", getXandY(e));
-            }
+         if (this.options.debugging) console.log("CLICK", getXandY(e));
             this.click = getXandY(e);
         });
 
         this.ctx.canvas.addEventListener("wheel", e => {
-            if (this.options.debugging) {
-                console.log("WHEEL", getXandY(e), e.wheelDelta);
-            }
-            e.preventDefault(); // Prevent Scrolling
-            this.wheel = e;
+         if (this.options.debugging) console.log("WHEEL", getXandY(e), e.wheelDelta);
+         e.preventDefault(); 
+         this.wheel = e;
         });
 
-        this.ctx.canvas.addEventListener("contextmenu", e => {
-            if (this.options.debugging) {
-                console.log("RIGHT_CLICK", getXandY(e));
-            }
-            e.preventDefault(); // Prevent Context Menu
-            this.rightclick = getXandY(e);
+     this.ctx.canvas.addEventListener("contextmenu", e => {
+          if (this.options.debugging) console.log("RIGHT_CLICK", getXandY(e));
+          e.preventDefault(); 
+           this.rightclick = getXandY(e);
         });
 
-        this.ctx.canvas.addEventListener("keydown", event => this.keys[event.code] = true);
-        this.ctx.canvas.addEventListener("keyup", event => this.keys[event.code] = false);
+        // KEYBOARD INPUT WITH TYPING LOGIC
+        this.ctx.canvas.addEventListener("keydown", event => {
+            if (this.typing) {
+                // If the game is in 'typing mode', capture the literal key (e.g., "a", "Enter")
+                // This prevents the Rat from walking while the player types their name
+               this.lastInput = event.key; 
+            } else {
+             // Normal gameplay movement
+               this.keys[event.code] = true;
+            }
+        });
+
+        this.ctx.canvas.addEventListener("keyup", event => {
+           this.keys[event.code] = false;
+        });
     };
 
     addEntity(entity) {
