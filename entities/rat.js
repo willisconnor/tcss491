@@ -137,6 +137,7 @@ class Rat {
         if (this.y < 0 && this.facing === 3) this.y = 0;
 
         let padding = this.animator.yOffset * this.scale;
+        //   @@ -127,7 +140,9 @@ class Rat
         if (this.y + (this.animator.height * this.scale) + padding > this.canvas.height && this.facing === 2) {
             this.y = this.canvas.height - (this.animator.height * this.scale) - padding;
         }
