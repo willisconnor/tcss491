@@ -2,6 +2,8 @@ class SceneManager {
     constructor(game) {
         this.game = game;
         this.game.camera = this;
+        this.menuActive = true; // Jayda - added this line. Start the game with the menu/story active
+        this.menu = new Menu(this.game); // Jayda - added this line. Initializes the menu system
 
         this.level = ASSET_MANAGER.getAsset("./assets/Level1LivingRoom.json");
         // Load spritesheet
@@ -20,11 +22,24 @@ class SceneManager {
         }
     }
 
-    update() {}
+    update() {
+        if (this.menuActive) {  //Jayda added
+            this.menu.update(); //Jayda added
+        } else {
+            // Normal game update logic (camera follow, etc.)
+        }
+    }
 
     draw(ctx) {
-        const scale = 4; // Scaled size (16 * 4)
-        const sourceSize = 16; // Size on spritesheet
+        // Jayda added
+        if (this.menuActive) {
+            this.menu.draw(ctx); // Draw Story, Start Menu, or Tutorial
+            return; // Exit draw early so the game world doesn't show behind the menu
+        }
+        // End of new code
+
+        const scale = 4;
+        const sourceSize = 16;
         const destSize = sourceSize * scale;
         const columns = 270;
 
@@ -48,7 +63,7 @@ class SceneManager {
             });
         }
 
-        // Debug,r draw collision boxes
+        // Debug draw collision boxes
         if (this.game.options && this.game.options.debugging) {
             ctx.strokeStyle = 'Red';
             this.collisionBoxes.forEach(box => {
