@@ -8,7 +8,7 @@ gameEngine.collisionManager = new CollisionManager();
 
 ASSET_MANAGER.queueDownload("./assets/Level1LivingRoom.json");
 ASSET_MANAGER.queueDownload("./assets/global.png");
-
+ASSET_MANAGER.queueDownload("./assets/goldenkey.png");
 ASSET_MANAGER.downloadAll(() => {
     const canvas = document.getElementById("gameWorld");
     const ctx = canvas.getContext("2d");
@@ -22,6 +22,7 @@ ASSET_MANAGER.downloadAll(() => {
     const levelData = ASSET_MANAGER.getAsset("./assets/Level1LivingRoom.json");
     gameEngine.collisionManager.loadFromTiledJSON(levelData);
     gameEngine.addEntity(new Rat(gameEngine));
+    gameEngine.addEntity(new GoldenKey(gameEngine, 65, 120));
 
     // add entities
     const sceneManager = new SceneManager(gameEngine);
