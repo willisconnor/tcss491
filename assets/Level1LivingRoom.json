@@ -1,4 +1,12 @@
 { "compressionlevel":-1,
+ "editorsettings":
+    {
+     "export":
+        {
+         "format":"json",
+         "target":"..\/Desktop\/TCSS 491 Game And Simulation Design\/Level1LivingRoom.json"
+        }
+    },
  "height":10,
  "infinite":false,
  "layers":[
@@ -119,7 +127,7 @@
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":129.89417989418,
+                 "width":128.212023369515,
                  "x":140.21164021164,
                  "y":16.1375661375661
                 }, 
@@ -146,7 +154,7 @@
                  "y":63.0952214285714
                 }, 
                 {
-                 "height":16.4021497354497,
+                 "height":13.0378366861204,
                  "id":11,
                  "name":"",
                  "rotation":0,
@@ -154,7 +162,7 @@
                  "visible":true,
                  "width":31.4814827513229,
                  "x":304.629628994709,
-                 "y":78.1745865079365
+                 "y":80.6978212949334
                 }, 
                 {
                  "height":13.2274968253968,
@@ -212,15 +220,15 @@
                  "y":84.1269883597884
                 }, 
                 {
-                 "height":26.1904677248677,
+                 "height":22.4056155443723,
                  "id":17,
                  "name":"",
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":12.6985,
-                 "x":305.820062169312,
-                 "y":38.8888931216931
+                 "width":8.49310868833851,
+                 "x":307.08167956281,
+                 "y":39.3094322528593
                 }, 
                 {
                  "height":26.1905,
@@ -229,8 +237,8 @@
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":11.3757486772487,
-                 "x":353.17455952381,
+                 "width":8.43197475908564,
+                 "x":356.118333441973,
                  "y":38.7566018518519
                 }, 
                 {
@@ -402,15 +410,15 @@
                  "y":48.0531653980403
                 }, 
                 {
-                 "height":365.645212971956,
-                 "id":29,
+                 "height":4.20539131166154,
+                 "id":31,
                  "name":"",
-                 "rotation":89.8955274779617,
+                 "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":4.49735,
-                 "x":367.013919557044,
-                 "y":155.309110333382
+                 "width":363.345809327558,
+                 "x":2.52323478699693,
+                 "y":155.178939400311
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -419,7 +427,7 @@
          "y":0
         }],
  "nextlayerid":7,
- "nextobjectid":30,
+ "nextobjectid":32,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
@@ -427,7 +435,7 @@
  "tilesets":[
         {
          "firstgid":1,
-         "source":"..\/GlobalAssets.tsx"
+         "source":"..\/Desktop\/GlobalAssets.tsx"
         }],
  "tilewidth":16,
  "type":"map",
