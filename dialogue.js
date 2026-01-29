@@ -4,6 +4,7 @@ class Dialogue {
         this.sceneManager = sceneManager;
         this.playerName = "";
         this.state = "TALKING"; // TALKING, INPUT, FINISHED
+        this.speaker = "Stuart Big (Spirit Guide)"; // Default speaker name
         
         this.currentLine = 0;
         this.displayText = "";
@@ -86,7 +87,7 @@ class Dialogue {
         ctx.fillStyle = "#aaaaff"; // Ghostly Blue
         ctx.font = "bold 20px Arial";
         ctx.textAlign = "left";
-        ctx.fillText("Stuart Big (Spirit Guide)", w / 2 - 380, h - 170);
+        ctx.fillText(this.speaker, w / 2 - 380, h - 170);
 
         ctx.fillStyle = "white";
         ctx.font = "20px 'Courier New'";

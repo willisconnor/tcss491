@@ -26,6 +26,7 @@ class GameEngine {
             "KeyW" : false,
             "KeyS" : false,
             "KeyA" : false,
+            "KeyE" : false, // Interaction key
             // X is for testing death animation
             "KeyX" : false
         };
