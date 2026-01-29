@@ -10,26 +10,25 @@ ASSET_MANAGER.queueDownload("./assets/Level1LivingRoom.json");
 ASSET_MANAGER.queueDownload("./assets/global.png");
 ASSET_MANAGER.queueDownload("./assets/goldenkey.png");
 ASSET_MANAGER.queueDownload("./assets/StuartBigDialogue.png");
+ASSET_MANAGER.queueDownload("./assets/EdgarDialogue.png");
+ASSET_MANAGER.queueDownload("./assets/yorkie animation.png");
 
 ASSET_MANAGER.downloadAll(() => {
     const canvas = document.getElementById("gameWorld");
     const ctx = canvas.getContext("2d");
 
-    // disable image smoothing
     ctx.imageSmoothingEnabled = false;
-
     gameEngine.init(ctx);
 
-    // load collision data from cached JSON
     const levelData = ASSET_MANAGER.getAsset("./assets/Level1LivingRoom.json");
     gameEngine.collisionManager.loadFromTiledJSON(levelData);
+    
     gameEngine.addEntity(new Rat(gameEngine));
     gameEngine.addEntity(new GoldenKey(gameEngine, 65, 120));
+    gameEngine.addEntity(new Yorkie(gameEngine, 300, 400));
 
-    // add entities
     const sceneManager = new SceneManager(gameEngine);
     gameEngine.addEntity(sceneManager);
-
 
     gameEngine.start();
 });
