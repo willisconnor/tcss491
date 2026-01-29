@@ -24,6 +24,11 @@ ASSET_MANAGER.downloadAll(() => {
     gameEngine.collisionManager.loadFromTiledJSON(levelData);
     gameEngine.addEntity(new Rat(gameEngine));
     gameEngine.addEntity(new GoldenKey(gameEngine, 65, 120));
+    //yorkie npc
+    //const yorkie = new Yorkie(gameEngine, 200, 200);
+    //gameEngine.addEntity(yorkie);
+    //gameEngine.collisionManager.addEntityCollider(yorkie)
+    
 
     // add entities
     const sceneManager = new SceneManager(gameEngine);

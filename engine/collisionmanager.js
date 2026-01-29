@@ -1,6 +1,7 @@
 class CollisionManager {
             constructor() {
                 this.colliders = [];
+                this.entityColliders = []; // entities that block movement
                 this.scale = 4;
             }
 
@@ -44,7 +45,25 @@ class CollisionManager {
                         }
                     }
                 }
+                
+                // Check collision with entity colliders
+                for (const entity of this.entityColliders) {
+                    const entityColliderX = entity.x;
+                    const entityColliderY = entity.y;
+                    const entityColliderWidth = entity.animator.width * entity.scale;
+                    const entityColliderHeight = entity.animator.height * entity.scale;
+                    
+                    if (this.rectIntersect(entityX, entityY, entityWidth, entityHeight, 
+                                          entityColliderX, entityColliderY, entityColliderWidth, entityColliderHeight)) {
+                        return true;
+                    }
+                }
+                
                 return false;
+            }
+
+            addEntityCollider(entity) {
+                this.entityColliders.push(entity);
             }
 
             rectIntersect(x1, y1, w1, h1, x2, y2, w2, h2) {

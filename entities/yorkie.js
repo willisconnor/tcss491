@@ -57,7 +57,7 @@ class Yorkie {
         this.animations.get("walk")[0] = new Animator(this.sprite, 55, 0, 18, 18, 4, 0.15, 0); // left
         this.animations.get("walk")[1] = new Animator(this.sprite, 32, 0, 18, 18, 4, 0.15, 0); // right
         this.animations.get("walk")[2] = new Animator(this.sprite, 0, 0, 18, 18, 4, 0.15, 0); // down
-        this.animations.get("walk")[3] = new Animator(this.sprite, 0, 0, 18, 18, 4, 0.15, 0); // up
+        this.animations.get("walk")[3] = new Animator(this.sprite, 0, 18, 18, 18, 4, 0.15, 0); // up
     }
 
     update() {
