@@ -112,20 +112,34 @@ class GameEngine {
     };
 
     draw() {
-    this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+        this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
 
-    for (let i = this.entities.length - 1; i >= 0; i--) {
-        let entity = this.entities[i];
-        
-        // --- ADD THIS CHECK ---
-        // If menu is active, ONLY draw the SceneManager (which draws the menu)
-        if (this.camera && this.camera.menuActive) {
-            if (entity === this.camera) entity.draw(this.ctx, this);
-        } else {
-            entity.draw(this.ctx, this);
+        for (let i = this.entities.length - 1; i >= 0; i--) {
+            let entity = this.entities[i];
+            
+            // If menu is active, ONLY draw the SceneManager (which draws the menu)
+            if (this.camera && this.camera.menuActive) {
+                if (entity === this.camera) entity.draw(this.ctx, this);
+            } 
+            // If dialogue is active, draw everything BUT save SceneManager for last
+            else if (this.camera && this.camera.dialogueActive) {
+                if (entity === this.camera) {
+                    // Draw SceneManager last (it will draw dialogue on top)
+                    continue; // Skip it for now
+                } else {
+                    entity.draw(this.ctx, this);
+                }
+            }
+            else {
+                entity.draw(this.ctx, this);
+            }
         }
-    }
-};
+        
+        // Draw dialogue on top of everything else
+        if (this.camera && this.camera.dialogueActive) {
+            this.camera.draw(this.ctx, this);
+        }
+    };
 
     update() {
     let entitiesCount = this.entities.length;

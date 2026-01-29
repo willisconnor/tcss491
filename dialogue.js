@@ -3,6 +3,7 @@ class Dialogue {
         this.game = game;
         this.sceneManager = sceneManager;
         this.portrait = ASSET_MANAGER.getAsset("./assets/StuartBigDialogue.png");
+        this.speaker = "Stuart Big";
         this.playerName = "";
         this.state = "TALKING"; 
         
@@ -119,7 +120,7 @@ class Dialogue {
         ctx.fillStyle = "#aaaaff"; // Ghostly Blue
         ctx.font = "bold 24px Arial";
         ctx.textAlign = "left";
-        ctx.fillText("Stuart Big", textX, textY - 10);
+        ctx.fillText(this.speaker, textX, textY - 10);
 
         ctx.fillStyle = "white";
         ctx.font = "22px 'Courier New'";
