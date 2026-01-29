@@ -2,8 +2,9 @@ class Dialogue {
     constructor(game, sceneManager) {
         this.game = game;
         this.sceneManager = sceneManager;
+        this.portrait = ASSET_MANAGER.getAsset("./assets/StuartBigDialogue.png");
         this.playerName = "";
-        this.state = "TALKING"; // TALKING, INPUT, FINISHED
+        this.state = "TALKING"; 
         
         this.currentLine = 0;
         this.displayText = "";
@@ -13,11 +14,11 @@ class Dialogue {
         this.lines = [
             "Squeak! A new set of whiskers in the walls? I haven't seen a living soul since... well, since I lost mine.",
             "Tell me, young scout... what do they call you in the Great Below?",
-            "INPUT_NAME", // Special tag to trigger the name box
+            "INPUT_NAME", 
             "Ah, {NAME}... a fine name for a scout. I am Stuart Big, once the Chosen, now your spirit guide.",
             "I sought the Golden Wheel once, but my paws slipped at the Great Gate. My poor tail still aches from the fall.",
             "Listen well: To reach the Forbidden Hearth, you must find the Golden Key to unlock the Baby Gate.",
-            "But first, find Edgar Barkley the Yorkie in the living room. He's a loud beast, but he'll teach you the tooth and claw tactics you'll need.",
+            "But first, find Edgar Barkley the Yorkie in the living room. He'll teach you the tooth and claw tactics you'll need.",
             "Good luck, {NAME}. Don't let your tail drag!"
         ];
     }
@@ -41,7 +42,6 @@ class Dialogue {
             return;
         }
 
-        // Process line with name replacement
         let processedLine = line.replace("{NAME}", this.playerName);
 
         if (this.charIndex < processedLine.length) {
@@ -72,34 +72,73 @@ class Dialogue {
     }
 
     draw(ctx) {
-        const w = ctx.canvas.width;
-        const h = ctx.canvas.height;
+        const w = ctx.canvas.width; 
+        const h = ctx.canvas.height; 
 
-        // Dialogue Box UI
-        ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
-        ctx.strokeStyle = "white";
+        // 1. Dialogue Box Dimensions
+        const boxW = 1200; 
+        const boxH = 200;
+        const boxX = (w - boxW) / 2;
+        const boxY = h - boxH - 40; 
+
+        // 2. Draw Main Dialogue Box
+        ctx.fillStyle = "rgba(20, 20, 20, 0.9)";
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 4;
+        ctx.fillRect(boxX, boxY, boxW, boxH);
+        ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+        // 3. Draw Portrait Frame
+        const framePadding = 15;
+        const frameSize = boxH - (framePadding * 2);
+        const frameX = boxX + framePadding;
+        const frameY = boxY + framePadding;
+
+        ctx.fillStyle = "#3a3a3a";
+        ctx.fillRect(frameX, frameY, frameSize, frameSize);
+        
+        if (this.portrait) {
+            ctx.drawImage(
+                this.portrait, 
+                Math.floor(frameX + 5), 
+                Math.floor(frameY + 5), 
+                Math.floor(frameSize - 10), 
+                Math.floor(frameSize - 10)
+            );
+        }
+
+        ctx.strokeStyle = "#ffcc00"; // Gold frame
         ctx.lineWidth = 3;
-        ctx.fillRect(w / 2 - 400, h - 200, 800, 150);
-        ctx.strokeRect(w / 2 - 400, h - 200, 800, 150);
+        ctx.strokeRect(frameX, frameY, frameSize, frameSize);
 
-        // Speaker Name
+        // 4. Text Content Offset
+        const textX = frameX + frameSize + 30;
+        const textY = boxY + 50;
+        const maxTextWidth = boxW - frameSize - 80;
+
         ctx.fillStyle = "#aaaaff"; // Ghostly Blue
-        ctx.font = "bold 20px Arial";
+        ctx.font = "bold 24px Arial";
         ctx.textAlign = "left";
-        ctx.fillText("Stuart Big (Spirit Guide)", w / 2 - 380, h - 170);
+        ctx.fillText("Stuart Big", textX, textY - 10);
 
         ctx.fillStyle = "white";
-        ctx.font = "20px 'Courier New'";
+        ctx.font = "22px 'Courier New'";
         
         if (this.lines[this.currentLine] === "INPUT_NAME") {
-            ctx.fillText("Type your name and press Enter:", w / 2 - 380, h - 120);
+            ctx.fillText("Type your name and press Enter:", textX, textY + 40);
             ctx.fillStyle = "#ffcc00";
-            ctx.fillText("> " + this.playerName + "_", w / 2 - 380, h - 90);
+            ctx.fillText("> " + this.playerName + "_", textX, textY + 80);
         } else {
-            this.wrapText(ctx, this.displayText, w / 2 - 380, h - 130, 760, 25);
-            ctx.font = "14px Arial";
-            ctx.fillStyle = "#888";
-            ctx.fillText("Click or Space to continue...", w / 2 + 200, h - 65);
+            const processedLine = this.lines[this.currentLine].replace("{NAME}", this.playerName);
+            this.wrapText(ctx, this.displayText, textX, textY + 30, maxTextWidth, 32);
+            
+            if (this.charIndex >= processedLine.length) {
+                ctx.font = "16px Arial";
+                ctx.fillStyle = "#888";
+                ctx.textAlign = "right";
+                // FIXED THE SEMICOLON BELOW
+                ctx.fillText("Press SPACE to continue...", boxX + boxW - 20, boxY + boxH - 20);
+            }
         }
     }
 
