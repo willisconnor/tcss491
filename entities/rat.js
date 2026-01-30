@@ -13,7 +13,7 @@ class Rat {
         this.loadAnimations();
         // 0 = left, 1 = right, 2 = down, 3 = up
         this.facing = 0;
-        this.scale = 1;
+        this.scale = 1.25;
         this.animator = this.animations.get("idle")[this.facing];
         this.x = (this.canvas.width / 2) - ((this.animator.width * this.scale) / 2);
         this.y = (this.canvas.height / 2) - ((this.animator.height * this.scale) / 2);
@@ -92,7 +92,7 @@ class Rat {
         }
 
         const currentAnim = this.animator;
-        const isPriority = (/*currentAnim === this.animations.get("attack") ||*/ currentAnim === this.animations.get("dead"));
+        const isPriority = currentAnim === this.animations.get("dead");
 
         // This just makes it so you don't have to hold down on the key for the whole animation to loop
         if (isPriority && !currentAnim.isDone()) {
@@ -118,28 +118,40 @@ class Rat {
         if (this.facing === 2) newY += this.speed * this.game.clockTick;
         if (this.facing === 3) newY -= this.speed * this.game.clockTick;
 
-        // check collision before applying movement
-        const width = this.animator.width * this.scale;
-        const height = this.animator.height * this.scale;
+        // using small circle collider at feet instead of full sprite box
+        const spriteWidth = this.animator.width * this.scale;
+        const fixedHeight = 38 * this.scale; // same as what is used in draw()
 
-        if (!this.game.collisionManager.checkCollision(newX, newY, width, height)) {
+        // small collision box placed at rat's feet (bottom center)
+        const colliderRadius = 12 * this.scale;
+        const colliderWidth = colliderRadius * 2;
+        const colliderHeight = colliderRadius;
+        const colliderX = newX + (spriteWidth / 2) - colliderRadius;
+        const colliderY = newY + fixedHeight - colliderHeight;
+
+        if (!this.game.collisionManager.checkCollision(colliderX, colliderY, colliderWidth, colliderHeight)) {
             this.x = newX;
             this.y = newY;
         }
 
-        // canvas boundary checks
-        if (this.x + (this.animator.width * this.scale) > this.canvas.width && this.facing === 1) {
-            this.x = this.canvas.width - (this.animator.width * this.scale);
-        }
-        if (this.x < 0 && this.facing === 0) this.x = 0;
-        if (this.y < 0 && this.facing === 3) this.y = 0;
+        // canvas boundary checks using the same feet-based collider
+        const currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
+        const currentColliderY = this.y + fixedHeight - colliderHeight;
 
-        let padding = this.animator.yOffset * this.scale;
-        //   @@ -127,7 +140,9 @@ class Rat
-        if (this.y + (this.animator.height * this.scale) + padding > this.canvas.height && this.facing === 2) {
-            this.y = this.canvas.height - (this.animator.height * this.scale) - padding;
+        if (currentColliderX + colliderWidth > this.canvas.width && this.facing === 1) {
+            this.x = this.canvas.width - colliderWidth - (spriteWidth / 2) + colliderRadius;
+        }
+        if (currentColliderX < 0 && this.facing === 0) {
+            this.x = -(spriteWidth / 2) + colliderRadius;
+        }
+        if (currentColliderY < 0 && this.facing === 3) {
+            this.y = -(fixedHeight - colliderHeight);
+        }
+        if (currentColliderY + colliderHeight > this.canvas.height && this.facing === 2) {
+            this.y = this.canvas.height - fixedHeight;
         }
     }
+
 
 
     draw(ctx) {
