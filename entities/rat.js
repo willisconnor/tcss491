@@ -68,8 +68,7 @@ class Rat {
          * the rat's health getting to 0. */
         if (this.game.keys["KeyX"]) {
             targetAnim = this.animations.get("dead");
-        }
-        else if (this.game.keys["ArrowLeft"] || this.game.keys["KeyA"]) {
+        } else if (this.game.keys["ArrowLeft"] || this.game.keys["KeyA"]) {
             targetSpeed = 100;
             this.facing = 0;
             targetAnim = this.animations.get("walk")[this.facing];
@@ -104,8 +103,7 @@ class Rat {
         if (this.animator !== targetAnim) {
             this.animator = targetAnim;
             this.animator.elapsedTime = 0;
-        }
-        else {
+        } else {
             if (isPriority && currentAnim.isDone() && targetAnim === this.animator) {
                 this.animator.elapsedTime = 0;
             }
@@ -144,10 +142,43 @@ class Rat {
     }
 
 
-
     draw(ctx) {
         ctx.imageSmoothingEnabled = false;
+
+        const width = this.animator.width * this.scale;
+        const centerX = this.x + width / 2;
+
+        // using fixed height for the circle position (idle animation height)
+        const fixedHeight = 38 * this.scale; // idle animation height is 38
+        const feetY = this.y + fixedHeight;
+
+        // drawing circle @ feet
+        ctx.save();
+        ctx.beginPath();
+        ctx.ellipse(centerX, feetY - 5, width * 0.6, 8, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255, 215, 0, 0.4)"; // changed from 0.8 to 0.4 as per Christina's request
+        ctx.lineWidth = 3; // changed from 3 to 2 as per Christina's request
+        ctx.stroke();
+        ctx.fillStyle = "rgba(255, 215, 0, 0.1)"; // changed from 0.2 to 0.1 as per Christina's request
+        ctx.fill();
+        ctx.restore();
+
+        // drawing glow outline; pass 0 for tick to avoid advancing animation
+        ctx.save();
+        ctx.globalAlpha = 0.25; // Changed from 0.5 to 0.25 as per Christina's request
+        ctx.filter = "brightness(1) drop-shadow(0 0 4px gold)";
+        const offsets = [[-2, 0], [2, 0], [0, -2], [0, 2]];
+        offsets.forEach(([ox, oy]) => {
+            this.animator.drawFrame(0, ctx, this.x + ox, this.y + oy, this.scale); // Pass 0 here
+        });
+        ctx.restore();
+
+        // drawing actual sprite on top, only THIS one advances the animation
+        ctx.save();
+        ctx.filter = "drop-shadow(0 0 2px rgba(255, 215, 0, 0.3))"; // was 4px/0.6 now 2px/0.3 as per Christina's request
         this.animator.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
-    };
+        ctx.restore();
+    }
+
 
 }
