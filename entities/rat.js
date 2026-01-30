@@ -134,22 +134,22 @@ class Rat {
             this.y = newY;
         }
 
-        // canvas boundary checks using the same feet-based collider
-        const currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
-        const currentColliderY = this.y + fixedHeight - colliderHeight;
+       //checking X-axis movement only, using current Y, this is for wallsliding logic implementation
+        let testColliderX = newX + (spriteWidth / 2) - colliderRadius;
+        let currentColliderY = this.y + fixedHeight - colliderHeight;
 
-        if (currentColliderX + colliderWidth > this.canvas.width && this.facing === 1) {
-            this.x = this.canvas.width - colliderWidth - (spriteWidth / 2) + colliderRadius;
+        if (!this.game.collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
+            this.x = newX; // safe to move X
         }
-        if (currentColliderX < 0 && this.facing === 0) {
-            this.x = -(spriteWidth / 2) + colliderRadius;
+        // checking Y-axis movement only, using potentially UPDATED X we re-calculate X because if we moved left/right
+        // above we need the new position for this check
+        let currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
+        let testColliderY = newY + fixedHeight - colliderHeight;
+
+        if (!this.game.collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
+            this.y = newY; // safe to move Y
         }
-        if (currentColliderY < 0 && this.facing === 3) {
-            this.y = -(fixedHeight - colliderHeight);
-        }
-        if (currentColliderY + colliderHeight > this.canvas.height && this.facing === 2) {
-            this.y = this.canvas.height - fixedHeight;
-        }
+
     }
 
 
