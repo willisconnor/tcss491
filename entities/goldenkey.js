@@ -10,7 +10,6 @@ class GoldenKey {
                         this.pulseTime = 0;
                         this.collected = false;
                         this.showMessage = false;
-                        this.messageTimer = 0;
 
                         this.sprite = ASSET_MANAGER.getAsset("./assets/goldenkey.png");
                         this.width = this.sprite.width * this.scale;
@@ -18,13 +17,15 @@ class GoldenKey {
                     }
 
                     update() {
-                        if (this.collected) {
-                            this.messageTimer += this.game.clockTick;
-                            if (this.messageTimer > 3) {
-                                // transition to level 2 here later or trigger event by interacting with StuartBig :0
+                        if (this.collected && this.showMessage) {
+                            if (this.game.keys["Space"]) {
+                                this.showMessage = false;
+                                this.game.paused = false;
+                                this.game.keys["Space"] = false; // reset to prevent immediate retrigger
                             }
                             return;
                         }
+                        if (this.collected) {return;}
 
                         // pulsate effect
                         this.pulseTime += this.game.clockTick * this.pulseSpeed;
@@ -51,6 +52,7 @@ class GoldenKey {
                             if (this.rectCollide(ratBox, keyBox)) {
                                 this.collected = true;
                                 this.showMessage = true;
+                                this.game.paused = true;
                             }
                         }
                     }
@@ -71,8 +73,10 @@ class GoldenKey {
                             ctx.fillStyle = "gold";
                             ctx.font = "24px Arial";
                             ctx.textAlign = "center";
-                            ctx.fillText("You've retrieved the key D:", this.game.ctx.canvas.width / 2, this.game.ctx.canvas.height / 2 - 10);
-                            ctx.fillText("Return to StuartBig", this.game.ctx.canvas.width / 2, this.game.ctx.canvas.height / 2 + 20);
+                            ctx.fillText("You've retrieved the key!!", this.game.ctx.canvas.width / 2, this.game.ctx.canvas.height / 2 - 10);
+                            ctx.fillStyle = "white";
+                            ctx.font = "16px Arial";
+                            ctx.fillText("Press the spacebar to continue...", ctx.canvas.width / 2, ctx.canvas.height / 2 + 25);
                         }
                     }
                 }

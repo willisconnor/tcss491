@@ -13,7 +13,7 @@ class Rat {
         this.loadAnimations();
         // 0 = left, 1 = right, 2 = down, 3 = up
         this.facing = 0;
-        this.scale = 1;
+        this.scale = 1.25;
         this.animator = this.animations.get("idle")[this.facing];
         this.x = (this.canvas.width / 2) - ((this.animator.width * this.scale) / 2);
         this.y = (this.canvas.height / 2) - ((this.animator.height * this.scale) / 2);
@@ -68,8 +68,7 @@ class Rat {
          * the rat's health getting to 0. */
         if (this.game.keys["KeyX"]) {
             targetAnim = this.animations.get("dead");
-        }
-        else if (this.game.keys["ArrowLeft"] || this.game.keys["KeyA"]) {
+        } else if (this.game.keys["ArrowLeft"] || this.game.keys["KeyA"]) {
             targetSpeed = 100;
             this.facing = 0;
             targetAnim = this.animations.get("walk")[this.facing];
@@ -93,7 +92,7 @@ class Rat {
         }
 
         const currentAnim = this.animator;
-        const isPriority = (/*currentAnim === this.animations.get("attack") ||*/ currentAnim === this.animations.get("dead"));
+        const isPriority = currentAnim === this.animations.get("dead");
 
         // This just makes it so you don't have to hold down on the key for the whole animation to loop
         if (isPriority && !currentAnim.isDone()) {
@@ -104,8 +103,7 @@ class Rat {
         if (this.animator !== targetAnim) {
             this.animator = targetAnim;
             this.animator.elapsedTime = 0;
-        }
-        else {
+        } else {
             if (isPriority && currentAnim.isDone() && targetAnim === this.animator) {
                 this.animator.elapsedTime = 0;
             }
@@ -120,34 +118,79 @@ class Rat {
         if (this.facing === 2) newY += this.speed * this.game.clockTick;
         if (this.facing === 3) newY -= this.speed * this.game.clockTick;
 
-        // check collision before applying movement
-        const width = this.animator.width * this.scale;
-        const height = this.animator.height * this.scale;
+        // using small circle collider at feet instead of full sprite box
+        const spriteWidth = this.animator.width * this.scale;
+        const fixedHeight = 38 * this.scale; // same as what is used in draw()
 
-        if (!this.game.collisionManager.checkCollision(newX, newY, width, height)) {
+        // small collision box placed at rat's feet (bottom center)
+        const colliderRadius = 12 * this.scale;
+        const colliderWidth = colliderRadius * 2;
+        const colliderHeight = colliderRadius;
+        const colliderX = newX + (spriteWidth / 2) - colliderRadius;
+        const colliderY = newY + fixedHeight - colliderHeight;
+
+        if (!this.game.collisionManager.checkCollision(colliderX, colliderY, colliderWidth, colliderHeight)) {
             this.x = newX;
             this.y = newY;
         }
 
-        // canvas boundary checks
-        if (this.x + (this.animator.width * this.scale) > this.canvas.width && this.facing === 1) {
-            this.x = this.canvas.width - (this.animator.width * this.scale);
-        }
-        if (this.x < 0 && this.facing === 0) this.x = 0;
-        if (this.y < 0 && this.facing === 3) this.y = 0;
+       //checking X-axis movement only, using current Y, this is for wallsliding logic implementation
+        let testColliderX = newX + (spriteWidth / 2) - colliderRadius;
+        let currentColliderY = this.y + fixedHeight - colliderHeight;
 
-        let padding = this.animator.yOffset * this.scale;
-        //   @@ -127,7 +140,9 @@ class Rat
-        if (this.y + (this.animator.height * this.scale) + padding > this.canvas.height && this.facing === 2) {
-            this.y = this.canvas.height - (this.animator.height * this.scale) - padding;
+        if (!this.game.collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
+            this.x = newX; // safe to move X
         }
+        // checking Y-axis movement only, using potentially UPDATED X we re-calculate X because if we moved left/right
+        // above we need the new position for this check
+        let currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
+        let testColliderY = newY + fixedHeight - colliderHeight;
+
+        if (!this.game.collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
+            this.y = newY; // safe to move Y
+        }
+
     }
 
 
 
     draw(ctx) {
         ctx.imageSmoothingEnabled = false;
+
+        const width = this.animator.width * this.scale;
+        const centerX = this.x + width / 2;
+
+        // using fixed height for the circle position (idle animation height)
+        const fixedHeight = 38 * this.scale; // idle animation height is 38
+        const feetY = this.y + fixedHeight;
+
+        // drawing circle @ feet
+        ctx.save();
+        ctx.beginPath();
+        ctx.ellipse(centerX, feetY - 5, width * 0.6, 8, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255, 215, 0, 0.4)"; // changed from 0.8 to 0.4 as per Christina's request
+        ctx.lineWidth = 3; // changed from 3 to 2 as per Christina's request
+        ctx.stroke();
+        ctx.fillStyle = "rgba(255, 215, 0, 0.1)"; // changed from 0.2 to 0.1 as per Christina's request
+        ctx.fill();
+        ctx.restore();
+
+        // drawing glow outline; pass 0 for tick to avoid advancing animation
+        ctx.save();
+        ctx.globalAlpha = 0.25; // Changed from 0.5 to 0.25 as per Christina's request
+        ctx.filter = "brightness(1) drop-shadow(0 0 4px gold)";
+        const offsets = [[-2, 0], [2, 0], [0, -2], [0, 2]];
+        offsets.forEach(([ox, oy]) => {
+            this.animator.drawFrame(0, ctx, this.x + ox, this.y + oy, this.scale); // Pass 0 here
+        });
+        ctx.restore();
+
+        // drawing actual sprite on top, only THIS one advances the animation
+        ctx.save();
+        ctx.filter = "drop-shadow(0 0 2px rgba(255, 215, 0, 0.3))"; // was 4px/0.6 now 2px/0.3 as per Christina's request
         this.animator.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
-    };
+        ctx.restore();
+    }
+
 
 }
