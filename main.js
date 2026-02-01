@@ -25,7 +25,7 @@ ASSET_MANAGER.downloadAll(() => {
     
     gameEngine.addEntity(new Rat(gameEngine));
     gameEngine.addEntity(new GoldenKey(gameEngine, 65, 120));
-    gameEngine.addEntity(new Yorkie(gameEngine, 300, 400));
+    gameEngine.addEntity(new Yorkie(gameEngine, 320, 150));
 
     const sceneManager = new SceneManager(gameEngine);
     gameEngine.addEntity(sceneManager);

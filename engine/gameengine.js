@@ -8,7 +8,7 @@ class GameEngine {
 
         // Everything that will be updated and drawn each frame
         this.entities = [];
-
+        this.paused = false;
         // Information on the input
         this.click = null;
         this.mouse = null;
@@ -116,11 +116,11 @@ class GameEngine {
 
         for (let i = this.entities.length - 1; i >= 0; i--) {
             let entity = this.entities[i];
-            
+
             // If menu is active, ONLY draw the SceneManager (which draws the menu)
             if (this.camera && this.camera.menuActive) {
                 if (entity === this.camera) entity.draw(this.ctx, this);
-            } 
+            }
             // If dialogue is active, draw everything BUT save SceneManager for last
             else if (this.camera && this.camera.dialogueActive) {
                 if (entity === this.camera) {
@@ -134,7 +134,7 @@ class GameEngine {
                 entity.draw(this.ctx, this);
             }
         }
-        
+
         // Draw dialogue on top of everything else
         if (this.camera && this.camera.dialogueActive) {
             this.camera.draw(this.ctx, this);
@@ -142,33 +142,35 @@ class GameEngine {
     };
 
     update() {
-    let entitiesCount = this.entities.length;
+        let entitiesCount = this.entities.length;
 
-    for (let i = 0; i < entitiesCount; i++) {
-        let entity = this.entities[i];
+        for (let i = 0; i < entitiesCount; i++) {
+            let entity = this.entities[i];
 
-        if (!entity.removeFromWorld) {
-            /** * This check ensures that if the menu is active, 
-             * only the SceneManager (this.camera) logic runs.
-             */
+            // If menu is active, only update SceneManager
             if (this.camera && this.camera.menuActive) {
                 if (entity === this.camera) {
                     entity.update();
                 }
             } else {
-                // If menu is NOT active, update everything normally
-                entity.update();
+                // If menu is NOT active, check pause state
+                if (!this.paused || entity instanceof GoldenKey || entity instanceof SceneManager) {
+                    if (!entity.removeFromWorld) {
+                        entity.update();
+                    }
+                }
             }
         }
-    }
 
-    // This part stays at the bottom to clean up dead entities
-    for (let i = this.entities.length - 1; i >= 0; --i) {
-        if (this.entities[i].removeFromWorld) {
-            this.entities.splice(i, 1);
+        // Clean up dead entities
+        for (let i = this.entities.length - 1; i >= 0; --i) {
+            if (this.entities[i].removeFromWorld) {
+                this.entities.splice(i, 1);
+            }
         }
+
+
     }
-};
 
     loop() {
         this.clockTick = this.timer.tick();
