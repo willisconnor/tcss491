@@ -32,7 +32,7 @@ class StuartBig {
     };
 
     draw(ctx) {
-        ctx.imageSmoothingEnabled = false;
+        ctx.imageSmoothingEnabled = true;
 
         // drawing glow outline; pass 0 for tick to avoid advancing animation
         ctx.save();
