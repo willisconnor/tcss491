@@ -1,7 +1,7 @@
 // Author: Christina Blackwell
 
 class Rat {
-    constructor(game) {
+    constructor(game, x, y) {
         this.game = game;
         this.canvas = document.getElementById("gameWorld");
         this.animations = new Map();
@@ -12,11 +12,14 @@ class Rat {
         // this.animations.set("attack", []);
         this.loadAnimations();
         // 0 = left, 1 = right, 2 = down, 3 = up
-        this.facing = 0;
+        this.facing = 2;
         this.scale = 1.25;
         this.animator = this.animations.get("idle")[this.facing];
-        this.x = (this.canvas.width / 2) - ((this.animator.width * this.scale) / 2);
-        this.y = (this.canvas.height / 2) - ((this.animator.height * this.scale) / 2);
+        // Controls where player spawns
+        this.x = x;
+        this.y = y;
+        //this.x = (this.canvas.width / 2) - ((this.animator.width * this.scale) / 2);
+        //this.y = (this.canvas.height / 2) - ((this.animator.height * this.scale) / 2);
         this.speed = 0;
     };
 

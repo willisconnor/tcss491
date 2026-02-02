@@ -23,7 +23,7 @@ ASSET_MANAGER.downloadAll(() => {
     const levelData = ASSET_MANAGER.getAsset("./assets/Level1LivingRoom.json");
     gameEngine.collisionManager.loadFromTiledJSON(levelData);
     
-    gameEngine.addEntity(new Rat(gameEngine));
+    gameEngine.addEntity(new Rat(gameEngine, 97, 225));
     gameEngine.addEntity(new GoldenKey(gameEngine, 65, 120));
     gameEngine.addEntity(new Yorkie(gameEngine, 320, 150));
 
