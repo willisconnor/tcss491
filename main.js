@@ -12,6 +12,7 @@ ASSET_MANAGER.queueDownload("./assets/goldenkey.png");
 ASSET_MANAGER.queueDownload("./assets/StuartBigDialogue.png");
 ASSET_MANAGER.queueDownload("./assets/EdgarDialogue.png");
 ASSET_MANAGER.queueDownload("./assets/yorkie animation.png");
+ASSET_MANAGER.queueDownload("./assets/stuart_big.png");
 
 ASSET_MANAGER.downloadAll(() => {
     const canvas = document.getElementById("gameWorld");
@@ -26,6 +27,7 @@ ASSET_MANAGER.downloadAll(() => {
     gameEngine.addEntity(new Rat(gameEngine, 97, 225));
     gameEngine.addEntity(new GoldenKey(gameEngine, 65, 120));
     gameEngine.addEntity(new Yorkie(gameEngine, 320, 150));
+    gameEngine.addEntity(new StuartBig(gameEngine, 200, 215, 2));
 
     const sceneManager = new SceneManager(gameEngine);
     gameEngine.addEntity(sceneManager);
