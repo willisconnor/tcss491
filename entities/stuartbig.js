@@ -37,7 +37,7 @@ class StuartBig {
         // drawing glow outline; pass 0 for tick to avoid advancing animation
         ctx.save();
         ctx.globalAlpha = 0.5;
-        ctx.filter = "brightness(0.75) drop-shadow(0 0 4px white)";
+        ctx.filter = "brightness(1.5) drop-shadow(0 0 4px white)";
         const offsets = [[-2, 0], [2, 0], [0, -2], [0, 2]];
         offsets.forEach(([ox, oy]) => {
             this.animator.drawFrame(0, ctx, this.x + ox, this.y + oy, this.scale); // Pass 0 here
