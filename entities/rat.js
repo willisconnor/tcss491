@@ -1,7 +1,7 @@
 // Author: Christina Blackwell
 
 class Rat {
-    constructor(game) {
+    constructor(game, x, y) {
         this.game = game;
         this.canvas = document.getElementById("gameWorld");
         this.animations = new Map();
@@ -12,11 +12,14 @@ class Rat {
         // this.animations.set("attack", []);
         this.loadAnimations();
         // 0 = left, 1 = right, 2 = down, 3 = up
-        this.facing = 0;
+        this.facing = 2;
         this.scale = 1.25;
         this.animator = this.animations.get("idle")[this.facing];
-        this.x = (this.canvas.width / 2) - ((this.animator.width * this.scale) / 2);
-        this.y = (this.canvas.height / 2) - ((this.animator.height * this.scale) / 2);
+        // Controls where player spawns
+        this.x = x;
+        this.y = y;
+        //this.x = (this.canvas.width / 2) - ((this.animator.width * this.scale) / 2);
+        //this.y = (this.canvas.height / 2) - ((this.animator.height * this.scale) / 2);
         this.speed = 0;
     };
 
@@ -169,15 +172,15 @@ class Rat {
         ctx.beginPath();
         ctx.ellipse(centerX, feetY - 5, width * 0.6, 8, 0, 0, Math.PI * 2);
         ctx.strokeStyle = "rgba(255, 215, 0, 0.4)"; // changed from 0.8 to 0.4 as per Christina's request
-        ctx.lineWidth = 3; // changed from 3 to 2 as per Christina's request
+        ctx.lineWidth = 2; // changed from 3 to 2 as per Christina's request
         ctx.stroke();
-        ctx.fillStyle = "rgba(255, 215, 0, 0.1)"; // changed from 0.2 to 0.1 as per Christina's request
+        ctx.fillStyle = "rgba(255, 215, 0, 0.5)"; // changed from 0.2 to 0.1 as per Christina's request
         ctx.fill();
         ctx.restore();
 
         // drawing glow outline; pass 0 for tick to avoid advancing animation
         ctx.save();
-        ctx.globalAlpha = 0.25; // Changed from 0.5 to 0.25 as per Christina's request
+        ctx.globalAlpha = 0.5; // Changed from 0.5 to 0.25 as per Christina's request
         ctx.filter = "brightness(1) drop-shadow(0 0 4px gold)";
         const offsets = [[-2, 0], [2, 0], [0, -2], [0, 2]];
         offsets.forEach(([ox, oy]) => {
@@ -187,7 +190,7 @@ class Rat {
 
         // drawing actual sprite on top, only THIS one advances the animation
         ctx.save();
-        ctx.filter = "drop-shadow(0 0 2px rgba(255, 215, 0, 0.3))"; // was 4px/0.6 now 2px/0.3 as per Christina's request
+        ctx.filter = "drop-shadow(0 0 4px rgba(255, 215, 0, 0.6))"; // was 4px/0.6 now 2px/0.3 as per Christina's request
         this.animator.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
         ctx.restore();
     }
