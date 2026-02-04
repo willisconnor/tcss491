@@ -40,13 +40,23 @@ class Yorkie {
         this.interactionPressed = false;
 
         // Dialogue lines for the Yorkie NPC
-        this.dialogueLines = [
+        this.dialogueChallenge = [
             "Woof! Another rat? How did you get in here?",
-            "I'm Edgar Barkley, guardian of this room. Not many make it past me.",
-            "Listen here, whisker face. You want to go further? You'll need to earn my respect!",
-            "Come back when you're ready for a real challenge!",
-            "Actually, you don't look so bad. Maybe I can help you.",
-            "Find those golden treats and we'll talk again, {NAME}!"
+            "I'm Edgar Barkley, guardian of this room. I'm guarding the path to the kitchen snacks.",
+            "The giants hide the premium beef jerky in there, but beasts have taken over the floorboards.",
+            "You want the key to the Baby Gate? You'll have to earn my respect and help clear a path for my snacks!",
+            "But look at you... you're soft! A house pet's snack waiting to happen.",
+            "Prove you've got some fight in you, pipsqueak! If you can't even rattle my collar, you won't last a second in the kitchen. Do your worst!"
+        ];
+
+        this.dialoguePostFight = [
+            "Woah! Ease up there, whisker-face! You've got more bite than a flea on a summer day.",
+            "I'll admit... I didn't think a basement-dweller had it in 'em. You passed my little test. Here, take the Baby Gate key.",
+            "But listen close, {NAME}. Stuart thinks that gate is the end of the journey. He’s a fool.",
+            "The real prize, the Golden Wheel, is locked in the Giants' Safe. I'm the only one who knows the code to crack it, but I'm not talking on an empty stomach.",
+            "The path to the kitchen is crawling with fiends, and they’re standing between me and my premium beef jerky. Clear 'em out.",
+            "Prove you're not just a lucky amateur, and I’ll give you the numbers to the hoard.",
+            "Now, beat it. I’m hitting the hay. Don't wake me up unless you're carrying the scent of dried beef!"
         ];
 
     }
@@ -109,7 +119,17 @@ class Yorkie {
 
     startDialogue() {
         const sceneManager = this.game.camera;
-        sceneManager.dialogue.lines = this.dialogueLines;
+        
+        // Pick dialogue based on state
+        if (sceneManager.storyState === "YORKIE_DEFEATED") {
+            sceneManager.dialogue.lines = this.dialoguePostFight;
+        } else {
+            // Default/First time meeting
+            sceneManager.dialogue.lines = this.dialogueChallenge;
+            // Transition state so the next time we talk, or after a fight, it changes
+            // For now, let's assume talking triggers the next phase:
+            // sceneManager.storyState = "YORKIE_CHALLENGE"; 
+        }
         sceneManager.dialogue.speaker = "Edgar Barkley (Yorkie)";
         sceneManager.dialogue.portrait = ASSET_MANAGER.getAsset("./assets/EdgarDialogue.png");
         sceneManager.dialogue.currentLine = 0;

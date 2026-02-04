@@ -63,18 +63,24 @@ class GameEngine {
     };
 
     startInput() {
-        const getXandY = e => ({
-         x: e.clientX - this.ctx.canvas.getBoundingClientRect().left,
-         y: e.clientY - this.ctx.canvas.getBoundingClientRect().top
-        });
+        this.ctx.canvas.tabIndex = 0;
+    
+        // Define the coordinate helper first
+        const getXandY = e => {
+            const rect = this.ctx.canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (this.ctx.canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (this.ctx.canvas.height / rect.height);
+            return { x: x, y: y };
+        };
 
-     this.ctx.canvas.addEventListener("mousemove", e => {
-         if (this.options.debugging) console.log("MOUSE_MOVE", getXandY(e));
-         this.mouse = getXandY(e);
+        // Now attach the listeners
+        this.ctx.canvas.addEventListener("mousemove", e => {
+            if (this.options.debugging) console.log("MOUSE_MOVE", getXandY(e));
+            this.mouse = getXandY(e);
         });
 
         this.ctx.canvas.addEventListener("click", e => {
-         if (this.options.debugging) console.log("CLICK", getXandY(e));
+            if (this.options.debugging) console.log("CLICK", getXandY(e));
             this.click = getXandY(e);
         });
 
@@ -144,17 +150,25 @@ class GameEngine {
     update() {
         let entitiesCount = this.entities.length;
 
+        // 1. Always update the camera/scenemanager
+        if (this.camera) {
+            this.camera.update();
+        }
+
+        // 2. Loop through all entities
         for (let i = 0; i < entitiesCount; i++) {
             let entity = this.entities[i];
 
-            // If menu is active, only update SceneManager
+            // If we are in the main menu, only update the camera
             if (this.camera && this.camera.menuActive) {
-                if (entity === this.camera) {
-                    entity.update();
-                }
+                if (entity === this.camera) entity.update();
             } else {
-                // If menu is NOT active, check pause state
-                if (!this.paused || entity instanceof GoldenKey || entity instanceof SceneManager) {
+                // Gameplay Mode: 
+                // We MUST update the key so it can detect the Rat.
+                // We ALSO update the key if paused so it can detect the Space bar.
+                let isKey = entity.constructor.name === "GoldenKey";
+
+                if (!this.paused || isKey) {
                     if (!entity.removeFromWorld) {
                         entity.update();
                     }
@@ -162,14 +176,12 @@ class GameEngine {
             }
         }
 
-        // Clean up dead entities
+        // 3. Clean up dead entities
         for (let i = this.entities.length - 1; i >= 0; --i) {
             if (this.entities[i].removeFromWorld) {
                 this.entities.splice(i, 1);
             }
         }
-
-
     }
 
     loop() {

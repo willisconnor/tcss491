@@ -19,58 +19,72 @@ class Dialogue {
             "Ah, {NAME}... a fine name for a scout. I am Stuart Big, once the Chosen, now your spirit guide.",
             "I sought the Golden Wheel once, but my paws slipped at the Great Gate. My poor tail still aches from the fall.",
             "Listen well: To reach the Forbidden Hearth, you must find the Golden Key to unlock the Baby Gate.",
-            "But first, find Edgar Barkley the Yorkie in the living room. He'll teach you the tooth and claw tactics you'll need.",
-            "Good luck, {NAME}. Don't let your tail drag!"
+            "The key is guarded by Edgar Barkley, a Yorkie in the living room. He is technically an ally, but he is a creature of hollow loyalty and bottomless greed.",
+            "He has not let a single soul pass without one of his 'little tricks'—a show of skill to prove you aren't just another house mouse.",
+            "He hoards that key like a dragon guards gold, and he won't lift a paw unless there is a tribute for his stomach. Treat him like a mercenary, {NAME}.",
+            "Good luck. Show him the 'tooth and claw' tactics of the Great Below, and don't let your tail drag!"
         ];
     }
 
-    update() {
-        let line = this.lines[this.currentLine];
+update() {
+    let line = this.lines[this.currentLine];
 
-        if (line === "INPUT_NAME") {
-            this.game.typing = true;
-            if (this.game.lastInput === "Enter" && this.playerName.length > 0) {
-                this.game.typing = false;
-                this.currentLine++;
-                this.game.lastInput = null;
-            } else if (this.game.lastInput === "Backspace") {
-                this.playerName = this.playerName.slice(0, -1);
-                this.game.lastInput = null;
-            } else if (this.game.lastInput && this.game.lastInput.length === 1) {
-                if (this.playerName.length < 12) this.playerName += this.game.lastInput;
-                this.game.lastInput = null;
-            }
-            return;
+    // Handle name input state
+    if (line === "INPUT_NAME") {
+        this.game.typing = true;
+        if (this.game.lastInput === "Enter" && this.playerName.length > 0) {
+            this.game.typing = false;
+            this.currentLine++;
+            this.game.lastInput = null;
+        } else if (this.game.lastInput === "Backspace") {
+            this.playerName = this.playerName.slice(0, -1);
+            this.game.lastInput = null;
+        } else if (this.game.lastInput && this.game.lastInput.length === 1) {
+            if (this.playerName.length < 12) this.playerName += this.game.lastInput;
+            this.game.lastInput = null;
         }
+        return;
+    }
 
-        let processedLine = line.replace("{NAME}", this.playerName);
-
-        if (this.charIndex < processedLine.length) {
-            this.typeTimer += this.game.clockTick;
-            if (this.typeTimer > 0.03) {
-                this.displayText += processedLine[this.charIndex];
-                this.charIndex++;
-                this.typeTimer = 0;
-            }
-        }
-
-        if (this.game.click || this.game.keys["Space"]) {
-            if (this.charIndex < processedLine.length) {
-                this.displayText = processedLine;
-                this.charIndex = processedLine.length;
-            } else {
-                this.currentLine++;
-                if (this.currentLine >= this.lines.length) {
-                    this.sceneManager.dialogueActive = false;
-                } else {
-                    this.displayText = "";
-                    this.charIndex = 0;
-                }
-            }
-            this.game.click = null;
-            this.game.keys["Space"] = false;
+    // Process typing effect
+    let processedLine = line.replace("{NAME}", this.playerName);
+    if (this.charIndex < processedLine.length) {
+        this.typeTimer += this.game.clockTick;
+        if (this.typeTimer > 0.03) {
+            this.displayText += processedLine[this.charIndex];
+            this.charIndex++;
+            this.typeTimer = 0;
         }
     }
+
+    // Advance Dialogue with Click or Space
+    if (this.game.click || this.game.keys["Space"]) {
+        // Reset the keys immediately to prevent freezing/skipping
+        this.game.click = null;
+        this.game.keys["Space"] = false;
+
+        if (this.charIndex < processedLine.length) {
+            // Instant skip to end of line
+            this.displayText = processedLine;
+            this.charIndex = processedLine.length;
+        } else {
+            // Move to next line
+            this.currentLine++;
+            
+            if (this.currentLine >= this.lines.length) {
+                this.sceneManager.dialogueActive = false;
+                
+                // Story progression check
+                if (this.speaker === "Stuart Big" && this.sceneManager.storyState === "STUART_TALK") {
+                    this.sceneManager.storyState = "YORKIE_CHALLENGE";
+                } 
+            } else {
+                this.displayText = "";
+                this.charIndex = 0;
+            }
+        }
+    }
+}
 
     draw(ctx) {
         const w = ctx.canvas.width; 
