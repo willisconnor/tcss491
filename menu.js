@@ -18,7 +18,7 @@ class Menu {
         this.currentLine = 0;
         this.displayText = "";
         this.charIndex = 0;
-        this.typeSpeed = 0.04; 
+        this.typeSpeed = 0.06; 
         this.typeTimer = 0;
 
         // Button dimensions (we will calculate X/Y in draw to keep them centered)
