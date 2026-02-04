@@ -2,8 +2,17 @@ class SceneManager {
     constructor(game) {
         this.game = game;
         this.game.camera = this;
-        this.menuActive = true; // Jayda - added this line. Start the game with the menu/story active
-        this.menu = new Menu(this.game); // Jayda - added this line. Initializes the menu system
+        this.fadeAlpha = 1; // Start fully black
+        this.isFading = true;
+
+        this.paused = false;
+        this.pauseMenu = new PauseMenu(this.game);
+        // Track story progress
+        // States: "STUART_TALK", "YORKIE_CHALLENGE", "YORKIE_DEFEATED"
+        this.storyState = "STUART_TALK";
+
+        this.menuActive = true; 
+        this.menu = new Menu(this.game); 
         this.dialogueActive = false;
         this.dialogue = new Dialogue(this.game, this);
         
@@ -25,21 +34,77 @@ class SceneManager {
     }
 
     update() {
+    // 1. Toggle pause or skip menu with Escape
+    if (this.game.keys["Escape"]) {
+        this.game.keys["Escape"] = false; // Reset key to prevent double-triggering
+        
         if (this.menuActive) {
-            this.menu.update();
-        } else if (this.dialogueActive) {
-            this.dialogue.update();
+            // If in intro/tutorial, ESC returns to Start Menu
+            if (this.menu.state === "STORY" || this.menu.state === "TUTORIAL") {
+                this.menu.state = "START";
+            }
+        } else {
+            // Toggle pause during gameplay
+            this.paused = !this.paused;
         }
     }
 
-    draw(ctx) {
-    // 1. If we are in the main menu/intro story, ONLY draw the menu
+    // 2. Main Menu Logic
     if (this.menuActive) {
-        this.menu.draw(ctx);
-        return; // Stop here so we don't draw the rat/tiles behind the intro
+        this.menu.update();
+        return; // Stop here so game doesn't run behind menu
     }
 
-    // 2. DRAW THE GAME WORLD (Tiles)
+    // 3. Pause Menu Logic
+    if (this.paused) {
+        this.pauseMenu.update();
+        return; // Stop here to freeze the game world
+    }
+
+    // 4. Dialogue Logic (Stuart Big or Key Picked Up)
+    if (this.dialogueActive) {
+        this.dialogue.update(); // This allows Space bar to advance text
+        return; // Freeze the world while talking
+    }
+
+    // 5. Normal Gameplay Logic (Add movement/collisions here)
+}
+
+draw(ctx) {
+    // 1. Main Menu
+    if (this.menuActive) {
+        this.menu.draw(ctx);
+        return; 
+    }
+
+    // 2. Game World Tiles
+    this.drawWorld(ctx);
+
+    // 3. Dialogue (Drawn over the world)
+    if (this.dialogueActive) {
+        this.dialogue.draw(ctx);
+    }
+
+    // 4. Pause Menu (Drawn on top of everything)
+    if (this.paused) {
+        this.pauseMenu.draw(ctx);
+    }
+
+    // Only ONE instance of the fade logic should be here
+    if (this.isFading) {
+        ctx.fillStyle = `rgba(0, 0, 0, ${this.fadeAlpha})`;
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        
+        this.fadeAlpha -= 0.01; 
+        if (this.fadeAlpha <= 0) {
+            this.fadeAlpha = 0;
+            this.isFading = false;
+        }
+    }
+}
+
+// Move the tile logic here to keep the draw method clean
+drawWorld(ctx) {
     const scale = 4; 
     const sourceSize = 16; 
     const destSize = sourceSize * scale;
@@ -62,20 +127,6 @@ class SceneManager {
                     }
                 });
             }
-        });
-    }
-
-    // 3. DRAW DIALOGUE ON TOP
-    // This allows the Rat and the Room to be visible while Stuart Big speaks
-    if (this.dialogueActive) {
-        this.dialogue.draw(ctx);
-    }
-
-    // 4. Debugging boxes (only if enabled)
-    if (this.game.options && this.game.options.debugging) {
-        ctx.strokeStyle = 'Red';
-        this.collisionBoxes.forEach(box => {
-            ctx.strokeRect(box.x, box.y, box.width, box.height);
         });
     }
 }

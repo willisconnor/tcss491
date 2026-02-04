@@ -18,7 +18,7 @@ class Menu {
         this.currentLine = 0;
         this.displayText = "";
         this.charIndex = 0;
-        this.typeSpeed = 0.04; 
+        this.typeSpeed = 0.06; 
         this.typeTimer = 0;
 
         // Button dimensions (we will calculate X/Y in draw to keep them centered)
@@ -27,9 +27,14 @@ class Menu {
     }
 
     update() {
-        // Global Skip: Hit ESC to jump straight to the Start Menu
+        // Check for ESC in ANY menu state to go back to START
         if (this.game.keys["Escape"]) {
-            this.state = "START";
+            this.game.keys["Escape"] = false; // Reset the key so it doesn't double-trigger
+            
+            if (this.state === "STORY" || this.state === "TUTORIAL") {
+                this.state = "START";
+                return; 
+            }
         }
 
         if (this.state === "STORY") {
@@ -75,25 +80,32 @@ class Menu {
     }
 
     handleClicks(x, y) {
-        const centerX = this.game.ctx.canvas.width / 2 - this.btnW / 2;
-        const centerY = this.game.ctx.canvas.height / 2;
+        const w = this.game.ctx.canvas.width;
+        const h = this.game.ctx.canvas.height;
+        const centerX = w / 2 - this.btnW / 2;
+        const centerY = h / 2;
 
         if (this.state === "START") {
-            // Start Button (Center)
+            // --- START GAME BUTTON ---
             if (this.checkBounds(x, y, centerX, centerY - 80, this.btnW, this.btnH)) {
-                this.game.camera.menuActive = false;
-                this.game.camera.dialogueActive = true; // Trigger Stuart Big!
-            }
-            // Tutorial Button
-            if (this.checkBounds(x, y, centerX, centerY, this.btnW, this.btnH)) {
+                this.game.camera.menuActive = false;     // Turn off menu
+                this.game.camera.dialogueActive = true;  // Trigger Stuart Big intro
+                this.game.camera.storyState = "STUART_TALK"; 
+                
+                // Reset the dialogue state so it starts from line 0
+                this.game.camera.dialogue.currentLine = 0;
+                this.game.camera.dialogue.charIndex = 0;
+                this.game.camera.dialogue.displayText = "";
+            } 
+            // --- TUTORIAL BUTTON ---
+            else if (this.checkBounds(x, y, centerX, centerY, this.btnW, this.btnH)) {
                 this.state = "TUTORIAL";
             }
-            // Exit Button
-            if (this.checkBounds(x, y, centerX, centerY + 80, this.btnW, this.btnH)) {
+            // --- EXIT BUTTON ---
+            else if (this.checkBounds(x, y, centerX, centerY + 80, this.btnW, this.btnH)) {
                 this.game.stop();
             }
         } else if (this.state === "TUTORIAL") {
-            // Back Button
             if (this.checkBounds(x, y, centerX, centerY + 150, this.btnW, this.btnH)) {
                 this.state = "START";
             }

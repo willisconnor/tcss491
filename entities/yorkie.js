@@ -40,13 +40,23 @@ class Yorkie {
         this.interactionPressed = false;
 
         // Dialogue lines for the Yorkie NPC
-        this.dialogueLines = [
+        this.dialogueChallenge = [
             "Woof! Another rat? How did you get in here?",
-            "I'm Edgar Barkley, guardian of this room. Not many make it past me.",
-            "Listen here, whisker face. You want to go further? You'll need to earn my respect!",
-            "Come back when you're ready for a real challenge!",
-            "Actually, you don't look so bad. Maybe I can help you.",
-            "Find those golden treats and we'll talk again, {NAME}!"
+            "I'm Edgar Barkley, guardian of this room. I'm guarding the path to the kitchen snacks.",
+            "The giants hide the premium beef jerky in there, but beasts have taken over the floorboards.",
+            "You want the key to the Baby Gate? You'll have to earn my respect and help clear a path for my snacks!",
+            "But look at you... you're soft! A house pet's snack waiting to happen.",
+            "Prove you've got some fight in you, pipsqueak! If you can't even rattle my collar, you won't last a second in the kitchen. Do your worst!"
+        ];
+
+        this.dialoguePostFight = [
+            "Woah! Ease up there, whisker-face! You've got more bite than a flea on a summer day.",
+            "I'll admit... I didn't think a basement-dweller had it in 'em. You passed my little test. Here, take the Baby Gate key.",
+            "But listen close, {NAME}. Stuart thinks that gate is the end of the journey. He’s a fool.",
+            "The real prize, the Golden Wheel, is locked in the Giants' Safe. I'm the only one who knows the code to crack it, but I'm not talking on an empty stomach.",
+            "The path to the kitchen is crawling with fiends, and they’re standing between me and my premium beef jerky. Clear 'em out.",
+            "Prove you're not just a lucky amateur, and I’ll give you the numbers to the hoard.",
+            "Now, beat it. I’m hitting the hay. Don't wake me up unless you're carrying the scent of dried beef!"
         ];
 
     }
@@ -70,46 +80,58 @@ class Yorkie {
     }
 
     update() {
-        // Check rat collision
-        const rat = this.game.entities.find(e => e instanceof Rat);
-        if (rat) {
-            const ratBox = {
-                x: rat.x,
-                y: rat.y,
-                width: rat.animator.width * rat.scale,
-                height: rat.animator.height * rat.scale
-            };
-            const yorkieBox = {
-                x: this.x,
-                y: this.y,
-                width: this.animator.width * this.scale,
-                height: this.animator.height * this.scale
-            };
+        // 1. Check for state change (Defeat)
+        if (this.health <= 0 && this.game.camera.storyState !== "YORKIE_DEFEATED") {
+            this.game.camera.storyState = "YORKIE_DEFEATED";
+        }
 
-            // Check if rat is in interaction range
-            this.inRange = this.rectCollide(ratBox, yorkieBox);
+        // 2. Interaction Logic
+        this.inRange = false;
+        for (let i = 0; i < this.game.entities.length; i++) {
+            let ent = this.game.entities[i];
+            
+            // Find the Rat
+            if (ent.constructor.name === "Rat") {
+                const ratBox = {
+                    x: ent.x,
+                    y: ent.y,
+                    width: 50, // Standard rat width fallback
+                    height: 50
+                };
+                const yorkieBox = {
+                    x: this.x,
+                    y: this.y,
+                    width: this.animator.width * this.scale,
+                    height: this.animator.height * this.scale
+                };
 
-            // Handle E key interaction
-            if (this.inRange && this.game.keys["KeyE"]) {
-                if (!this.interactionPressed) {
-                    this.startDialogue();
-                    this.interactionPressed = true;
+                // Check if rat is in interaction range
+                this.inRange = this.rectCollide(ratBox, yorkieBox);
+
+                // Handle E key interaction
+                if (this.inRange && this.game.keys["KeyE"]) {
+                    if (!this.interactionPressed) {
+                        this.startDialogue();
+                        this.interactionPressed = true;
+                        this.game.keys["KeyE"] = false; // Consume the press
+                    }
+                } else if (!this.game.keys["KeyE"]) {
+                    this.interactionPressed = false;
                 }
-            } else if (!this.game.keys["KeyE"]) {
-                // Key is released, allow interaction again
-                this.interactionPressed = false;
             }
         }
     }
 
-    rectCollide(boxA, boxB) {
-        return boxA.x < boxB.x + boxB.width && boxA.x + boxA.width > boxB.x &&
-                boxA.y < boxB.y + boxB.height && boxA.y + boxA.height > boxB.y;
-    }
-
     startDialogue() {
         const sceneManager = this.game.camera;
-        sceneManager.dialogue.lines = this.dialogueLines;
+        
+        // DECIDE WHICH DIALOGUE TO USE:
+        if (sceneManager.storyState === "YORKIE_DEFEATED") {
+            sceneManager.dialogue.lines = this.dialoguePostFight;
+        } else {
+            sceneManager.dialogue.lines = this.dialogueChallenge;
+        }
+
         sceneManager.dialogue.speaker = "Edgar Barkley (Yorkie)";
         sceneManager.dialogue.portrait = ASSET_MANAGER.getAsset("./assets/EdgarDialogue.png");
         sceneManager.dialogue.currentLine = 0;
@@ -117,6 +139,11 @@ class Yorkie {
         sceneManager.dialogue.charIndex = 0;
         sceneManager.dialogue.typeTimer = 0;
         sceneManager.dialogueActive = true;
+    }
+
+    rectCollide(boxA, boxB) {
+        return boxA.x < boxB.x + boxB.width && boxA.x + boxA.width > boxB.x &&
+                boxA.y < boxB.y + boxB.height && boxA.y + boxA.height > boxB.y;
     }
 
     draw(ctx) {

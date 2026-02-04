@@ -26,6 +26,7 @@ class GameEngine {
             "KeyW" : false,
             "KeyS" : false,
             "KeyA" : false,
+            "KeyE": false,
             // X is for testing death animation
             "KeyX" : false
         };
@@ -63,18 +64,24 @@ class GameEngine {
     };
 
     startInput() {
-        const getXandY = e => ({
-         x: e.clientX - this.ctx.canvas.getBoundingClientRect().left,
-         y: e.clientY - this.ctx.canvas.getBoundingClientRect().top
-        });
+        this.ctx.canvas.tabIndex = 0;
+    
+        // Define the coordinate helper first
+        const getXandY = e => {
+            const rect = this.ctx.canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (this.ctx.canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (this.ctx.canvas.height / rect.height);
+            return { x: x, y: y };
+        };
 
-     this.ctx.canvas.addEventListener("mousemove", e => {
-         if (this.options.debugging) console.log("MOUSE_MOVE", getXandY(e));
-         this.mouse = getXandY(e);
+        // Now attach the listeners
+        this.ctx.canvas.addEventListener("mousemove", e => {
+            if (this.options.debugging) console.log("MOUSE_MOVE", getXandY(e));
+            this.mouse = getXandY(e);
         });
 
         this.ctx.canvas.addEventListener("click", e => {
-         if (this.options.debugging) console.log("CLICK", getXandY(e));
+            if (this.options.debugging) console.log("CLICK", getXandY(e));
             this.click = getXandY(e);
         });
 
@@ -143,18 +150,23 @@ class GameEngine {
 
     update() {
         let entitiesCount = this.entities.length;
+        if (this.camera) this.camera.update();
 
         for (let i = 0; i < entitiesCount; i++) {
             let entity = this.entities[i];
 
-            // If menu is active, only update SceneManager
             if (this.camera && this.camera.menuActive) {
-                if (entity === this.camera) {
-                    entity.update();
-                }
+                if (entity === this.camera) entity.update();
             } else {
-                // If menu is NOT active, check pause state
-                if (!this.paused || entity instanceof GoldenKey || entity instanceof SceneManager) {
+                // These characters are allowed to move/think even when the game is "Paused" 
+                // for dialogue or key collection.
+                let isEssential = 
+                    entity.constructor.name === "GoldenKey" || 
+                    entity.constructor.name === "Yorkie" || 
+                    entity.constructor.name === "Rat" ||
+                    entity === this.camera;
+
+                if (!this.paused || isEssential) {
                     if (!entity.removeFromWorld) {
                         entity.update();
                     }
@@ -162,14 +174,11 @@ class GameEngine {
             }
         }
 
-        // Clean up dead entities
         for (let i = this.entities.length - 1; i >= 0; --i) {
             if (this.entities[i].removeFromWorld) {
                 this.entities.splice(i, 1);
             }
         }
-
-
     }
 
     loop() {

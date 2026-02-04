@@ -17,49 +17,53 @@ class GoldenKey {
                     }
 
                     update() {
+                        // 1. If we already have it, wait for Space to unpause
                         if (this.collected && this.showMessage) {
                             if (this.game.keys["Space"]) {
                                 this.showMessage = false;
-                                this.game.paused = false;
-                                this.game.keys["Space"] = false; // reset to prevent immediate retrigger
+                                this.game.paused = false; 
+                                this.game.keys["Space"] = false; 
+                                this.removeFromWorld = true; 
                             }
                             return;
                         }
-                        if (this.collected) {return;}
 
-                        // pulsate effect
+                        if (this.collected) return;
+
+                        // 2. Animation logic
                         this.pulseTime += this.game.clockTick * this.pulseSpeed;
                         this.scale = this.baseScale + Math.sin(this.pulseTime) * this.pulseAmount;
                         this.width = this.sprite.width * this.scale;
                         this.height = this.sprite.height * this.scale;
 
-                        // check collision with Rat
-                        const rat = this.game.entities.find(e => e instanceof Rat);
-                        if (rat) {
-                            const ratBox = {
-                                x: rat.x,
-                                y: rat.y,
-                                width: rat.animator.width * rat.scale,
-                                height: rat.animator.height * rat.scale
-                            };
-                            const keyBox = {
-                                x: this.x,
-                                y: this.y,
-                                width: this.width,
-                                height: this.height
-                            };
+                        // 3. Collision Logic
+                        for (let i = 0; i < this.game.entities.length; i++) {
+                            let ent = this.game.entities[i];
+                            
+                            // Find the player (Rat)
+                            if (ent.constructor.name === "Rat") {
+                                // Check collision using the Rat's width/height or its BoundingBox if it has one
+                                let ratW = ent.width || 50; 
+                                let ratH = ent.height || 50;
 
-                            if (this.rectCollide(ratBox, keyBox)) {
-                                this.collected = true;
-                                this.showMessage = true;
-                                this.game.paused = true;
+                                if (this.x < ent.x + ratW &&
+                                    this.x + this.width > ent.x &&
+                                    this.y < ent.y + ratH &&
+                                    this.y + this.height > ent.y) {
+                                    
+                                    this.collected = true;
+                                    this.showMessage = true;
+                                    this.game.paused = true; // This pauses the REST of the world
+                                }
                             }
                         }
                     }
 
                     rectCollide(boxA, boxB) {
-                        return boxA.x < boxB.x + boxB.width && boxA.x + boxA.width > boxB.x &&
-                               boxA.y < boxB.y + boxB.height && boxA.y + boxA.height > boxB.y;
+                        return boxA.x < boxB.x + boxB.width && 
+                            boxA.x + boxA.width > boxB.x &&
+                            boxA.y < boxB.y + boxB.height && 
+                            boxA.y + boxA.height > boxB.y;
                     }
 
                     draw(ctx) {
