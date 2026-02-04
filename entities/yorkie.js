@@ -80,56 +80,58 @@ class Yorkie {
     }
 
     update() {
-        // Check rat collision
-        const rat = this.game.entities.find(e => e instanceof Rat);
-        if (rat) {
-            const ratBox = {
-                x: rat.x,
-                y: rat.y,
-                width: rat.animator.width * rat.scale,
-                height: rat.animator.height * rat.scale
-            };
-            const yorkieBox = {
-                x: this.x,
-                y: this.y,
-                width: this.animator.width * this.scale,
-                height: this.animator.height * this.scale
-            };
+        // 1. Check for state change (Defeat)
+        if (this.health <= 0 && this.game.camera.storyState !== "YORKIE_DEFEATED") {
+            this.game.camera.storyState = "YORKIE_DEFEATED";
+        }
 
-            // Check if rat is in interaction range
-            this.inRange = this.rectCollide(ratBox, yorkieBox);
+        // 2. Interaction Logic
+        this.inRange = false;
+        for (let i = 0; i < this.game.entities.length; i++) {
+            let ent = this.game.entities[i];
+            
+            // Find the Rat
+            if (ent.constructor.name === "Rat") {
+                const ratBox = {
+                    x: ent.x,
+                    y: ent.y,
+                    width: 50, // Standard rat width fallback
+                    height: 50
+                };
+                const yorkieBox = {
+                    x: this.x,
+                    y: this.y,
+                    width: this.animator.width * this.scale,
+                    height: this.animator.height * this.scale
+                };
 
-            // Handle E key interaction
-            if (this.inRange && this.game.keys["KeyE"]) {
-                if (!this.interactionPressed) {
-                    this.startDialogue();
-                    this.interactionPressed = true;
+                // Check if rat is in interaction range
+                this.inRange = this.rectCollide(ratBox, yorkieBox);
+
+                // Handle E key interaction
+                if (this.inRange && this.game.keys["KeyE"]) {
+                    if (!this.interactionPressed) {
+                        this.startDialogue();
+                        this.interactionPressed = true;
+                        this.game.keys["KeyE"] = false; // Consume the press
+                    }
+                } else if (!this.game.keys["KeyE"]) {
+                    this.interactionPressed = false;
                 }
-            } else if (!this.game.keys["KeyE"]) {
-                // Key is released, allow interaction again
-                this.interactionPressed = false;
             }
         }
-    }
-
-    rectCollide(boxA, boxB) {
-        return boxA.x < boxB.x + boxB.width && boxA.x + boxA.width > boxB.x &&
-                boxA.y < boxB.y + boxB.height && boxA.y + boxA.height > boxB.y;
     }
 
     startDialogue() {
         const sceneManager = this.game.camera;
         
-        // Pick dialogue based on state
+        // DECIDE WHICH DIALOGUE TO USE:
         if (sceneManager.storyState === "YORKIE_DEFEATED") {
             sceneManager.dialogue.lines = this.dialoguePostFight;
         } else {
-            // Default/First time meeting
             sceneManager.dialogue.lines = this.dialogueChallenge;
-            // Transition state so the next time we talk, or after a fight, it changes
-            // For now, let's assume talking triggers the next phase:
-            // sceneManager.storyState = "YORKIE_CHALLENGE"; 
         }
+
         sceneManager.dialogue.speaker = "Edgar Barkley (Yorkie)";
         sceneManager.dialogue.portrait = ASSET_MANAGER.getAsset("./assets/EdgarDialogue.png");
         sceneManager.dialogue.currentLine = 0;
@@ -137,6 +139,11 @@ class Yorkie {
         sceneManager.dialogue.charIndex = 0;
         sceneManager.dialogue.typeTimer = 0;
         sceneManager.dialogueActive = true;
+    }
+
+    rectCollide(boxA, boxB) {
+        return boxA.x < boxB.x + boxB.width && boxA.x + boxA.width > boxB.x &&
+                boxA.y < boxB.y + boxB.height && boxA.y + boxA.height > boxB.y;
     }
 
     draw(ctx) {
