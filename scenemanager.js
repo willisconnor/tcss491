@@ -11,16 +11,23 @@ class SceneManager {
         // States: "STUART_TALK", "YORKIE_CHALLENGE", "YORKIE_DEFEATED"
         this.storyState = "STUART_TALK";
 
-        this.menuActive = true; 
-        this.menu = new Menu(this.game); 
+        this.menuActive = true;
+        this.menu = new Menu(this.game);
         this.dialogueActive = false;
         this.dialogue = new Dialogue(this.game, this);
-        
+
         this.level = ASSET_MANAGER.getAsset("./assets/Level1LivingRoom.json");
         // Load spritesheet
         this.spritesheet = ASSET_MANAGER.getAsset("./assets/global.png");
 
-        // Store collision boxes in an array
+        // optimization: Cache the map b/c sprites were laggy :(
+        this.mapCached = false;
+        this.mapCanvas = document.createElement('canvas');
+        this.mapCtx = this.mapCanvas.getContext('2d');
+        // disable smoothing on the offscreen canvas to prevent blur
+        this.mapCtx.imageSmoothingEnabled = false;
+
+        // store collision boxes
         this.collisionBoxes = [];
 
         if (this.level && this.level.layers) {
@@ -59,9 +66,16 @@ class SceneManager {
             } else {
                 // Toggle pause during gameplay
                 this.paused = !this.paused;
+                if (!this.paused) {
+                    this.game.paused = false;
+                }
             }
         }
-
+        // sync game.paused with SceneManager states
+        // if we are in ESC Pause or Dialogue force GameEngine to pause
+        if (this.paused || this.dialogueActive) {
+            this.game.paused = true;
+        }
         // 2. Main Menu Logic
         if (this.menuActive) {
             this.menu.update();
@@ -71,9 +85,14 @@ class SceneManager {
         // 3. Pause Menu Logic
         if (this.paused) {
             this.pauseMenu.update();
-            return; // Stop here to freeze the game world
+            // check if PauseMenu (Resume button) turned off pause just now
+            // if it did must unpause GameEngine immediately.
+            if (!this.paused) {
+                this.game.paused = false;
+            } else {
+                return; // Still paused, stop here
+            }
         }
-
         // 4. Dialogue Logic (Stuart Big or Key Picked Up)
         if (this.dialogueActive) {
             this.dialogue.update(); // This allows Space bar to advance text
@@ -102,21 +121,12 @@ class SceneManager {
 // I added a new method to handles everything that should go ON TOP of entities
     drawOverlays(ctx) {
         // dialogue
-        if (this.dialogueActive) {
-            this.dialogue.draw(ctx);
-        }
+        if (this.dialogueActive) this.dialogue.draw(ctx);
+        if (this.paused) this.pauseMenu.draw(ctx);
 
-        // pause Menu
-        if (this.paused) {
-            this.pauseMenu.draw(ctx);
-        }
-// draw mute toggle switch
+        // Mute Toggle
         const isMuted = this.game.audio.muted;
-        const x = 1380;
-        const y = 20;
-        const w = 60;
-        const h = 30;
-        const radius = h / 2;
+        const x = 1380, y = 20, w = 60, h = 30, radius = h / 2;
         ctx.save();
         // draw pill shape (background)
         ctx.beginPath();
@@ -156,31 +166,55 @@ class SceneManager {
         }
     }
 
-// Move the tile logic here to keep the draw method clean
-    drawWorld(ctx) {
+    // optimized caching
+    buildLevelCache() {
+        if (!this.level || !this.level.layers) return;
+
         const scale = 4;
         const sourceSize = 16;
         const destSize = sourceSize * scale;
         const columns = 270;
 
-        if (this.level && this.level.layers) {
-            this.level.layers.forEach(layer => {
-                if (layer.type === "tilelayer") {
-                    layer.data.forEach((gid, i) => {
-                        if (gid > 0) {
-                            const mapX = (i % layer.width) * destSize;
-                            const mapY = Math.floor(i / layer.width) * destSize;
-                            const spriteId = gid - 1;
-                            const sourceX = (spriteId % columns) * sourceSize;
-                            const sourceY = Math.floor(spriteId / columns) * sourceSize;
+        // calculate map size
+        const mapWidth = this.level.width * destSize;
+        const mapHeight = this.level.height * destSize;
 
-                            ctx.drawImage(this.spritesheet,
-                                sourceX, sourceY, sourceSize, sourceSize,
-                                mapX, mapY, destSize, destSize);
-                        }
-                    });
-                }
-            });
+        this.mapCanvas.width = mapWidth;
+        this.mapCanvas.height = mapHeight;
+
+        // ensure smoothing is OFF on the cache canvas!!!
+        this.mapCtx.imageSmoothingEnabled = false;
+
+        // draw everything once to the offscreen canvas
+        this.level.layers.forEach(layer => {
+            if (layer.type === "tilelayer") {
+                layer.data.forEach((gid, i) => {
+                    if (gid > 0) {
+                        const mapX = (i % layer.width) * destSize;
+                        const mapY = Math.floor(i / layer.width) * destSize;
+                        const spriteId = gid - 1;
+                        const sourceX = (spriteId % columns) * sourceSize;
+                        const sourceY = Math.floor(spriteId / columns) * sourceSize;
+
+                        this.mapCtx.drawImage(this.spritesheet, sourceX, sourceY, sourceSize, sourceSize, mapX, mapY, destSize, destSize);
+                    }
+                });
+            }
+        });
+
+        this.mapCached = true;
+        console.log("Map cached successfully.");
+    }
+
+    drawWorld(ctx) {
+        // build cache on first run
+        if (!this.mapCached) {
+            this.buildLevelCache();
+        }
+
+        // draw the cached image
+        if (this.mapCached) {
+            ctx.drawImage(this.mapCanvas, 0, 0);
         }
     }
 }

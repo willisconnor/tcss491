@@ -42,7 +42,7 @@ class Yorkie {
 
         // bounding box
         this.width = 18 * this.scale;
-        this.height = 18 * this.scale;
+        this.height = 30 * this.scale;
         this.updateBB();
 
         // Dialogue lines for the Yorkie NPC
@@ -69,6 +69,7 @@ class Yorkie {
     loadAnimations() {
         this.animations.set("sleep", []);
         this.animations.set("walk", []);
+        this.animations.set("idle", []);
         this.animations.set("lick", []); // New Lick Animation
 
         // SLEEP (Row 6, y=108)
@@ -76,19 +77,24 @@ class Yorkie {
             this.animations.get("sleep")[i] = new Animator(this.sprite, 0, 108, 18, 18, 4, 0.7, 0);
         }
 
-        // walk animations i change indices to match rows
+        // WALK & IDLE
+        // create an "Idle" frame by taking the first frame of walk and setting duration to 1 (infinite loop effectively)
 
-        // index 0 = row 0 [y=0] pointing DOWN
+        // Down (Row 0)
         this.animations.get("walk")[0] = new Animator(this.sprite, 0, 0, 18, 18, 4, 0.15, 0);
+        this.animations.get("idle")[0] = new Animator(this.sprite, 0, 0, 18, 18, 1, 1, 0);
 
-        // index 1 = row 1 [y=18] pointing UP
+        // Up (Row 1)
         this.animations.get("walk")[1] = new Animator(this.sprite, 0, 18, 18, 18, 4, 0.15, 0);
+        this.animations.get("idle")[1] = new Animator(this.sprite, 0, 18, 18, 18, 1, 1, 0);
 
-        // index 2 = row 2 [y=36] pointing RIGHT
+        // Right (Row 2)
         this.animations.get("walk")[2] = new Animator(this.sprite, 0, 36, 18, 18, 4, 0.15, 0);
+        this.animations.get("idle")[2] = new Animator(this.sprite, 0, 36, 18, 18, 1, 1, 0);
 
-        // index 3 = row 3 [y=54] pointing LEFT
+        // Left (Row 3)
         this.animations.get("walk")[3] = new Animator(this.sprite, 0, 54, 18, 18, 4, 0.15, 0);
+        this.animations.get("idle")[3] = new Animator(this.sprite, 0, 54, 18, 18, 1, 1, 0);
 
         // fight/lick animation I thought it was cute
         // Row 4 [y=72], 2 frames, looks like dog is teasing rat w/ tongue out
@@ -116,9 +122,8 @@ class Yorkie {
 
         if (rat) {
             const interactBox = new BoundingBox(this.x - 20, this.y - 20, this.width + 40, this.height + 40);
-            const ratBox = new BoundingBox(rat.x, rat.y, 50, 50);
 
-            if (interactBox.collide(ratBox)) {
+            if (rat.BB && interactBox.collide(rat.BB)) {
                 playerInRange = true;
             }
 
@@ -136,9 +141,7 @@ class Yorkie {
                 case "TALKING":
                     if (!this.game.camera.dialogueActive) {
                         if (this.game.camera.storyState === "YORKIE_DEFEATED") {
-                            this.actionState = "LEAVING";
-                            this.leavingPhase = 1;
-                            this.startX = this.x;
+                            this.actionState = "WAIT_FOR_RAT";
                         } else {
                             this.actionState = "PRE_FIGHT";
                         }
@@ -167,10 +170,13 @@ class Yorkie {
 
                 case "POST_FIGHT":
                     if (!this.game.camera.dialogueActive) {
-                        this.actionState = "LEAVING";
-                        this.leavingPhase = 1;
-                        this.startX = this.x;
+                        this.actionState = "WAIT_FOR_RAT";
                     }
+                    break;
+
+                case "WAIT_FOR_RAT":
+                    // use IDLE animation so he stands still and doesn't "emote" or walk in place
+                    this.animator = this.animations.get("idle")[this.facing];
                     break;
 
                 case "LEAVING":
@@ -193,7 +199,7 @@ class Yorkie {
                     else if (this.leavingPhase === 2) {
                         if (this.y < this.targetY) {
                             this.y += speed;
-                            this.facing = 0; // down
+                            this.facing = 0; // Down
                             this.animator = this.animations.get("walk")[0];
                         } else {
                             this.y = this.targetY;
@@ -250,9 +256,7 @@ class Yorkie {
         let rat = this.game.entities.find(e => e.constructor.name === "Rat");
         if (rat) {
             let interactBox = new BoundingBox(this.x - 20, this.y - 20, this.width + 40, this.height + 40);
-            let ratBox = new BoundingBox(rat.x, rat.y, 50, 50);
-
-            if (interactBox.collide(ratBox) && !this.game.camera.dialogueActive) {
+            if (rat.BB && interactBox.collide(rat.BB) && !this.game.camera.dialogueActive) {
                 ctx.font = "14px Arial";
                 if (this.actionState === "IDLE") {
                     ctx.fillStyle = "yellow";
