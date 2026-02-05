@@ -9,6 +9,10 @@ class GameEngine {
         // Everything that will be updated and drawn each frame
         this.entities = [];
         this.paused = false;
+
+        // Initializes audio class
+        this.audio = new SceneAudio();
+        
         // Information on the input
         this.click = null;
         this.mouse = null;

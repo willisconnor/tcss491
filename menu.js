@@ -79,7 +79,7 @@ class Menu {
         }
     }
 
-    handleClicks(x, y) {
+   handleClicks(x, y) {
         const w = this.game.ctx.canvas.width;
         const h = this.game.ctx.canvas.height;
         const centerX = w / 2 - this.btnW / 2;
@@ -88,6 +88,12 @@ class Menu {
         if (this.state === "START") {
             // --- START GAME BUTTON ---
             if (this.checkBounds(x, y, centerX, centerY - 80, this.btnW, this.btnH)) {
+                
+                // 1. START THE MUSIC
+                // Ensure the filename here matches your .wav file exactly!
+                this.game.audio.playMusic("./assets/background_music.wav");
+
+                // 2. Transition to Game
                 this.game.camera.menuActive = false;     // Turn off menu
                 this.game.camera.dialogueActive = true;  // Trigger Stuart Big intro
                 this.game.camera.storyState = "STUART_TALK"; 
