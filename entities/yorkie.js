@@ -15,29 +15,35 @@ class Yorkie {
         this.x = x;
         this.y = y;
 
-        this.facing = 2; // 0 = left, 1 = right, 2 = down, 3 = up
+        this.facing = 0; // start facing Down row 0
         this.scale = 4;
-        this.showMessage = false;
+
+        // stats
+        this.health = 5;
+        this.maxHealth = 5;
+        this.lastHealth = 5;
+        this.hurtTimer = 0;
+
+        // state management
+        this.actionState = "IDLE";
+        this.leavingPhase = 0;
+        this.startX = 0;
+
+        // target Coordinates for leaving
+        this.targetX = 420;
+        this.targetY = 420;
 
         this.sprite = ASSET_MANAGER.getAsset("./assets/yorkie animation.png");
 
-        // DEBUG: Check if sprite loaded
-        console.log("Yorkie sprite loaded:", this.sprite);
-        console.log("Sprite width:", this.sprite.width, "height:", this.sprite.height);
-
+        // animations
         this.animations = new Map();
-        this.animations.set("sleep", []);
-        this.animations.set("walk", []);
-
         this.loadAnimations();
-
         this.animator = this.animations.get("sleep")[this.facing];
-        this.width = this.animator.width * this.scale;
-        this.height = this.animator.height * this.scale;
-        this.canvas = document.getElementById("gameWorld");
 
-        this.inRange = false;
-        this.interactionPressed = false;
+        // bounding box
+        this.width = 18 * this.scale;
+        this.height = 18 * this.scale;
+        this.updateBB();
 
         // Dialogue lines for the Yorkie NPC
         this.dialogueChallenge = [
@@ -58,84 +64,158 @@ class Yorkie {
             "Prove you're not just a lucky amateur, and I’ll give you the numbers to the hoard.",
             "Now, beat it. I’m hitting the hay. Don't wake me up unless you're carrying the scent of dried beef!"
         ];
-
     }
 
     loadAnimations() {
         this.animations.set("sleep", []);
         this.animations.set("walk", []);
-        
-        // SLEEP ANIMATIONS - using row 6 (y = 18 * 6 = 108)
-        // Note: your original had y=109, which would be slightly off. Let's use 108
-        this.animations.get("sleep")[0] = new Animator(this.sprite, 0, 108, 18, 18, 4, 0.7, 0); 
-        this.animations.get("sleep")[1] = new Animator(this.sprite, 0, 108, 18, 18, 4, 0.7, 0); 
-        this.animations.get("sleep")[2] = new Animator(this.sprite, 0, 108, 18, 18, 4, 0.7, 0); 
-        this.animations.get("sleep")[3] = new Animator(this.sprite, 0, 108, 18, 18, 4, 0.7, 0); 
+        this.animations.set("lick", []); // New Lick Animation
 
-        // WALK ANIMATIONS - let's try the first few rows
-        this.animations.get("walk")[0] = new Animator(this.sprite, 0, 0, 18, 18, 4, 0.15, 0);   // row 0
-        this.animations.get("walk")[1] = new Animator(this.sprite, 0, 18, 18, 18, 4, 0.15, 0);  // row 1
-        this.animations.get("walk")[2] = new Animator(this.sprite, 0, 36, 18, 18, 4, 0.15, 0);  // row 2
-        this.animations.get("walk")[3] = new Animator(this.sprite, 0, 54, 18, 18, 4, 0.15, 0);  // row 3
+        // SLEEP (Row 6, y=108)
+        for (let i = 0; i < 4; i++) {
+            this.animations.get("sleep")[i] = new Animator(this.sprite, 0, 108, 18, 18, 4, 0.7, 0);
+        }
+
+        // walk animations i change indices to match rows
+
+        // index 0 = row 0 [y=0] pointing DOWN
+        this.animations.get("walk")[0] = new Animator(this.sprite, 0, 0, 18, 18, 4, 0.15, 0);
+
+        // index 1 = row 1 [y=18] pointing UP
+        this.animations.get("walk")[1] = new Animator(this.sprite, 0, 18, 18, 18, 4, 0.15, 0);
+
+        // index 2 = row 2 [y=36] pointing RIGHT
+        this.animations.get("walk")[2] = new Animator(this.sprite, 0, 36, 18, 18, 4, 0.15, 0);
+
+        // index 3 = row 3 [y=54] pointing LEFT
+        this.animations.get("walk")[3] = new Animator(this.sprite, 0, 54, 18, 18, 4, 0.15, 0);
+
+        // fight/lick animation I thought it was cute
+        // Row 4 [y=72], 2 frames, looks like dog is teasing rat w/ tongue out
+        this.animations.get("lick")[0] = new Animator(this.sprite, 0, 72, 18, 18, 2, 0.15, 0);
+    }
+
+    updateBB() {
+        this.BB = new BoundingBox(this.x, this.y, this.width, this.height);
     }
 
     update() {
-        // 1. Check for state change (Defeat)
-        if (this.health <= 0 && this.game.camera.storyState !== "YORKIE_DEFEATED") {
-            this.game.camera.storyState = "YORKIE_DEFEATED";
+        this.updateBB();
+
+        // damage detection
+        if (this.health < this.lastHealth) {
+            this.hurtTimer = 0.2;
+            this.lastHealth = this.health;
+        }
+        if (this.hurtTimer > 0) {
+            this.hurtTimer -= this.game.clockTick;
         }
 
-        // 2. Interaction Logic
-        this.playerInE_Range = false; // reset to false every frame
+        let rat = this.game.entities.find(e => e.constructor.name === "Rat");
+        let playerInRange = false;
 
-        for (let i = 0; i < this.game.entities.length; i++) {
-            let ent = this.game.entities[i];
+        if (rat) {
+            const interactBox = new BoundingBox(this.x - 20, this.y - 20, this.width + 40, this.height + 40);
+            const ratBox = new BoundingBox(rat.x, rat.y, 50, 50);
 
-            // Find the Rat
-            if (ent.constructor.name === "Rat") {
-                const ratBox = {
-                    x: ent.x,
-                    y: ent.y,
-                    width: 50, // Standard rat width fallback
-                    height: 50
-                };
-                const yorkieBox = {
-                    x: this.x,
-                    y: this.y,
-                    width: this.animator.width * this.scale,
-                    height: this.animator.height * this.scale
-                };
+            if (interactBox.collide(ratBox)) {
+                playerInRange = true;
+            }
 
-                // set variable that draw() is actually looking for
-                if (this.rectCollide(ratBox, yorkieBox)) {
-                    this.playerInE_Range = true;
-                }
-
-                // handle E key interaction
-                // use playerInE_Range here too, for consistency
-                if (this.playerInE_Range && this.game.keys["KeyE"]) {
-                    if (!this.interactionPressed) {
+            switch (this.actionState) {
+                case "IDLE":
+                    // use sleep animation down row 0
+                    this.animator = this.animations.get("sleep")[this.facing];
+                    if (playerInRange && this.game.keys["KeyE"]) {
                         this.startDialogue();
-                        this.interactionPressed = true;
-                        this.game.keys["KeyE"] = false; // Consume press
+                        this.actionState = "TALKING";
+                        this.game.keys["KeyE"] = false;
                     }
-                } else if (!this.game.keys["KeyE"]) {
-                    this.interactionPressed = false;
-                }
+                    break;
+
+                case "TALKING":
+                    if (!this.game.camera.dialogueActive) {
+                        if (this.game.camera.storyState === "YORKIE_DEFEATED") {
+                            this.actionState = "LEAVING";
+                            this.leavingPhase = 1;
+                            this.startX = this.x;
+                        } else {
+                            this.actionState = "PRE_FIGHT";
+                        }
+                    }
+                    break;
+
+                case "PRE_FIGHT":
+                    this.animator = this.animations.get("sleep")[this.facing];
+                    if (playerInRange && this.game.keys["KeyE"]) {
+                        this.actionState = "TRAINING";
+                        this.game.keys["KeyE"] = false;
+                    }
+                    break;
+
+                case "TRAINING":
+                    // fight mode; using new "Lick" animation
+                    // just use index 0 since Lick is one row
+                    this.animator = this.animations.get("lick")[0];
+
+                    if (this.health <= 0) {
+                        this.actionState = "POST_FIGHT";
+                        this.game.camera.storyState = "YORKIE_DEFEATED";
+                        this.startDialogue();
+                    }
+                    break;
+
+                case "POST_FIGHT":
+                    if (!this.game.camera.dialogueActive) {
+                        this.actionState = "LEAVING";
+                        this.leavingPhase = 1;
+                        this.startX = this.x;
+                    }
+                    break;
+
+                case "LEAVING":
+                    let speed = 2;
+
+                    // move X -> right
+                    // facing right is index 2
+                    if (this.leavingPhase === 1) {
+                        if (this.x < this.targetX) {
+                            this.x += speed;
+                            this.facing = 2; // right
+                            this.animator = this.animations.get("walk")[2];
+                        } else {
+                            this.x = this.targetX;
+                            this.leavingPhase = 2;
+                        }
+                    }
+                        // now move y down
+                    // facing down = index 0
+                    else if (this.leavingPhase === 2) {
+                        if (this.y < this.targetY) {
+                            this.y += speed;
+                            this.facing = 0; // down
+                            this.animator = this.animations.get("walk")[0];
+                        } else {
+                            this.y = this.targetY;
+                            this.actionState = "SLEEPING";
+                        }
+                    }
+                    break;
+
+                case "SLEEPING":
+                    this.animator = this.animations.get("sleep")[this.facing];
+                    break;
             }
         }
     }
 
     startDialogue() {
         const sceneManager = this.game.camera;
-        
-        // DECIDE WHICH DIALOGUE TO USE:
-        if (sceneManager.storyState === "YORKIE_DEFEATED") {
+        if (this.game.camera.storyState === "YORKIE_DEFEATED") {
             sceneManager.dialogue.lines = this.dialoguePostFight;
         } else {
             sceneManager.dialogue.lines = this.dialogueChallenge;
         }
-
         sceneManager.dialogue.speaker = "Edgar Barkley (Yorkie)";
         sceneManager.dialogue.portrait = ASSET_MANAGER.getAsset("./assets/EdgarDialogue.png");
         sceneManager.dialogue.currentLine = 0;
@@ -145,23 +225,58 @@ class Yorkie {
         sceneManager.dialogueActive = true;
     }
 
-    rectCollide(boxA, boxB) {
-        return boxA.x < boxB.x + boxB.width && boxA.x + boxA.width > boxB.x &&
-                boxA.y < boxB.y + boxB.height && boxA.y + boxA.height > boxB.y;
-    }
-
     draw(ctx) {
-        ctx.imageSmoothingEnabled = false;
-        this.animator.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
+        let drawX = this.x;
+        let drawY = this.y;
 
-        // draw "E" Prompt
-        // this check now works because update() is setting this.playerInE_Range
-        if (this.playerInE_Range && this.game.camera && !this.game.camera.dialogueActive) {
-            ctx.fillStyle = "yellow";
-            ctx.font = "14px Arial";
-            // centering logic for the text relative to the Yorkie
-            ctx.fillText("[E] Interact", this.x - 10, this.y - 20);
+        // shake effect when hurt
+        if (this.hurtTimer > 0) {
+            ctx.save();
+            ctx.filter = "sepia(1) saturate(5) hue-rotate(-50deg)";
+            let shakeX = Math.random() * 4 - 2;
+            let shakeY = Math.random() * 4 - 2;
+            drawX += shakeX;
+            drawY += shakeY;
+        }
+
+        // drawn sprite
+        this.animator.drawFrame(this.game.clockTick, ctx, drawX, drawY, this.scale);
+
+        if (this.hurtTimer > 0) {
+            ctx.restore();
+        }
+
+        // ui
+        let rat = this.game.entities.find(e => e.constructor.name === "Rat");
+        if (rat) {
+            let interactBox = new BoundingBox(this.x - 20, this.y - 20, this.width + 40, this.height + 40);
+            let ratBox = new BoundingBox(rat.x, rat.y, 50, 50);
+
+            if (interactBox.collide(ratBox) && !this.game.camera.dialogueActive) {
+                ctx.font = "14px Arial";
+                if (this.actionState === "IDLE") {
+                    ctx.fillStyle = "yellow";
+                    ctx.fillText("[E] Speak", this.x, this.y - 10);
+                }
+                else if (this.actionState === "PRE_FIGHT") {
+                    ctx.fillStyle = "red";
+                    ctx.fillText("[E] FIGHT!", this.x, this.y - 10);
+                }
+            }
+        }
+
+        // health bar during fight
+        if (this.actionState === "TRAINING") {
+            ctx.fillStyle = "red";
+            ctx.fillRect(this.x, this.y - 20, 50, 5);
+            ctx.fillStyle = "#39FF14";
+            ctx.fillRect(this.x, this.y - 20, (this.health / this.maxHealth) * 50, 5);
+        }
+
+        // debugging bounding box
+        if (this.game.options.debugging && this.BB) {
+            ctx.strokeStyle = "red";
+            ctx.strokeRect(this.BB.x, this.BB.y, this.BB.width, this.BB.height);
         }
     }
-
 }

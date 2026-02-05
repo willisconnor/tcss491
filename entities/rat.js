@@ -1,4 +1,5 @@
 // Author: Christina Blackwell
+// I modified it to include attack logic w/ lunge animation
 
 class Rat {
     constructor(game, x, y) {
@@ -21,6 +22,11 @@ class Rat {
         //this.x = (this.canvas.width / 2) - ((this.animator.width * this.scale) / 2);
         //this.y = (this.canvas.height / 2) - ((this.animator.height * this.scale) / 2);
         this.speed = 0;
+
+        // attack stats
+        this.attackTimer = 0;
+        this.attackDuration = 0.10; // 0.1 seconds for the lunge (decrease # for faster lunge, increase # for slower lunge)
+        this.attackCooldown = 0;
     };
 
     loadAnimations() {
@@ -57,9 +63,21 @@ class Rat {
     };
 
     update() {
+        // timer management
+        if (this.attackTimer > 0) this.attackTimer -= this.game.clockTick;
+        if (this.attackCooldown > 0) this.attackCooldown -= this.game.clockTick;
+
+        // attack input ---SPACEBAR!!--
+        // can only attack if not already attacking and cooldown is up
+        if (this.game.keys["Space"] && this.attackTimer <= 0 && this.attackCooldown <= 0) {
+            this.attackTimer = this.attackDuration;
+            this.attackCooldown = 0.5; // add slight delay before next attack
+            this.performAttack();      // execute hit check immediately
+        }
+
         let targetAnim = this.animations.get("idle")[this.facing];
         let targetSpeed = 0;
-
+        // I made my own attack logic but left Christina's commented out in case she wants to incorporate/change something
         // Update for attack eventually
         /*if (this.game.keys["Space"]) {
             targetSpeed = 0;
@@ -67,31 +85,37 @@ class Rat {
         }
         else*/
 
-        /* This is just for testing purposes, eventually the death animation will be triggered by
-         * the rat's health getting to 0. */
-        if (this.game.keys["KeyX"]) {
-            targetAnim = this.animations.get("dead");
-        } else if (this.game.keys["ArrowLeft"] || this.game.keys["KeyA"]) {
-            targetSpeed = 100;
-            this.facing = 0;
+        // if attacking, use walk animation; on all 4's
+        if (this.attackTimer > 0) {
             targetAnim = this.animations.get("walk")[this.facing];
-        } else if (this.game.keys["ArrowRight"] || this.game.keys["KeyD"]) {
-            targetSpeed = 100;
-            this.facing = 1;
-            targetAnim = this.animations.get("walk")[this.facing];
-        } else if (this.game.keys["ArrowDown"] || this.game.keys["KeyS"]) {
-            targetSpeed = 100;
-            this.facing = 2;
-            targetAnim = this.animations.get("walk")[this.facing];
-        } else if (this.game.keys["ArrowUp"] || this.game.keys["KeyW"]) {
-            targetSpeed = 100;
-            this.facing = 3;
-            targetAnim = this.animations.get("walk")[this.facing];
+            targetSpeed = 0; // lock movement so you dont glide
         }
+        // normal movement
+        else {
+            if (this.game.keys["KeyX"]) {
+                targetAnim = this.animations.get("dead");
+            } else if (this.game.keys["ArrowLeft"] || this.game.keys["KeyA"]) {
+                targetSpeed = 100;
+                this.facing = 0;
+                targetAnim = this.animations.get("walk")[this.facing];
+            } else if (this.game.keys["ArrowRight"] || this.game.keys["KeyD"]) {
+                targetSpeed = 100;
+                this.facing = 1;
+                targetAnim = this.animations.get("walk")[this.facing];
+            } else if (this.game.keys["ArrowDown"] || this.game.keys["KeyS"]) {
+                targetSpeed = 100;
+                this.facing = 2;
+                targetAnim = this.animations.get("walk")[this.facing];
+            } else if (this.game.keys["ArrowUp"] || this.game.keys["KeyW"]) {
+                targetSpeed = 100;
+                this.facing = 3;
+                targetAnim = this.animations.get("walk")[this.facing];
+            }
 
-        if (this.game.keys["ShiftLeft"]) {
-            targetSpeed = 200;
-            targetAnim = this.animations.get("run")[this.facing];
+            if (this.game.keys["ShiftLeft"] && targetSpeed > 0) {
+                targetSpeed = 200;
+                targetAnim = this.animations.get("run")[this.facing];
+            }
         }
 
         const currentAnim = this.animator;
@@ -152,48 +176,99 @@ class Rat {
         if (!this.game.collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
             this.y = newY; // safe to move Y
         }
-
     }
 
+    performAttack() {
+        // define hitbox range and size
+        let range = 60;
+        let hitX = this.x;
+        let hitY = this.y;
 
+        // offset hitbox based on facing direction
+        if (this.facing === 0) hitX -= range; // left
+        else if (this.facing === 1) hitX += range; // right
+        else if (this.facing === 2) hitY += range; // down
+        else if (this.facing === 3) hitY -= range; // up
+
+        // create hitbox
+        let attackBox = new BoundingBox(hitX, hitY, 50, 50);
+
+        // find Yorkie and check collision
+        let yorkie = this.game.entities.find(e => e.constructor.name === "Yorkie");
+
+        // validate Yorkie exists, is in training state,  initialized its own BoundingBox
+        if (yorkie && yorkie.actionState === "TRAINING" && yorkie.BB) {
+            if (attackBox.collide(yorkie.BB)) {
+                yorkie.health -= 1;
+                console.log("Attack Landed! Yorkie HP:", yorkie.health);
+            }
+        }
+    }
 
     draw(ctx) {
         ctx.imageSmoothingEnabled = false;
 
+        // lunge animation calculation
+        let drawX = this.x;
+        let drawY = this.y;
+
+        if (this.attackTimer > 0) {
+            // calculate a ratio from 0 to 1 and back to 0
+            // Math.sin(0) = 0, Math.sin(PI/2) = 1, Math.sin(PI) = 0
+            let ratio = this.attackTimer / this.attackDuration;
+            let sineWave = Math.sin(ratio * Math.PI);
+
+            let lungeDistance = 20; // # of pixels to lunge
+            let offset = sineWave * lungeDistance;
+
+            if (this.facing === 0) drawX -= offset;
+            if (this.facing === 1) drawX += offset;
+            if (this.facing === 2) drawY += offset;
+            if (this.facing === 3) drawY -= offset;
+        }
+
         const width = this.animator.width * this.scale;
-        const centerX = this.x + width / 2;
+        const centerX = drawX + width / 2; // use drawX
+        const fixedHeight = 38 * this.scale;
+        const feetY = drawY + fixedHeight; // use drawY
 
-        // using fixed height for the circle position (idle animation height)
-        const fixedHeight = 38 * this.scale; // idle animation height is 38
-        const feetY = this.y + fixedHeight;
-
-        // drawing circle @ feet
+        // draw shadow (Moves with Lunge)
         ctx.save();
         ctx.beginPath();
         ctx.ellipse(centerX, feetY - 5, width * 0.6, 8, 0, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(255, 215, 0, 0.4)"; // changed from 0.8 to 0.4 as per Christina's request
-        ctx.lineWidth = 2; // changed from 3 to 2 as per Christina's request
+        ctx.strokeStyle = "rgba(255, 215, 0, 0.4)";
+        ctx.lineWidth = 2;
         ctx.stroke();
-        ctx.fillStyle = "rgba(255, 215, 0, 0.5)"; // changed from 0.2 to 0.1 as per Christina's request
+        ctx.fillStyle = "rgba(255, 215, 0, 0.5)";
         ctx.fill();
         ctx.restore();
 
         // drawing glow outline; pass 0 for tick to avoid advancing animation
         ctx.save();
-        ctx.globalAlpha = 0.5; // Changed from 0.5 to 0.25 as per Christina's request
+        ctx.globalAlpha = 0.5;
         ctx.filter = "brightness(1) drop-shadow(0 0 4px gold)";
         const offsets = [[-2, 0], [2, 0], [0, -2], [0, 2]];
         offsets.forEach(([ox, oy]) => {
-            this.animator.drawFrame(0, ctx, this.x + ox, this.y + oy, this.scale); // Pass 0 here
+            this.animator.drawFrame(0, ctx, drawX + ox, drawY + oy, this.scale);
         });
         ctx.restore();
 
         // drawing actual sprite on top, only THIS one advances the animation
         ctx.save();
-        ctx.filter = "drop-shadow(0 0 4px rgba(255, 215, 0, 0.6))"; // was 4px/0.6 now 2px/0.3 as per Christina's request
-        this.animator.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
+        ctx.filter = "drop-shadow(0 0 4px rgba(255, 215, 0, 0.6))";
+        this.animator.drawFrame(this.game.clockTick, ctx, drawX, drawY, this.scale);
         ctx.restore();
+
+        // debug: draw Hitbox if attacking
+        if (this.game.options.debugging && this.attackTimer > 0) {
+            ctx.strokeStyle = "red";
+            let range = 60;
+            let hitX = this.x; let hitY = this.y;
+            if (this.facing === 0) hitX -= range;
+            else if (this.facing === 1) hitX += range;
+            else if (this.facing === 2) hitY += range;
+            else if (this.facing === 3) hitY -= range;
+            ctx.strokeRect(hitX, hitY, 50, 50);
+        }
     }
-
-
 }
