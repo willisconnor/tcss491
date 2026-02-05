@@ -13,6 +13,7 @@ ASSET_MANAGER.queueDownload("./assets/StuartBigDialogue.png");
 ASSET_MANAGER.queueDownload("./assets/EdgarDialogue.png");
 ASSET_MANAGER.queueDownload("./assets/yorkie animation.png");
 ASSET_MANAGER.queueDownload("./assets/stuart_big.png");
+ASSET_MANAGER.queueDownload("./assets/background_music.wav");
 
 ASSET_MANAGER.downloadAll(() => {
     const canvas = document.getElementById("gameWorld");
