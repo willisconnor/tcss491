@@ -86,10 +86,11 @@ class Yorkie {
         }
 
         // 2. Interaction Logic
-        this.inRange = false;
+        this.playerInE_Range = false; // reset to false every frame
+
         for (let i = 0; i < this.game.entities.length; i++) {
             let ent = this.game.entities[i];
-            
+
             // Find the Rat
             if (ent.constructor.name === "Rat") {
                 const ratBox = {
@@ -105,15 +106,18 @@ class Yorkie {
                     height: this.animator.height * this.scale
                 };
 
-                // Check if rat is in interaction range
-                this.inRange = this.rectCollide(ratBox, yorkieBox);
+                // set variable that draw() is actually looking for
+                if (this.rectCollide(ratBox, yorkieBox)) {
+                    this.playerInE_Range = true;
+                }
 
-                // Handle E key interaction
-                if (this.inRange && this.game.keys["KeyE"]) {
+                // handle E key interaction
+                // use playerInE_Range here too, for consistency
+                if (this.playerInE_Range && this.game.keys["KeyE"]) {
                     if (!this.interactionPressed) {
                         this.startDialogue();
                         this.interactionPressed = true;
-                        this.game.keys["KeyE"] = false; // Consume the press
+                        this.game.keys["KeyE"] = false; // Consume press
                     }
                 } else if (!this.game.keys["KeyE"]) {
                     this.interactionPressed = false;
@@ -147,16 +151,17 @@ class Yorkie {
     }
 
     draw(ctx) {
-      
-    ctx.imageSmoothingEnabled = false;
-    this.animator.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
+        ctx.imageSmoothingEnabled = false;
+        this.animator.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
 
-    // Draw interaction hint when in range
-    if (this.inRange) {
-        ctx.fillStyle = "yellow";
-        ctx.font = "14px Arial";
-        ctx.fillText("[E] Interact", this.x + (this.animator.width * this.scale) / 2 - 30, this.y - 20);
+        // draw "E" Prompt
+        // this check now works because update() is setting this.playerInE_Range
+        if (this.playerInE_Range && this.game.camera && !this.game.camera.dialogueActive) {
+            ctx.fillStyle = "yellow";
+            ctx.font = "14px Arial";
+            // centering logic for the text relative to the Yorkie
+            ctx.fillText("[E] Interact", this.x - 10, this.y - 20);
+        }
     }
-    };
 
 }

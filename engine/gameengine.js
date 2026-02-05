@@ -124,33 +124,34 @@ class GameEngine {
 
     draw() {
         this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+        this.ctx.imageSmoothingEnabled = false;
+        // if Menu active, let SceneManager handle everything
+        if (this.camera && this.camera.menuActive) {
+            this.camera.draw(this.ctx);
+            return;
+        }
 
-        for (let i = this.entities.length - 1; i >= 0; i--) {
+        // draw background (world tiles)
+        if (this.camera) {
+            this.camera.drawWorld(this.ctx);
+        }
+
+        // draw Entities (characters, items)
+        for (let i = 0; i < this.entities.length; i++) {
             let entity = this.entities[i];
-
-            // If menu is active, ONLY draw the SceneManager (which draws the menu)
-            if (this.camera && this.camera.menuActive) {
-                if (entity === this.camera) entity.draw(this.ctx, this);
-            }
-            // If dialogue is active, draw everything BUT save SceneManager for last
-            else if (this.camera && this.camera.dialogueActive) {
-                if (entity === this.camera) {
-                    // Draw SceneManager last (it will draw dialogue on top)
-                    continue; // Skip it for now
-                } else {
-                    entity.draw(this.ctx, this);
-                }
-            }
-            else {
+            // do not draw camera (SceneManager) here, we handle it manually
+            if (entity !== this.camera) {
                 entity.draw(this.ctx, this);
             }
         }
 
-        // Draw dialogue on top of everything else
-        if (this.camera && this.camera.dialogueActive) {
-            this.camera.draw(this.ctx, this);
+        // draw overlays (dialogue, fade, pause) on TOP of entities
+        if (this.camera) {
+            this.camera.drawOverlays(this.ctx);
         }
-    };
+    }
+
+
 
     update() {
         let entitiesCount = this.entities.length;

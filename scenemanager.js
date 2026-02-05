@@ -70,38 +70,46 @@ class SceneManager {
     // 5. Normal Gameplay Logic (Add movement/collisions here)
 }
 
-draw(ctx) {
-    // 1. Main Menu
-    if (this.menuActive) {
-        this.menu.draw(ctx);
-        return; 
+    draw(ctx) {
+        // 1. Main Menu (Handled separately)
+        if (this.menuActive) {
+            this.menu.draw(ctx);
+            return;
+        }
+
+        // 2. Game World Tiles (Bottom Layer)
+        this.drawWorld(ctx);
+
+        // draw overlays (top layer)
+        // we move the overlay logic here so GameEngine can call it separately if needed
+        this.drawOverlays(ctx);
     }
 
-    // 2. Game World Tiles
-    this.drawWorld(ctx);
+// I added a new method to handles everything that should go ON TOP of entities
+    drawOverlays(ctx) {
+        // dialogue
+        if (this.dialogueActive) {
+            this.dialogue.draw(ctx);
+        }
 
-    // 3. Dialogue (Drawn over the world)
-    if (this.dialogueActive) {
-        this.dialogue.draw(ctx);
-    }
+        // pause Menu
+        if (this.paused) {
+            this.pauseMenu.draw(ctx);
+        }
 
-    // 4. Pause Menu (Drawn on top of everything)
-    if (this.paused) {
-        this.pauseMenu.draw(ctx);
-    }
+        // fade effect (must be last to cover everything)
+        if (this.isFading) {
+            ctx.fillStyle = `rgba(0, 0, 0, ${this.fadeAlpha})`;
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-    // Only ONE instance of the fade logic should be here
-    if (this.isFading) {
-        ctx.fillStyle = `rgba(0, 0, 0, ${this.fadeAlpha})`;
-        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        
-        this.fadeAlpha -= 0.01; 
-        if (this.fadeAlpha <= 0) {
-            this.fadeAlpha = 0;
-            this.isFading = false;
+            // update fade alpha
+            this.fadeAlpha -= 0.01;
+            if (this.fadeAlpha <= 0) {
+                this.fadeAlpha = 0;
+                this.isFading = false;
+            }
         }
     }
-}
 
 // Move the tile logic here to keep the draw method clean
 drawWorld(ctx) {
