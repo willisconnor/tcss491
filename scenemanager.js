@@ -11,11 +11,11 @@ class SceneManager {
         // States: "STUART_TALK", "YORKIE_CHALLENGE", "YORKIE_DEFEATED"
         this.storyState = "STUART_TALK";
 
-        this.menuActive = true; 
-        this.menu = new Menu(this.game); 
+        this.menuActive = true;
+        this.menu = new Menu(this.game);
         this.dialogueActive = false;
         this.dialogue = new Dialogue(this.game, this);
-        
+
         this.level = ASSET_MANAGER.getAsset("./assets/Level1LivingRoom.json");
         // Load spritesheet
         this.spritesheet = ASSET_MANAGER.getAsset("./assets/global.png");
@@ -59,9 +59,16 @@ class SceneManager {
             } else {
                 // Toggle pause during gameplay
                 this.paused = !this.paused;
+                if (!this.paused) {
+                    this.game.paused = false;
+                }
             }
         }
-
+        // sync game.paused with SceneManager states
+        // if we are in ESC Pause or Dialogue force GameEngine to pause
+        if (this.paused || this.dialogueActive) {
+            this.game.paused = true;
+        }
         // 2. Main Menu Logic
         if (this.menuActive) {
             this.menu.update();
@@ -71,9 +78,14 @@ class SceneManager {
         // 3. Pause Menu Logic
         if (this.paused) {
             this.pauseMenu.update();
-            return; // Stop here to freeze the game world
+            // check if PauseMenu (Resume button) turned off pause just now
+            // if it did must unpause GameEngine immediately.
+            if (!this.paused) {
+                this.game.paused = false;
+            } else {
+                return; // Still paused, stop here
+            }
         }
-
         // 4. Dialogue Logic (Stuart Big or Key Picked Up)
         if (this.dialogueActive) {
             this.dialogue.update(); // This allows Space bar to advance text
@@ -110,7 +122,7 @@ class SceneManager {
         if (this.paused) {
             this.pauseMenu.draw(ctx);
         }
-// draw mute toggle switch
+        // draw mute toggle switch
         const isMuted = this.game.audio.muted;
         const x = 1380;
         const y = 20;

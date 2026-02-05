@@ -163,12 +163,9 @@ class GameEngine {
             if (this.camera && this.camera.menuActive) {
                 if (entity === this.camera) entity.update();
             } else {
-                // These characters are allowed to move/think even when the game is "Paused" 
-                // for dialogue or key collection.
-                let isEssential = 
-                    entity.constructor.name === "GoldenKey" || 
-                    entity.constructor.name === "Yorkie" || 
-                    entity.constructor.name === "Rat" ||
+                // Yorkie stops moving when paused.
+                // only camera (SceneManager) and GoldenKey (for animation/logic) should updat
+                let isEssential = entity.constructor.name === "GoldenKey" ||
                     entity === this.camera;
 
                 if (!this.paused || isEssential) {
@@ -178,7 +175,6 @@ class GameEngine {
                 }
             }
         }
-
         for (let i = this.entities.length - 1; i >= 0; --i) {
             if (this.entities[i].removeFromWorld) {
                 this.entities.splice(i, 1);

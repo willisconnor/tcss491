@@ -73,8 +73,8 @@ update() {
             
             if (this.currentLine >= this.lines.length) {
                 this.sceneManager.dialogueActive = false;
-                
-                // Story progression check
+
+                this.game.paused = false;
                 if (this.speaker === "Stuart Big" && this.sceneManager.storyState === "STUART_TALK") {
                     this.sceneManager.storyState = "YORKIE_CHALLENGE";
                 } 
