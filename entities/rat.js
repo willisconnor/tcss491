@@ -1,5 +1,5 @@
 // Author: Christina Blackwell
-// I modified it to include attack logic w/ lunge animation
+// I modified it to include attack logic w/ lunge animation and Yorkie interaction
 
 class Rat {
     constructor(game, x, y) {
@@ -11,6 +11,7 @@ class Rat {
         this.animations.set("run", []);
         // I might try to edit the sprite sheet to create attack animations -Christina
         // this.animations.set("attack", []);
+        this.animations.set("dead", null);
         this.loadAnimations();
         // 0 = left, 1 = right, 2 = down, 3 = up
         this.facing = 2;
@@ -27,6 +28,8 @@ class Rat {
         this.attackTimer = 0;
         this.attackDuration = 0.10; // 0.1 seconds for the lunge (decrease # for faster lunge, increase # for slower lunge)
         this.attackCooldown = 0;
+        // initialize Bounding Box
+        this.updateBB();
     };
 
     loadAnimations() {
@@ -61,6 +64,18 @@ class Rat {
         this.animations.set("dead", new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[1]),
             0, 312, 48, 18, 3, 0.7, 0, 0, 14, false));
     };
+    updateBB() {
+        const spriteWidth = 48 * this.scale;
+        const fixedHeight = 38 * this.scale;
+        const colliderRadius = 12 * this.scale;
+        const colliderWidth = colliderRadius * 2;
+        const colliderHeight = colliderRadius;
+
+        const colliderX = this.x + (spriteWidth / 2) - colliderRadius;
+        const colliderY = this.y + fixedHeight - colliderHeight;
+
+        this.BB = new BoundingBox(colliderX, colliderY, colliderWidth, colliderHeight);
+    }
 
     update() {
         // timer management
@@ -84,8 +99,29 @@ class Rat {
             targetAnim = this.animations.get("attack");
         }
         else*/
+        // cutscene logic (automatic movement)
+        let yorkie = this.game.entities.find(e => e.constructor.name === "Yorkie");
 
-        // if attacking, use walk animation; on all 4's
+        // check if Yorkie is waiting for us to move
+        if (yorkie && yorkie.actionState === "WAIT_FOR_RAT") {
+            // move RAT far enough so Yorkie doesn't walk over him
+            // yorkie goes to targetX=420. Rat needs to be PAST that
+            let safeX = yorkie.targetX + 50;
+
+            if (this.x < safeX) {
+                this.x += 100 * this.game.clockTick; // auto-walk right
+                this.facing = 1;
+                this.animator = this.animations.get("walk")[1];
+                this.updateBB();
+                return; // STOP here; ignore inputs
+            } else {
+                // we are safe; trigger Yorkie to leave!
+                yorkie.actionState = "LEAVING";
+                yorkie.leavingPhase = 1;
+                return;
+            }
+        }
+
         if (this.attackTimer > 0) {
             targetAnim = this.animations.get("walk")[this.facing];
             targetSpeed = 0; // lock movement so you dont glide
@@ -153,29 +189,26 @@ class Rat {
         const colliderRadius = 12 * this.scale;
         const colliderWidth = colliderRadius * 2;
         const colliderHeight = colliderRadius;
-        const colliderX = newX + (spriteWidth / 2) - colliderRadius;
-        const colliderY = newY + fixedHeight - colliderHeight;
 
-        if (!this.game.collisionManager.checkCollision(colliderX, colliderY, colliderWidth, colliderHeight)) {
-            this.x = newX;
-            this.y = newY;
-        }
-
-       //checking X-axis movement only, using current Y, this is for wallsliding logic implementation
+        // X-Axis
         let testColliderX = newX + (spriteWidth / 2) - colliderRadius;
         let currentColliderY = this.y + fixedHeight - colliderHeight;
 
-        if (!this.game.collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
-            this.x = newX; // safe to move X
+        if (!this.game.collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight) &&
+            !this.checkYorkieCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
+            this.x = newX;
         }
         // checking Y-axis movement only, using potentially UPDATED X we re-calculate X because if we moved left/right
         // above we need the new position for this check
         let currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
         let testColliderY = newY + fixedHeight - colliderHeight;
 
-        if (!this.game.collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
+        if (!this.game.collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight) &&
+            !this.checkYorkieCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
             this.y = newY; // safe to move Y
         }
+
+        this.updateBB();
     }
 
     performAttack() {
@@ -200,9 +233,21 @@ class Rat {
         if (yorkie && yorkie.actionState === "TRAINING" && yorkie.BB) {
             if (attackBox.collide(yorkie.BB)) {
                 yorkie.health -= 1;
-                console.log("Attack Landed! Yorkie HP:", yorkie.health);
             }
         }
+    }
+
+    checkYorkieCollision(newX, newY, colliderW, colliderH) {
+        let yorkie = this.game.entities.find(e => e.constructor.name === "Yorkie");
+        // removed state checks
+        // if Yorkie exists, collide with him; NO WALKING OVER YORKIE1
+        if (yorkie && yorkie.BB) {
+            let potentialRatBox = new BoundingBox(newX, newY, colliderW, colliderH);
+            if (potentialRatBox.collide(yorkie.BB)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     draw(ctx) {
@@ -232,7 +277,7 @@ class Rat {
         const fixedHeight = 38 * this.scale;
         const feetY = drawY + fixedHeight; // use drawY
 
-        // draw shadow (Moves with Lunge)
+        // shadow
         ctx.save();
         ctx.beginPath();
         ctx.ellipse(centerX, feetY - 5, width * 0.6, 8, 0, 0, Math.PI * 2);
@@ -269,6 +314,11 @@ class Rat {
             else if (this.facing === 2) hitY += range;
             else if (this.facing === 3) hitY -= range;
             ctx.strokeRect(hitX, hitY, 50, 50);
+        }
+
+        if (this.game.options.debugging && this.BB) {
+            ctx.strokeStyle = "red";
+            ctx.strokeRect(this.BB.x, this.BB.y, this.BB.width, this.BB.height);
         }
     }
 }
