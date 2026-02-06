@@ -1,4 +1,5 @@
 //Author: Connor Willis
+//@date: 2/5/26
 
 class Enemy{
     constructor(game, x, y, maxHealth, attackDamage, detectionRange, attackRange, speed){
