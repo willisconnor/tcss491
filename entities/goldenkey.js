@@ -39,18 +39,12 @@ class GoldenKey {
         // 3. Collision Logic
         for (let i = 0; i < this.game.entities.length; i++) {
             let ent = this.game.entities[i];
-
             // Find the player (Rat)
             if (ent.constructor.name === "Rat") {
                 // Check collision using the Rat's width/height or its BoundingBox if it has one
                 let ratW = ent.width || 50;
                 let ratH = ent.height || 50;
-
-                if (this.x < ent.x + ratW &&
-                    this.x + this.width > ent.x &&
-                    this.y < ent.y + ratH &&
-                    this.y + this.height > ent.y) {
-
+                if (this.x < ent.x + ratW && this.x + this.width > ent.x && this.y < ent.y + ratH && this.y + this.height > ent.y) {
                     this.collected = true;
                     this.showMessage = true;
                     this.game.paused = true; // This pauses the REST of the world
@@ -60,18 +54,25 @@ class GoldenKey {
     }
 
     rectCollide(boxA, boxB) {
-        return boxA.x < boxB.x + boxB.width &&
-            boxA.x + boxA.width > boxB.x &&
-            boxA.y < boxB.y + boxB.height &&
-            boxA.y + boxA.height > boxB.y;
+        return boxA.x < boxB.x + boxB.width && boxA.x + boxA.width > boxB.x && boxA.y < boxB.y + boxB.height && boxA.y + boxA.height > boxB.y;
     }
 
     draw(ctx) {
+        // draw the key in minimap coordinates, moves with map
         if (!this.collected) {
             ctx.drawImage(this.sprite, this.x, this.y, this.width, this.height);
         }
 
+        // draw message in screen coordinates hud
         if (this.showMessage) {
+            // save current state; zoomed and panned by camera
+            ctx.save();
+
+
+            // This forces 0,0 to be top-left of monitor/canvas, ignoring camera.
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+            // now drawing at canvas.width / 2 will be center of screen
             ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
             ctx.fillRect(this.game.ctx.canvas.width / 2 - 200, this.game.ctx.canvas.height / 2 - 50, 400, 100);
 
@@ -83,6 +84,9 @@ class GoldenKey {
             ctx.fillStyle = "white";
             ctx.font = "16px Arial";
             ctx.fillText("Press the spacebar to continue...", ctx.canvas.width / 2, ctx.canvas.height / 2 + 25);
+
+            // RESTORE the camera transform so next entity draws correctly in the world
+            ctx.restore();
         }
     }
 }

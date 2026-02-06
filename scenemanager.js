@@ -2,7 +2,18 @@ class SceneManager {
     constructor(game) {
         this.game = game;
         this.game.camera = this;
-        this.fadeAlpha = 1; // Start fully black
+
+        // camera coordinates
+        this.x = 0;
+        this.y = 0;
+
+        // map SCALE;matches Tiled 4x
+        this.scale = 4;
+
+        // camera zoom preferred by team
+        this.zoom = 1.75;
+
+        this.fadeAlpha = 1;
         this.isFading = true;
 
         this.paused = false;
@@ -27,37 +38,54 @@ class SceneManager {
         // disable smoothing on the offscreen canvas to prevent blur
         this.mapCtx.imageSmoothingEnabled = false;
 
-        // store collision boxes
+        this.worldWidth = 0;
+        this.worldHeight = 0;
+
         this.collisionBoxes = [];
 
         if (this.level && this.level.layers) {
             let collisionLayer = this.level.layers.find(l => l.name === "collision");
             if (collisionLayer && collisionLayer.objects) {
                 collisionLayer.objects.forEach(obj => {
-                    this.collisionBoxes.push(new BoundingBox(obj.x * 4, obj.y * 4, obj.width * 4, obj.height * 4));
+                    this.collisionBoxes.push(new BoundingBox(obj.x * this.scale, obj.y * this.scale, obj.width * this.scale, obj.height * this.scale));
                 });
             }
         }
+
+        // minimap constants
+        this.minimapWidth = 250;
+        this.minimapMargin = 10;
     }
 
     update() {
-        // check for mute button click; Top Right Corner
-        // Coordinates: X=1380, Y=20, Width=60, Height=30 (Fits inside 1472 width)
+        // audio UI input logic
         if (this.game.click) {
             const mouseX = this.game.click.x;
             const mouseY = this.game.click.y;
 
-            // check collision with the button area
-            if (mouseX >= 1380 && mouseX <= 1440 && mouseY >= 20 && mouseY <= 50) {
+            // calculate dynamic UI positions to match drawOverlays
+            const aspect = this.worldWidth > 0 ? this.worldHeight / this.worldWidth : 0.5;
+            const mapH = this.minimapWidth * aspect;
+
+            // mute Button Dimensions
+            const muteW = 60;
+            const muteH = 30;
+
+            // mute Button Coords; Bottom RIGHT of Minimap
+            // X = Right edge of canvas - margin - button width
+            const muteX = this.game.ctx.canvas.width - this.minimapMargin - muteW;
+            const muteY = this.minimapMargin + mapH + 10; // 10px padding below map
+
+            // collision check
+            if (mouseX >= muteX && mouseX <= muteX + muteW && mouseY >= muteY && mouseY <= muteY + muteH) {
                 this.game.audio.toggleMute();
-                this.game.click = null; // prevent click from triggering other things
+                this.game.click = null;
                 return;
             }
         }
         // 1. Toggle pause or skip menu with Escape
         if (this.game.keys["Escape"]) {
-            this.game.keys["Escape"] = false; // Reset key to prevent double-triggering
-
+            this.game.keys["Escape"] = false;
             if (this.menuActive) {
                 // If in intro/tutorial, ESC returns to Start Menu
                 if (this.menu.state === "STORY" || this.menu.state === "TUTORIAL") {
@@ -66,9 +94,7 @@ class SceneManager {
             } else {
                 // Toggle pause during gameplay
                 this.paused = !this.paused;
-                if (!this.paused) {
-                    this.game.paused = false;
-                }
+                if (!this.paused) this.game.paused = false;
             }
         }
         // sync game.paused with SceneManager states
@@ -100,64 +126,98 @@ class SceneManager {
             // no explicit 'return' needed if this is already the last statement
         }
 
-        // 5. Normal Gameplay Logic (Add movement/collisions here)
+        // camera scrolling logic (zoomed)
+        let rat = this.game.entities.find(e => e.constructor.name === "Rat");
+
+        if (rat) {
+            // viewport width in WORLD units; Screen Width / Zoom Level
+            let viewW = this.game.ctx.canvas.width / this.zoom;
+            let viewH = this.game.ctx.canvas.height / this.zoom;
+
+            // center camera on Rat
+            this.x = rat.x - (viewW / 2);
+            this.y = rat.y - (viewH / 2);
+
+            // clamp camera in place
+            this.x = Math.max(0, Math.min(this.x, this.worldWidth - viewW));
+            this.y = Math.max(0, Math.min(this.y, this.worldHeight - viewH));
+        }
     }
 
     draw(ctx) {
-        // 1. Main Menu (Handled separately)
         if (this.menuActive) {
             this.menu.draw(ctx);
             return;
         }
 
-        // 2. Game World Tiles (Bottom Layer)
         this.drawWorld(ctx);
-
-        // draw overlays (top layer)
-        // we move the overlay logic here so GameEngine can call it separately if needed
+        // Entities are drawn by GameEngine here
         this.drawOverlays(ctx);
     }
 
-// I added a new method to handles everything that should go ON TOP of entities
+    drawWorld(ctx) {
+        if (!this.mapCached) {
+            this.buildLevelCache();
+        }
+
+        ctx.save();
+        ctx.scale(this.zoom, this.zoom);
+        ctx.translate(-this.x, -this.y);
+
+        if (this.mapCached) {
+            ctx.drawImage(this.mapCanvas, 0, 0);
+        }
+        // No restore here; GameEngine draws entities next
+    }
+
     drawOverlays(ctx) {
-        // dialogue
+        ctx.restore(); // Restore scale/translation for UI
+
+        // --- MINIMAP ---
+        this.drawMinimap(ctx);
+
+        // --- Dialogue & Pause ---
         if (this.dialogueActive) this.dialogue.draw(ctx);
         if (this.paused) this.pauseMenu.draw(ctx);
 
-        // Mute Toggle
+        // --- Mute Toggle (Relative to Minimap) ---
+        const aspect = this.worldHeight / this.worldWidth;
+        const mapH = this.minimapWidth * aspect;
+        const w = 60, h = 30, radius = h / 2;
+
+        // Bottom RIGHT of Minimap
+        const x = ctx.canvas.width - this.minimapMargin - w;
+        const y = this.minimapMargin + mapH + 10;
+
         const isMuted = this.game.audio.muted;
-        const x = 1380, y = 20, w = 60, h = 30, radius = h / 2;
+
         ctx.save();
-        // draw pill shape (background)
         ctx.beginPath();
         ctx.roundRect(x, y, w, h, radius);
-        ctx.fillStyle = isMuted ? "#ccc" : "#4CD964"; // gray if muted, green if ON
+        ctx.fillStyle = isMuted ? "#ccc" : "#4CD964";
         ctx.fill();
         ctx.strokeStyle = "white";
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        // draw the knob; circle
+        // Knob
         ctx.beginPath();
-        // if muted (OFF), knob is on left. If ON, knob is on right.
         const knobX = isMuted ? x + radius : x + w - radius;
         ctx.arc(knobX, y + radius, radius - 4, 0, Math.PI * 2);
         ctx.fillStyle = "white";
         ctx.fill();
 
-        // draw text label "MUSIC" below
+        // Text
         ctx.font = "bold 12px Arial";
         ctx.fillStyle = "white";
         ctx.textAlign = "center";
         ctx.fillText("MUSIC", x + w / 2, y + h + 15);
-
         ctx.restore();
-        // fade effect (must be last to cover everything)
+
+        // --- Fade Effect ---
         if (this.isFading) {
             ctx.fillStyle = `rgba(0, 0, 0, ${this.fadeAlpha})`;
             ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-            // update fade alpha
             this.fadeAlpha -= 0.01;
             if (this.fadeAlpha <= 0) {
                 this.fadeAlpha = 0;
@@ -166,26 +226,101 @@ class SceneManager {
         }
     }
 
-    // optimized caching
+    drawMinimap(ctx) {
+        if (!this.mapCached) return;
+
+        // Minimap Layout
+        const mapW = this.minimapWidth;
+        const mapH = mapW * (this.worldHeight / this.worldWidth);
+        const mapX = ctx.canvas.width - mapW - this.minimapMargin;
+        const mapY = this.minimapMargin;
+
+        // 1. Draw Background
+        ctx.save();
+        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctx.fillRect(mapX - 2, mapY - 2, mapW + 4, mapH + 4);
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(mapX - 2, mapY - 2, mapW + 4, mapH + 4);
+
+        // 2. Draw Cached Map
+        ctx.drawImage(this.mapCanvas, mapX, mapY, mapW, mapH);
+
+        // Constants for coordinate conversion
+        const ratioX = mapW / this.worldWidth;
+        const ratioY = mapH / this.worldHeight;
+
+        // 3. Draw Entities
+        this.game.entities.forEach(entity => {
+            // Default: use top-left x/y
+            let worldX = entity.x;
+            let worldY = entity.y;
+
+            // FIX: For Yorkie, use the CENTER of the bounding box
+            if (entity.constructor.name === "Yorkie") {
+                worldX += entity.width / 2;
+                worldY += entity.height / 2;
+            }
+
+            const entX = mapX + (worldX * ratioX);
+            const entY = mapY + (worldY * ratioY);
+
+            ctx.beginPath();
+
+            if (entity.constructor.name === "Rat") {
+                // Player: Bright Green
+                ctx.arc(entX, entY, 4, 0, Math.PI * 2);
+                ctx.fillStyle = "#39FF14";
+                ctx.fill();
+            } else if (entity.constructor.name === "Yorkie") {
+                // Enemy: Red
+                ctx.arc(entX, entY, 4, 0, Math.PI * 2);
+                ctx.fillStyle = "red";
+                ctx.fill();
+            } else if (entity.constructor.name === "StuartBig") {
+                // Ghost/NPC: Cyan
+                ctx.arc(entX, entY, 3, 0, Math.PI * 2);
+                ctx.fillStyle = "cyan";
+                ctx.fill();
+            } else if (entity.constructor.name === "GoldenKey" && !entity.collected) {
+                // Item: Gold
+                ctx.arc(entX, entY, 3, 0, Math.PI * 2);
+                ctx.fillStyle = "gold";
+                ctx.fill();
+            }
+        });
+
+        // 4. Draw Viewport Rectangle
+        let viewW = ctx.canvas.width / this.zoom;
+        let viewH = ctx.canvas.height / this.zoom;
+
+        ctx.strokeStyle = "yellow";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(
+            mapX + (this.x * ratioX),
+            mapY + (this.y * ratioY),
+            viewW * ratioX,
+            viewH * ratioY
+        );
+
+        ctx.restore();
+    }
+
     buildLevelCache() {
         if (!this.level || !this.level.layers) return;
 
-        const scale = 4;
         const sourceSize = 16;
-        const destSize = sourceSize * scale;
+        const destSize = sourceSize * this.scale;
         const columns = 270;
 
-        // calculate map size
-        const mapWidth = this.level.width * destSize;
-        const mapHeight = this.level.height * destSize;
+        this.worldWidth = this.level.width * destSize;
+        this.worldHeight = this.level.height * destSize;
 
-        this.mapCanvas.width = mapWidth;
-        this.mapCanvas.height = mapHeight;
+        this.mapCanvas.width = this.worldWidth;
+        this.mapCanvas.height = this.worldHeight;
 
-        // ensure smoothing is OFF on the cache canvas!!!
         this.mapCtx.imageSmoothingEnabled = false;
 
-        // draw everything once to the offscreen canvas
         this.level.layers.forEach(layer => {
             if (layer.type === "tilelayer") {
                 layer.data.forEach((gid, i) => {
@@ -195,26 +330,12 @@ class SceneManager {
                         const spriteId = gid - 1;
                         const sourceX = (spriteId % columns) * sourceSize;
                         const sourceY = Math.floor(spriteId / columns) * sourceSize;
-
                         this.mapCtx.drawImage(this.spritesheet, sourceX, sourceY, sourceSize, sourceSize, mapX, mapY, destSize, destSize);
                     }
                 });
             }
         });
-
         this.mapCached = true;
-        console.log("Map cached successfully.");
-    }
-
-    drawWorld(ctx) {
-        // build cache on first run
-        if (!this.mapCached) {
-            this.buildLevelCache();
-        }
-
-        // draw the cached image
-        if (this.mapCached) {
-            ctx.drawImage(this.mapCanvas, 0, 0);
-        }
+        console.log("Map cached successfully at scale " + this.scale);
     }
 }
