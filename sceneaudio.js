@@ -1,7 +1,7 @@
 class SceneAudio {
     constructor() {
         this.currentMusic = null;
-        this.volume = 0.5;
+        this.volume = 0.4;
         this.muted = false; // track mute state
     }
 

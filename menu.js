@@ -87,7 +87,7 @@ class Menu {
 
         if (this.state === "START") {
             // --- START GAME BUTTON ---
-            if (this.checkBounds(x, y, centerX, centerY - 80, this.btnW, this.btnH)) {
+            if (this.checkBounds(x, y, centerX, centerY - 40, this.btnW, this.btnH)) {
                 
                 // 1. START THE MUSIC
                 // Ensure the filename here matches your .wav file exactly!
@@ -104,15 +104,12 @@ class Menu {
                 this.game.camera.dialogue.displayText = "";
             } 
             // --- TUTORIAL BUTTON ---
-            else if (this.checkBounds(x, y, centerX, centerY, this.btnW, this.btnH)) {
+            else if (this.checkBounds(x, y, centerX, centerY + 40, this.btnW, this.btnH)) {
                 this.state = "TUTORIAL";
             }
-            // --- EXIT BUTTON ---
-            else if (this.checkBounds(x, y, centerX, centerY + 80, this.btnW, this.btnH)) {
-                this.game.stop();
-            }
         } else if (this.state === "TUTORIAL") {
-            if (this.checkBounds(x, y, centerX, centerY + 150, this.btnW, this.btnH)) {
+            // <-- fixed Y to match drawTutorial (centerY + 180)
+            if (this.checkBounds(x, y, centerX, centerY + 180, this.btnW, this.btnH)) {
                 this.state = "START";
             }
         }
@@ -166,23 +163,36 @@ class Menu {
         const centerX = w / 2 - this.btnW / 2;
         const centerY = h / 2;
 
-        this.drawBtn(ctx, centerX, centerY - 80, "START GAME");
-        this.drawBtn(ctx, centerX, centerY, "TUTORIAL");
-        this.drawBtn(ctx, centerX, centerY + 80, "EXIT");
+        this.drawBtn(ctx, centerX, centerY - 40, "START GAME");
+        this.drawBtn(ctx, centerX, centerY + 40, "TUTORIAL");
     }
 
     drawTutorial(ctx, w, h) {
         ctx.fillStyle = "white";
         ctx.font = "40px Arial";
         ctx.textAlign = "center";
-        ctx.fillText("GUIDE FOR THE CHOSEN ONE", w / 2, h / 2 - 150);
+        ctx.fillText("GUIDE FOR THE CHOSEN ONE", w / 2, h / 2 - 200);
 
         ctx.font = "20px Arial";
-        ctx.fillText("Move with WASD or Arrow Keys", w / 2, h / 2 - 50);
-        ctx.fillText("Find the Golden Wheel in the Forbidden Hearth", w / 2, h / 2);
-        ctx.fillText("Avoid the beasts that guard the upper world", w / 2, h / 2 + 50);
+        ctx.textAlign = "center";
+        
+        // Movement controls
+        ctx.fillText("Movement: WASD or Arrow Keys", w / 2, h / 2 - 100);
+        
+        // Sprint controls
+        ctx.fillText("Sprint: Hold SHIFT + WASD or Arrow Keys", w / 2, h / 2 - 50);
+        
+        // Attack controls
+        ctx.fillText("Attack: Press SPACE", w / 2, h / 2);
+        
+        // Objective
+        ctx.fillText("Find the Golden Wheel in the Forbidden Hearth", w / 2, h / 2 + 50);
+        
+        // Warning
+        ctx.fillStyle = "#ff6b6b";
+        ctx.fillText("Face the beasts that guard the upper world", w / 2, h / 2 + 100);
 
-        this.drawBtn(ctx, w / 2 - this.btnW / 2, h / 2 + 150, "BACK");
+        this.drawBtn(ctx, w / 2 - this.btnW / 2, h / 2 + 180, "BACK");
     }
 
     drawBtn(ctx, x, y, text) {
