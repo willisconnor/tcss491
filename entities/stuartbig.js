@@ -34,6 +34,9 @@ class StuartBig {
     draw(ctx) {
         ctx.imageSmoothingEnabled = true;
 
+        // ensure animator matches current facing (so cutscene-facing changes immediately apply)
+        this.animator = this.animations.get("idle")[this.facing];
+
         // drawing glow outline; pass 0 for tick to avoid advancing animation
         ctx.save();
         ctx.globalAlpha = 0.5;
