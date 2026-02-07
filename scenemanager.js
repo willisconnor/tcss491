@@ -16,10 +16,16 @@ class SceneManager {
         this.fadeAlpha = 1;
         this.isFading = true;
 
+        // Pre-dialogue cutscene state
+        this.preDialogueActive = false; 
+        this.preDialogueTimer = 0;
+        this.preDialogueDuration = 0; //How long before Stuart starts speaking (if we wanted to implement an exclamation or other intro)
+        this._dialogueWasActive = false;
         this.paused = false;
         this.pauseMenu = new PauseMenu(this.game);
         // Track story progress
         // States: "STUART_TALK", "YORKIE_CHALLENGE", "YORKIE_DEFEATED"
+        this.stuartIntroPlayed = false; // ensure Stuart intro runs only once per session
         this.storyState = "STUART_TALK";
 
         this.menuActive = true;
@@ -102,6 +108,31 @@ class SceneManager {
         if (this.paused || this.dialogueActive) {
             this.game.paused = true;
         }
+
+        // If dialogue was triggered (e.g., from Menu) and it's the Stuart intro, intercept
+        if (this.dialogueActive && this.storyState === "STUART_TALK" && !this.preDialogueActive && !this._dialogueWasActive && !this.stuartIntroPlayed) {
+            this.preDialogueActive = true;
+            this.preDialogueTimer = this.preDialogueDuration;
+            // prevent Dialogue from running immediately
+            this.dialogueActive = false;
+            this._dialogueWasActive = true;
+
+            // lock facings and freeze movement for involved entities
+            let rat = this.game.entities.find(e => e.constructor.name === "Rat");
+            let stuart = this.game.entities.find(e => e.constructor.name === "StuartBig");
+            if (rat) {
+                rat.frozenForDialogue = true;
+                rat.facing = 1; // look right
+                rat.animator = rat.animations.get("idle")[rat.facing];
+            }
+            if (stuart) {
+                stuart.frozenForDialogue = true;
+                stuart.facing = 0; // look left
+                stuart.animator = stuart.animations.get("idle")[stuart.facing];
+            }
+            // keep game paused while pre-dialogue runs
+            this.game.paused = true;
+        }
         // 2. Main Menu Logic
         if (this.menuActive) {
             this.menu.update();
@@ -124,6 +155,42 @@ class SceneManager {
             this.dialogue.update(); // This allows Space bar to advance text
             // world is frozen b/c we exit update early by not running the rest of the function;
             // no explicit 'return' needed if this is already the last statement
+        }
+
+        // Handle pre-dialogue cutscene that shows exclamation and zooms before dialogue starts
+        if (this.preDialogueActive) {
+            // decrement timer
+            this.preDialogueTimer -= this.game.clockTick;
+            if (this.preDialogueTimer <= 0) {
+                // End pre-dialogue: start actual dialogue
+                this.preDialogueActive = false;
+                this.dialogueActive = true;
+                // ensure game remains paused during dialogue
+                this.game.paused = true;
+            } else {
+                // While pre-dialogue is active we don't run normal camera centering below
+                return;
+            }
+        }
+
+        // If we previously intercepted a dialogue and that dialogue just finished, restore state
+        if (!this.dialogueActive && this._dialogueWasActive && !this.preDialogueActive) {
+            // unlock entities and reset to front-facing idle
+            let rat = this.game.entities.find(e => e.constructor.name === "Rat");
+            let stuart = this.game.entities.find(e => e.constructor.name === "StuartBig");
+            if (rat) {
+                rat.frozenForDialogue = false;
+                rat.facing = 2; // front-facing idle
+                rat.animator = rat.animations.get("idle")[rat.facing];
+            }
+            if (stuart) {
+                stuart.frozenForDialogue = false;
+                stuart.facing = 2;
+                stuart.animator = stuart.animations.get("idle")[stuart.facing];
+            }
+            // mark intro as played so it won't trigger again this session
+            this.stuartIntroPlayed = true;
+            this._dialogueWasActive = false;
         }
 
         // camera scrolling logic (zoomed)

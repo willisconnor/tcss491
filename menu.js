@@ -95,13 +95,27 @@ class Menu {
 
                 // 2. Transition to Game
                 this.game.camera.menuActive = false;     // Turn off menu
-                this.game.camera.dialogueActive = true;  // Trigger Stuart Big intro
-                this.game.camera.storyState = "STUART_TALK"; 
+                this.game.camera.storyState = "STUART_TALK";
                 
-                // Reset the dialogue state so it starts from line 0
-                this.game.camera.dialogue.currentLine = 0;
-                this.game.camera.dialogue.charIndex = 0;
-                this.game.camera.dialogue.displayText = "";
+                // Check if Stuart's intro has already been played
+                if (!this.game.camera.stuartIntroPlayed) {
+                    // First time: play the intro dialogue
+                    this.game.camera.dialogueActive = true;  // Trigger Stuart Big intro
+                    this.game.camera.dialogue.currentIndex = 0;
+                    this.game.camera.dialogue.charIndex = 0;
+                    this.game.camera.dialogue.displayText = "";
+                    this.game.camera.dialogue.playerName = "";
+                    this.game.camera.dialogue.phase = "INTRO";
+                    this.game.camera.dialogue.selectedChoiceIndex = null;
+                    this.game.camera.dialogue.selectedQuestions = new Set();
+                    this.game.camera.dialogue.displayingChoiceResponse = false;
+                    this.game.camera.dialogue.currentQuestionIndex = null;
+                    this.game.camera.dialogue.askingFollowUp = false;
+                    this.game.camera.dialogue.typeTimer = 0;
+                } else {
+                    // Already played intro: skip straight to game without dialogue
+                    this.game.camera.dialogueActive = false;
+                }
             } 
             // --- TUTORIAL BUTTON ---
             else if (this.checkBounds(x, y, centerX, centerY + 40, this.btnW, this.btnH)) {

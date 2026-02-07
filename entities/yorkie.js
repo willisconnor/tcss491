@@ -260,7 +260,7 @@ class Yorkie {
                 ctx.font = "14px Arial";
                 if (this.actionState === "IDLE") {
                     ctx.fillStyle = "yellow";
-                    ctx.fillText("[E] Speak", this.x, this.y - 10);
+                    ctx.fillText("[E] Yorkie", this.x, this.y - 10);
                 }
                 else if (this.actionState === "PRE_FIGHT") {
                     ctx.fillStyle = "red";
