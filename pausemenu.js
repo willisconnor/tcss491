@@ -76,8 +76,24 @@ class PauseMenu {
                 // MAIN MENU Button
                 else if (mouseX >= centerX && mouseX <= centerX + this.btnW &&
                     mouseY >= centerY + 160 && mouseY <= centerY + 160 + this.btnH) {
+                    // Clear any active dialogue or pre-dialogue to avoid stuck state
                     this.game.camera.paused = false;
-                    this.game.camera.menuActive = true; 
+                    this.game.paused = false;
+                    this.game.camera.dialogueActive = false;
+                    this.game.typing = false;
+                    // clear dialogue buffers
+                    if (this.game.camera.dialogue) {
+                        this.game.camera.dialogue.displayText = "";
+                        this.game.camera.dialogue.charIndex = 0;
+                        this.game.camera.dialogue.typeTimer = 0;
+                        this.game.camera.dialogue.currentQuestionIndex = null;
+                        this.game.camera.dialogue.displayingChoiceResponse = false;
+                    }
+                    // stop pre-dialogue state
+                    this.game.camera.preDialogueActive = false;
+                    this.game.camera._dialogueWasActive = false;
+
+                    this.game.camera.menuActive = true;
                     this.game.camera.menu.state = "START";
                     this.isDragging = false;
                     this.soundSettingsOpen = false;

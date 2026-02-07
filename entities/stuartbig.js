@@ -13,6 +13,13 @@ class StuartBig {
         this.animator = this.animations.get("idle")[this.facing];
         this.x = x;
         this.y = y;
+        
+        // Interaction system
+        this.width = 48 * this.scale;
+        this.height = 38 * this.scale;
+        this.actionState = "IDLE"; // IDLE, TALKING
+        this.BB = null;
+        this.updateBB();
     };
 
     // Stuart Big doesn't move, so he just has the idle animation
@@ -29,6 +36,52 @@ class StuartBig {
 
     // Nothing to update
     update() {
+        this.updateBB();
+        
+        let rat = this.game.entities.find(e => e.constructor.name === "Rat");
+        let playerInRange = false;
+        
+        if (rat) {
+            const interactBox = new BoundingBox(this.x - 20, this.y - 20, this.width + 40, this.height + 40);
+            if (rat.BB && interactBox.collide(rat.BB)) {
+                playerInRange = true;
+            }
+            
+            switch (this.actionState) {
+                case "IDLE":
+                    // Check if player pressed E and intro dialogue has played
+                    if (playerInRange && this.game.keys["KeyE"] && this.game.camera.stuartIntroPlayed) {
+                        this.startFurtherQuestionsDialogue();
+                        this.actionState = "TALKING";
+                        this.game.keys["KeyE"] = false;
+                    }
+                    break;
+                    
+                case "TALKING":
+                    if (!this.game.camera.dialogueActive) {
+                        this.actionState = "IDLE";
+                    }
+                    break;
+            }
+        }
+    };
+    
+    updateBB() {
+        this.BB = new BoundingBox(this.x, this.y, this.width, this.height);
+    };
+    
+    startFurtherQuestionsDialogue() {
+        const dialogue = this.game.camera.dialogue;
+        dialogue.portrait = ASSET_MANAGER.getAsset("./assets/StuartBigDialogue.png");
+        dialogue.speaker = "Stuart Big";
+        dialogue.phase = "INQUIRY";
+        dialogue.currentQuestionIndex = null;
+        dialogue.displayText = "";
+        dialogue.charIndex = 0;
+        dialogue.selectedQuestions.clear();
+        dialogue.askingFollowUp = false;
+        dialogue.exitingAfterResponse = false;
+        this.game.camera.dialogueActive = true;
     };
 
     draw(ctx) {
@@ -51,7 +104,16 @@ class StuartBig {
         ctx.save();
         this.animator.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
         ctx.restore();
+        
+        // Draw interaction prompt if Stuart intro has been played and player is in range
+        let rat = this.game.entities.find(e => e.constructor.name === "Rat");
+        if (rat && this.game.camera.stuartIntroPlayed && !this.game.camera.dialogueActive) {
+            let interactBox = new BoundingBox(this.x - 20, this.y - 20, this.width + 40, this.height + 40);
+            if (rat.BB && interactBox.collide(rat.BB)) {
+                ctx.font = "14px Arial";
+                ctx.fillStyle = "yellow";
+                ctx.fillText("[E] Stuart Big", this.x, this.y - 10);
+            }
+        }
     }
-
-
 }
