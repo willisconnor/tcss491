@@ -16,17 +16,19 @@ class SceneManager {
         this.fadeAlpha = 1;
         this.isFading = true;
 
-        // Pre-dialogue cutscene state
-        this.preDialogueActive = false; 
+        // track music
+        this.currentMusicPath = "./assets/background_music.wav";
+
+        this.yorkieDefeated = false;
+        this.stuartIntroPlayed = false;
+        this.storyState = "STUART_TALK";
+
+        this.preDialogueActive = false;
         this.preDialogueTimer = 0;
         this.preDialogueDuration = 0; //How long before Stuart starts speaking (if we wanted to implement an exclamation or other intro)
         this._dialogueWasActive = false;
         this.paused = false;
         this.pauseMenu = new PauseMenu(this.game);
-        // Track story progress
-        // States: "STUART_TALK", "YORKIE_CHALLENGE", "YORKIE_DEFEATED"
-        this.stuartIntroPlayed = false; // ensure Stuart intro runs only once per session
-        this.storyState = "STUART_TALK";
 
         this.menuActive = true;
         this.menu = new Menu(this.game);
@@ -47,15 +49,8 @@ class SceneManager {
         this.worldWidth = 0;
         this.worldHeight = 0;
 
-        this.collisionBoxes = [];
-
-        if (this.level && this.level.layers) {
-            let collisionLayer = this.level.layers.find(l => l.name === "collision");
-            if (collisionLayer && collisionLayer.objects) {
-                collisionLayer.objects.forEach(obj => {
-                    this.collisionBoxes.push(new BoundingBox(obj.x * this.scale, obj.y * this.scale, obj.width * this.scale, obj.height * this.scale));
-                });
-            }
+        if (this.game.collisionManager) {
+            this.game.collisionManager.loadFromTiledJSON(this.level);
         }
 
         // minimap constants
@@ -211,6 +206,59 @@ class SceneManager {
         }
     }
 
+    loadLevelOne() {
+        this.game.entities.forEach(entity => {
+            if (!(entity instanceof SceneManager)) entity.removeFromWorld = true;
+        });
+
+        this.level = ASSET_MANAGER.getAsset("./assets/Level1LivingRoom.json");
+        this.mapCached = false;
+
+        if (this.game.collisionManager) {
+            this.game.collisionManager.loadFromTiledJSON(this.level);
+        }
+
+        // update track
+        this.currentMusicPath = "./assets/background_music.wav";
+        this.game.audio.playMusic(this.currentMusicPath);
+
+        this.game.addEntity(new Rat(this.game, 448, 190));
+        this.game.addEntity(new StuartBig(this.game, 200, 215, 2));
+
+        if (!this.yorkieDefeated) {
+            this.game.addEntity(new Yorkie(this.game, 320, 150));
+        } else {
+            // Even if defeated, we add him so he can spawn in his bed
+            this.game.addEntity(new Yorkie(this.game, 320, 150));
+        }
+
+        this.game.addEntity(new Door(this.game, 448, 128, "Level2", true));
+
+        console.log("Level 1 Loaded!");
+    }
+
+    loadLevelTwo() {
+        this.game.entities.forEach(entity => {
+            if (!(entity instanceof SceneManager)) entity.removeFromWorld = true;
+        });
+
+        this.level = ASSET_MANAGER.getAsset("./assets/Level2DiningRoom.json");
+        this.mapCached = false;
+
+        if (this.game.collisionManager) {
+            this.game.collisionManager.loadFromTiledJSON(this.level);
+        }
+
+        // update track
+        this.currentMusicPath = "./assets/desert.mp3";
+        this.game.audio.playMusic(this.currentMusicPath);
+
+        this.game.addEntity(new Rat(this.game, 256, 160));
+        this.game.addEntity(new Door(this.game, 256, 160, "Level1", false));
+
+        console.log("Level 2 Loaded!");
+    }
+
     draw(ctx) {
         if (this.menuActive) {
             this.menu.draw(ctx);
@@ -363,13 +411,7 @@ class SceneManager {
 
         ctx.strokeStyle = "yellow";
         ctx.lineWidth = 1.5;
-        ctx.strokeRect(
-            mapX + (this.x * ratioX),
-            mapY + (this.y * ratioY),
-            viewW * ratioX,
-            viewH * ratioY
-        );
-
+        ctx.strokeRect(mapX + (this.x * ratioX), mapY + (this.y * ratioY), viewW * ratioX, viewH * ratioY);
         ctx.restore();
     }
 
