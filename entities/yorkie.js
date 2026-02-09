@@ -64,6 +64,16 @@ class Yorkie {
             "Prove you're not just a lucky amateur, and I’ll give you the numbers to the hoard.",
             "Now, beat it. I’m hitting the hay. Don't wake me up unless you're carrying the scent of dried beef!"
         ];
+
+        if (this.game.camera && this.game.camera.yorkieDefeated) {
+            this.health = 0;
+            this.lastHealth = 0;
+            this.dead = true;
+            this.actionState = "SLEEPING";
+            this.x = 420;
+            this.y = 420;
+            this.facing = 0;
+        }
     }
 
     loadAnimations() {
@@ -162,6 +172,7 @@ class Yorkie {
                     this.animator = this.animations.get("lick")[0];
 
                     if (this.health <= 0) {
+                        this.game.camera.yorkieDefeated = true;
                         this.actionState = "POST_FIGHT";
                         this.game.camera.storyState = "YORKIE_DEFEATED";
                         this.startDialogue();
@@ -232,6 +243,8 @@ class Yorkie {
     }
 
     draw(ctx) {
+        ctx.imageSmoothingEnabled = false;
+
         let drawX = this.x;
         let drawY = this.y;
 
@@ -246,7 +259,7 @@ class Yorkie {
         }
 
         // drawn sprite
-        this.animator.drawFrame(this.game.clockTick, ctx, drawX, drawY, this.scale);
+        this.animator.drawFrame(this.game.clockTick, ctx, Math.floor(drawX), Math.floor(drawY), this.scale);
 
         if (this.hurtTimer > 0) {
             ctx.restore();

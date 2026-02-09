@@ -46,8 +46,13 @@ class GoldenKey {
                 let ratH = ent.height || 50;
                 if (this.x < ent.x + ratW && this.x + this.width > ent.x && this.y < ent.y + ratH && this.y + this.height > ent.y) {
                     this.collected = true;
+
+                    // this saves "collected" state to SceneManager (Camera)
+                    // so Door knows we have key even after object is removed
+                    this.game.camera.hasGoldenKey = true;
+
                     this.showMessage = true;
-                    this.game.paused = true; // This pauses the REST of the world
+                    this.game.paused = true; // pauses REST of the world
                 }
             }
         }

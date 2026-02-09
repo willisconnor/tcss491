@@ -1,9 +1,8 @@
-// Jayda
 class Menu {
     constructor(game) {
         this.game = game;
         this.state = "STORY"; // Initial state
-        
+
         // Updated Lore: The Legend of the Golden Wheel
         this.storyLines = [
             "For generations, our colony has thrived in the shadows of the Great Below.",
@@ -88,10 +87,15 @@ class Menu {
         if (this.state === "START") {
             // --- START GAME BUTTON ---
             if (this.checkBounds(x, y, centerX, centerY - 40, this.btnW, this.btnH)) {
-                
+
                 // 1. START THE MUSIC
-                // Ensure the filename here matches your .wav file exactly!
-                this.game.audio.playMusic("./assets/background_music.wav");
+                // Use the music path stored in SceneManager so it matches the current level
+                if (this.game.camera && this.game.camera.currentMusicPath) {
+                    this.game.audio.playMusic(this.game.camera.currentMusicPath);
+                } else {
+                    // Fallback just in case
+                    this.game.audio.playMusic("./assets/background_music.wav");
+                }
 
                 // 2. Transition to Game
                 this.game.camera.menuActive = false;     // Turn off menu

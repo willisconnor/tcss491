@@ -4,29 +4,32 @@ class CollisionManager {
                 this.scale = 4;
             }
 
-            loadFromTiledJSON(json) {
-                const collisionLayer = json.layers.find(layer => layer.name === "collisions");
-                if (!collisionLayer) return;
+    loadFromTiledJSON(json) {
+        // clear old colliders
+        this.colliders = [];
 
-                for (const obj of collisionLayer.objects) {
-                    const x = obj.x * this.scale;
-                    const y = obj.y * this.scale;
-                    const width = obj.width * this.scale;
-                    const height = obj.height * this.scale;
+        const collisionLayer = json.layers.find(layer => layer.name === "collisions");
+        if (!collisionLayer) return;
 
-                    if (obj.ellipse) {
-                        this.colliders.push({ type: 'ellipse', x, y, width, height });
-                    } else if (obj.polygon) {
-                        const scaledPoints = obj.polygon.map(p => ({
-                            x: p.x * this.scale,
-                            y: p.y * this.scale
-                        }));
-                        this.colliders.push({ type: 'polygon', x, y, points: scaledPoints });
-                    } else {
-                        this.colliders.push({ type: 'rect', x, y, width, height });
-                    }
-                }
+        for (const obj of collisionLayer.objects) {
+            const x = obj.x * this.scale;
+            const y = obj.y * this.scale;
+            const width = obj.width * this.scale;
+            const height = obj.height * this.scale;
+
+            if (obj.ellipse) {
+                this.colliders.push({ type: 'ellipse', x, y, width, height });
+            } else if (obj.polygon) {
+                const scaledPoints = obj.polygon.map(p => ({
+                    x: p.x * this.scale,
+                    y: p.y * this.scale
+                }));
+                this.colliders.push({ type: 'polygon', x, y, points: scaledPoints });
+            } else {
+                this.colliders.push({ type: 'rect', x, y, width, height });
             }
+        }
+    }
 
             checkCollision(entityX, entityY, entityWidth, entityHeight) {
                 for (const col of this.colliders) {
