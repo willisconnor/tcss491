@@ -250,7 +250,7 @@ class SceneManager {
         }
 
         // update track
-        this.currentMusicPath = "./assets/desert.mp3";
+        this.currentMusicPath = "./assets/Desert.mp3";
         this.game.audio.playMusic(this.currentMusicPath);
 
         this.game.addEntity(new Rat(this.game, 256, 160));
