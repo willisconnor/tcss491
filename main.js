@@ -15,7 +15,7 @@ ASSET_MANAGER.queueDownload("./assets/yorkie animation.png");
 ASSET_MANAGER.queueDownload("./assets/stuart_big.png");
 ASSET_MANAGER.queueDownload("./assets/background_music.wav");
 ASSET_MANAGER.queueDownload("./assets/Level2DiningRoom.json");
-ASSET_MANAGER.queueDownload("./assets/desert.mp3");
+ASSET_MANAGER.queueDownload("./assets/Desert.mp3");
 
 ASSET_MANAGER.downloadAll(() => {
     const canvas = document.getElementById("gameWorld");
