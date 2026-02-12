@@ -1,9 +1,8 @@
-
 <!DOCTYPE html>
 <html lang = "en"> <head>
     <meta charset="utf-8">
     <title>RPG (Rat Playing Game)</title>
-
+    <link rel="icon" href="data:,">
     <script src="./dialogue.js"></script>
     <script type="text/javascript" src="./menu.js"></script>
 
@@ -21,6 +20,7 @@
     <script type="text/javascript" src="./entities/stuartbig.js"></script>
     <script type="text/javascript" src="./entities/goldenkey.js"></script>
     <script type="text/javascript" src="./entities/yorkie.js"></script>
+    <script type="text/javascript" src="./entities/door.js"></script>
     <script type="text/javascript" src="./sceneaudio.js"></script>
     <script type="text/javascript" src="./scenemanager.js"></script>
     <script type="text/javascript" src="./pausemenu.js"></script>
@@ -42,12 +42,12 @@
         max-height: 100vh;
         width: auto;
         height: auto;
-        background: white;
+        background: rgb(0, 0, 0);
         border: 1px solid black;
 
     }
 </style>
-<body style="display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #84C2E8;">
-    <canvas id="gameWorld" width="1472" height="640" style="background: white; border: none" tabindex="0" autofocus></canvas>
+<body style="display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #000000;">
+    <canvas id="gameWorld" width="1472" height="850" style="background: rgb(0, 0, 0); border: none" tabindex="0" autofocus></canvas>
 </body>
 </html>

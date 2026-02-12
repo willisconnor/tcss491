@@ -16,11 +16,19 @@ class SceneManager {
         this.fadeAlpha = 1;
         this.isFading = true;
 
+        // track music
+        this.currentMusicPath = "./assets/background_music.wav";
+
+        this.yorkieDefeated = false;
+        this.stuartIntroPlayed = false;
+        this.storyState = "STUART_TALK";
+
+        this.preDialogueActive = false;
+        this.preDialogueTimer = 0;
+        this.preDialogueDuration = 0; //How long before Stuart starts speaking (if we wanted to implement an exclamation or other intro)
+        this._dialogueWasActive = false;
         this.paused = false;
         this.pauseMenu = new PauseMenu(this.game);
-        // Track story progress
-        // States: "STUART_TALK", "YORKIE_CHALLENGE", "YORKIE_DEFEATED"
-        this.storyState = "STUART_TALK";
 
         this.menuActive = true;
         this.menu = new Menu(this.game);
@@ -41,15 +49,8 @@ class SceneManager {
         this.worldWidth = 0;
         this.worldHeight = 0;
 
-        this.collisionBoxes = [];
-
-        if (this.level && this.level.layers) {
-            let collisionLayer = this.level.layers.find(l => l.name === "collision");
-            if (collisionLayer && collisionLayer.objects) {
-                collisionLayer.objects.forEach(obj => {
-                    this.collisionBoxes.push(new BoundingBox(obj.x * this.scale, obj.y * this.scale, obj.width * this.scale, obj.height * this.scale));
-                });
-            }
+        if (this.game.collisionManager) {
+            this.game.collisionManager.loadFromTiledJSON(this.level);
         }
 
         // minimap constants
@@ -102,6 +103,31 @@ class SceneManager {
         if (this.paused || this.dialogueActive) {
             this.game.paused = true;
         }
+
+        // If dialogue was triggered (e.g., from Menu) and it's the Stuart intro, intercept
+        if (this.dialogueActive && this.storyState === "STUART_TALK" && !this.preDialogueActive && !this._dialogueWasActive && !this.stuartIntroPlayed) {
+            this.preDialogueActive = true;
+            this.preDialogueTimer = this.preDialogueDuration;
+            // prevent Dialogue from running immediately
+            this.dialogueActive = false;
+            this._dialogueWasActive = true;
+
+            // lock facings and freeze movement for involved entities
+            let rat = this.game.entities.find(e => e.constructor.name === "Rat");
+            let stuart = this.game.entities.find(e => e.constructor.name === "StuartBig");
+            if (rat) {
+                rat.frozenForDialogue = true;
+                rat.facing = 1; // look right
+                rat.animator = rat.animations.get("idle")[rat.facing];
+            }
+            if (stuart) {
+                stuart.frozenForDialogue = true;
+                stuart.facing = 0; // look left
+                stuart.animator = stuart.animations.get("idle")[stuart.facing];
+            }
+            // keep game paused while pre-dialogue runs
+            this.game.paused = true;
+        }
         // 2. Main Menu Logic
         if (this.menuActive) {
             this.menu.update();
@@ -126,6 +152,42 @@ class SceneManager {
             // no explicit 'return' needed if this is already the last statement
         }
 
+        // Handle pre-dialogue cutscene that shows exclamation and zooms before dialogue starts
+        if (this.preDialogueActive) {
+            // decrement timer
+            this.preDialogueTimer -= this.game.clockTick;
+            if (this.preDialogueTimer <= 0) {
+                // End pre-dialogue: start actual dialogue
+                this.preDialogueActive = false;
+                this.dialogueActive = true;
+                // ensure game remains paused during dialogue
+                this.game.paused = true;
+            } else {
+                // While pre-dialogue is active we don't run normal camera centering below
+                return;
+            }
+        }
+
+        // If we previously intercepted a dialogue and that dialogue just finished, restore state
+        if (!this.dialogueActive && this._dialogueWasActive && !this.preDialogueActive) {
+            // unlock entities and reset to front-facing idle
+            let rat = this.game.entities.find(e => e.constructor.name === "Rat");
+            let stuart = this.game.entities.find(e => e.constructor.name === "StuartBig");
+            if (rat) {
+                rat.frozenForDialogue = false;
+                rat.facing = 2; // front-facing idle
+                rat.animator = rat.animations.get("idle")[rat.facing];
+            }
+            if (stuart) {
+                stuart.frozenForDialogue = false;
+                stuart.facing = 2;
+                stuart.animator = stuart.animations.get("idle")[stuart.facing];
+            }
+            // mark intro as played so it won't trigger again this session
+            this.stuartIntroPlayed = true;
+            this._dialogueWasActive = false;
+        }
+
         // camera scrolling logic (zoomed)
         let rat = this.game.entities.find(e => e.constructor.name === "Rat");
 
@@ -142,6 +204,59 @@ class SceneManager {
             this.x = Math.max(0, Math.min(this.x, this.worldWidth - viewW));
             this.y = Math.max(0, Math.min(this.y, this.worldHeight - viewH));
         }
+    }
+
+    loadLevelOne() {
+        this.game.entities.forEach(entity => {
+            if (!(entity instanceof SceneManager)) entity.removeFromWorld = true;
+        });
+
+        this.level = ASSET_MANAGER.getAsset("./assets/Level1LivingRoom.json");
+        this.mapCached = false;
+
+        if (this.game.collisionManager) {
+            this.game.collisionManager.loadFromTiledJSON(this.level);
+        }
+
+        // update track
+        this.currentMusicPath = "./assets/background_music.wav";
+        this.game.audio.playMusic(this.currentMusicPath);
+
+        this.game.addEntity(new Rat(this.game, 448, 190));
+        this.game.addEntity(new StuartBig(this.game, 200, 215, 2));
+
+        if (!this.yorkieDefeated) {
+            this.game.addEntity(new Yorkie(this.game, 320, 150));
+        } else {
+            // Even if defeated, we add him so he can spawn in his bed
+            this.game.addEntity(new Yorkie(this.game, 320, 150));
+        }
+
+        this.game.addEntity(new Door(this.game, 448, 128, "Level2", true));
+
+        console.log("Level 1 Loaded!");
+    }
+
+    loadLevelTwo() {
+        this.game.entities.forEach(entity => {
+            if (!(entity instanceof SceneManager)) entity.removeFromWorld = true;
+        });
+
+        this.level = ASSET_MANAGER.getAsset("./assets/Level2DiningRoom.json");
+        this.mapCached = false;
+
+        if (this.game.collisionManager) {
+            this.game.collisionManager.loadFromTiledJSON(this.level);
+        }
+
+        // update track
+        this.currentMusicPath = "./assets/Desert.mp3";
+        this.game.audio.playMusic(this.currentMusicPath);
+
+        this.game.addEntity(new Rat(this.game, 256, 160));
+        this.game.addEntity(new Door(this.game, 256, 160, "Level1", false));
+
+        console.log("Level 2 Loaded!");
     }
 
     draw(ctx) {
@@ -296,13 +411,7 @@ class SceneManager {
 
         ctx.strokeStyle = "yellow";
         ctx.lineWidth = 1.5;
-        ctx.strokeRect(
-            mapX + (this.x * ratioX),
-            mapY + (this.y * ratioY),
-            viewW * ratioX,
-            viewH * ratioY
-        );
-
+        ctx.strokeRect(mapX + (this.x * ratioX), mapY + (this.y * ratioY), viewW * ratioX, viewH * ratioY);
         ctx.restore();
     }
 

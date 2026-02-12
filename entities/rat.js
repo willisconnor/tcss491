@@ -82,6 +82,15 @@ class Rat {
         if (this.attackTimer > 0) this.attackTimer -= this.game.clockTick;
         if (this.attackCooldown > 0) this.attackCooldown -= this.game.clockTick;
 
+        // Freeze movement and force facing during pre-dialogue or when explicitly frozen
+        if ((this.game.camera && this.game.camera.preDialogueActive) || this.frozenForDialogue) {
+            // if frozenForDialogue may have a preset facing, otherwise look right for the intro
+            if (this.game.camera && this.game.camera.preDialogueActive) this.facing = 1;
+            this.animator = this.animations.get("idle")[this.facing];
+            this.updateBB();
+            return;
+        }
+
         // attack input ---SPACEBAR!!--
         // can only attack if not already attacking and cooldown is up
         if (this.game.keys["Space"] && this.attackTimer <= 0 && this.attackCooldown <= 0) {
