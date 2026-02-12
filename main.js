@@ -1,9 +1,20 @@
 const ASSET_MANAGER = new AssetManager();
 const gameEngine = new GameEngine();
 const RAT_SPRITES = ["./assets/rats.png", "./assets/rats_extras.png"];
+const SNAKE_SPRITES = [
+    "./assets/snakes/Green/SnakeGreen-Attack.png",
+    "./assets/snakes/Green/SnakeGreen-Death.png",
+    "./assets/snakes/Green/SnakeGreen-Hurt.png",
+    "./assets/snakes/Green/SnakeGreen-Idle.png",
+    "./assets/snakes/Green/SnakeGreen-Walk.png"
+];
 
 ASSET_MANAGER.queueDownload(RAT_SPRITES[0])
 ASSET_MANAGER.queueDownload(RAT_SPRITES[1])
+
+for(let i = 0; i < SNAKE_SPRITES.length; i++){
+    ASSET_MANAGER.queueDownload(SNAKE_SPRITES[i]);
+}
 gameEngine.collisionManager = new CollisionManager();
 
 ASSET_MANAGER.queueDownload("./assets/Level1LivingRoom.json");

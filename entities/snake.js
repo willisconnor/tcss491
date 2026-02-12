@@ -3,7 +3,7 @@
 //Snake enemy: patrols a path or remains idle, then chases and attacks player when visible
 /*
 includes debugging still
-example usage:
+example usage in scene manager:
 // Example 1: Stationary snake that idles in place
 const stationarySnake = new Snake(game, 100, 100, null);
 game.addEntity(stationarySnake);
@@ -79,6 +79,7 @@ class Snake extends Enemy{
 
     }
 
+    // 0 = left, 1 = right, 2 = down, 3 = up
     loadAnimations() {
         //need to look at spritesheet
 
@@ -87,21 +88,97 @@ class Snake extends Enemy{
         this.animations.set("walk", []);
         this.animations.set("attack", []);
         this.animations.set("death", []);
-        //sample:
-        //this.animations.get("idle")[0] = new Animator(this.sprite, 0, 0, 16, 16, 1, 1, 0);
+        this.animations.set("hurt", [])
+
+        // Store which horizontal direction we're facing (0=left, 1=right)
+        // This persists across vertical movement
+        this.horizontalFacing = 1; // default to right
+
+        // SNAKE_SPRITES order: [attack, death, hurt, idle, walk]
+
+        //idle animations, only left and right
+        this.animations.get("idle")[0] = new Animator(ASSET_MANAGER.getAsset(SNAKE_SPRITES[3]),
+            0, 0, 32, 32, 10, 1, 0, 0, 0, true,true); //left
+        this.animations.get("idle")[1] = new Animator(ASSET_MANAGER.getAsset(SNAKE_SPRITES[3]),
+            0, 0, 32, 32, 10, 1, 0, 0, 0, true); //right
+
+        this.animations.get("idle")[2] = this.animations.get("idle")[1]; // placeholder - will be set dynamically
+        this.animations.get("idle")[3] = this.animations.get("idle")[1]; // placeholder - will be set dynamically
+
+
+        //walk
+        this.animations.get("walk")[0] = new Animator(ASSET_MANAGER.getAsset(SNAKE_SPRITES[4]), //left
+            0, 0, 32, 32, 7, 1, 0, 0, 0,  true,true);
+        this.animations.get("walk")[1] = new Animator(ASSET_MANAGER.getAsset(SNAKE_SPRITES[4]), //right
+            0, 0, 32, 32, 7, 1, 0, 0, 0, true);
+
+        this.animations.get("walk")[2] = this.animations.get("walk")[1]; // placeholder
+        this.animations.get("walk")[3] = this.animations.get("walk")[1]; // placeholder
+
+        //attack animations
+        this.animations.get("attack")[0] = new Animator(
+            ASSET_MANAGER.getAsset(SNAKE_SPRITES[0]),
+            0, 0, 32, 32, 7, 0.5, 0, 0, 0, false, true  // reversed, no loop
+        );
+        this.animations.get("attack")[1] = new Animator(
+            ASSET_MANAGER.getAsset(SNAKE_SPRITES[0]),
+            0, 0, 32, 32, 7, 0.5, 0, 0, 0, false  // no loop
+        );
+        this.animations.get("attack")[2] = this.animations.get("attack")[1]; // placeholder
+        this.animations.get("attack")[3] = this.animations.get("attack")[1]; // placeholder
+
+        //hurt animations
+        this.animations.get("hurt")[0] = new Animator(
+            ASSET_MANAGER.getAsset(SNAKE_SPRITES[2]),
+            0, 0, 32, 32, 2, 0.1, 0, 0, 0, false, true  // reversed, no loop
+        );
+        this.animations.get("hurt")[1] = new Animator(
+            ASSET_MANAGER.getAsset(SNAKE_SPRITES[2]),
+            0, 0, 32, 32, 2, 0.1, 0, 0, 0, false  // no loop
+        );
+        this.animations.get("hurt")[2] = this.animations.get("hurt")[1]; // placeholder
+        this.animations.get("hurt")[3] = this.animations.get("hurt")[1]; // placeholder
+
+        //death, same for all directions is fine unless we want otherwise
+        const deathAnim = new Animator(
+            ASSET_MANAGER.getAsset(SNAKE_SPRITES[1]),
+            0, 0, 32, 32, 10, 0.1, 0, 0, 0, false  // no loop
+        );
+        this.animations.get("death")[0] = deathAnim;
+        this.animations.get("death")[1] = deathAnim;
+        this.animations.get("death")[2] = deathAnim;
+        this.animations.get("death")[3] = deathAnim;
+
 
     }
 
     /**
      * Determines facing direction based on movement
+     * Preserves left/right facing when moving up/down
      */
     updateFacing() {
         if (Math.abs(this.velocity.x) > Math.abs(this.velocity.y)) {
-            // Moving more horizontally
-            this.facing = this.velocity.x > 0 ? 2 : 3; // Right : Left
+            // Moving more horizontally - update left/right facing
+            if (this.velocity.x > 0) {
+                this.facing = 1; // Right
+                this.horizontalFacing = 1;
+            } else if (this.velocity.x < 0) {
+                this.facing = 0; // Left
+                this.horizontalFacing = 0;
+            }
         } else if (Math.abs(this.velocity.y) > 0.1) {
-            // Moving more vertically
-            this.facing = this.velocity.y > 0 ? 0 : 1; // Down : Up
+            // Moving more vertically - use horizontal facing for sprite
+            if (this.velocity.y > 0) {
+                this.facing = 2; // Down
+            } else {
+                this.facing = 3; // Up
+            }
+
+            // Update the down/up animation references to use current horizontal facing
+            for (let animName of ["idle", "walk", "attack", "hurt"]) {
+                this.animations.get(animName)[2] = this.animations.get(animName)[this.horizontalFacing];
+                this.animations.get(animName)[3] = this.animations.get(animName)[this.horizontalFacing];
+            }
         }
         // If no significant movement, keep current facing
     }

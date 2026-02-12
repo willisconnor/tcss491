@@ -2,6 +2,7 @@
 //@date: 2/5/26
 
 class Enemy{
+    scale;
     constructor(game, x, y, maxHealth, attackDamage, detectionRange, attackRange, speed){
         Object.assign(this, {game, x, y, maxHealth, attackDamage, detectionRange, attackRange, speed});
 
@@ -115,7 +116,7 @@ class Enemy{
     /**
      * hook method once more
      */
-    onhurt(){
+    onHurt(){
         //override
     }
 
@@ -143,7 +144,7 @@ class Enemy{
      * might have to tweak this based on Mariott videos
      * @returns {Object|null} player entity or nulkl
      */
-    findPLayer(){
+    findPlayer(){
         return this.game.entities.find(entity => entity.constructor.name === 'Rat');
     }
 
@@ -152,14 +153,31 @@ class Enemy{
      * call this after moving the enemy
      */
     updateBoundingBox() {
-        if (this.boundingBox){
-            this.boundingBox.x = this.x;
-            this.boundingBox.y = this.y;
-            this.boundingBox.left = this.x;
-            this.boundingBox.top = this.y;
-            this.boundingBox.right = this.boundingBox.left + this.boundingBox.width;
-            this.boundingBox.bottom = this.boundingBox.top + this.boundingBox.height;
+        if (!this.boundingBox) {
+            // Initialize bounding box if it doesn't exist
+            const colliderRadius = 8 * this.scale; // Smaller than full sprite
+            const colliderWidth = colliderRadius * 2;
+            const colliderHeight = colliderRadius * 2;
+
+            this.boundingBox = new BoundingBox(
+                this.x,
+                this.y,
+                colliderWidth,
+                colliderHeight
+            );
         }
+
+        // Center the collider on the snake's sprite
+        const spriteWidth = 16 * this.scale; // 32px / 2 for center
+        const spriteHeight = 16 * this.scale;
+        const colliderRadius = 8 * this.scale;
+
+        this.boundingBox.x = this.x + spriteWidth - colliderRadius;
+        this.boundingBox.y = this.y + spriteHeight - colliderRadius;
+        this.boundingBox.left = this.boundingBox.x;
+        this.boundingBox.top = this.boundingBox.y;
+        this.boundingBox.right = this.boundingBox.left + this.boundingBox.width;
+        this.boundingBox.bottom = this.boundingBox.top + this.boundingBox.height;
     }
 
     update(){
