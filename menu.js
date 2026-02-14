@@ -151,9 +151,13 @@ class Menu {
             this.game.camera.dialogue.displayText = "";
             this.game.camera.dialogue.phase = "INTRO";
             this.game.camera.dialogue.selectedChoiceIndex = null;
+            this.game.camera.dialogue.selectedQuestions = new Set();
+            this.game.camera.dialogue.displayingChoiceResponse = false;
+            this.game.camera.dialogue.currentQuestionIndex = null;
+            this.game.camera.dialogue.askingFollowUp = false;
             this.game.camera.dialogue.typeTimer = 0;
         } else {
-            // Already played intro: skip straight to game without dialogue
+            // already played intro -> skip straight to game without dialogue
             this.game.camera.dialogueActive = false;
         }
     }
@@ -166,10 +170,17 @@ class Menu {
 
         if (this.state === "START") {
             if (this.checkBounds(x, y, centerX, centerY - 40, this.btnW, this.btnH)) {
-                this.state = "STORY";
-                this.currentLine = 0;
-                this.displayText = "";
-                this.charIndex = 0;
+                // modification: check if we are resuming
+                // if intro has been played skip story text -> go straight to game
+                if (this.game.camera && this.game.camera.stuartIntroPlayed) {
+                    this.startGame();
+                } else {
+                    // otherwise play story lines
+                    this.state = "STORY";
+                    this.currentLine = 0;
+                    this.displayText = "";
+                    this.charIndex = 0;
+                }
             }
             // --- TUTORIAL BUTTON ---
             else if (this.checkBounds(x, y, centerX, centerY + 40, this.btnW, this.btnH)) {
