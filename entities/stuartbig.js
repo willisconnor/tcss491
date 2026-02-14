@@ -11,8 +11,8 @@ class StuartBig {
         this.facing = facing;
         this.scale = 1.5 * scaleFactor;
         this.animator = this.animations.get("idle")[this.facing];
-        this.x = x;
-        this.y = y;
+        this.x = x * scaleFactor;
+        this.y = y * scaleFactor;
         
         // Interaction system
         this.width = 48 * this.scale;

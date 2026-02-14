@@ -18,8 +18,8 @@ class Rat {
         this.scale = 1.25 * scaleFactor;
         this.animator = this.animations.get("idle")[this.facing];
 
-        this.x = x;
-        this.y = y;
+        this.x = x * scaleFactor;
+        this.y = y * scaleFactor;
         this.speed = 0;
 
         this.attackCooldown = 0;

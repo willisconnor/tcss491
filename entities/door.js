@@ -1,8 +1,8 @@
 class Door {
-    constructor(game, x, y, destination, requiresKey) {
+    constructor(game, x, y, destination, requiresKey, scaleFactor) {
         this.game = game;
-        this.x = x;
-        this.y = y;
+        this.x = x * scaleFactor;
+        this.y = y * scaleFactor;
         this.destination = destination; // Level1 or Level2
         this.requiresKey = requiresKey; // need golden key to enter other door
         this.width = 100;

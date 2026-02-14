@@ -12,8 +12,8 @@
 class Yorkie {
     constructor(game, x, y, scaleFactor) {
         this.game = game;
-        this.x = x;
-        this.y = y;
+        this.x = x * scaleFactor;
+        this.y = y * scaleFactor;
 
         this.facing = 0; // start facing Down row 0
         this.scale = 4 * scaleFactor;
@@ -70,8 +70,9 @@ class Yorkie {
             this.lastHealth = 0;
             this.dead = true;
             this.actionState = "SLEEPING";
-            this.x = 420;
-            this.y = 420;
+            // needs to be equal to x and y bc the coordinates are passed to loadLevelTwo in SceneManager
+            this.x = x * scaleFactor;
+            this.y = y * scaleFactor;
             this.facing = 0;
         }
     }
