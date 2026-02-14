@@ -114,7 +114,7 @@ class Rat {
         let yorkie = this.game.entities.find(e => e.constructor.name === "Yorkie");
 
         if (yorkie && yorkie.actionState === "WAIT_FOR_RAT") {
-            let safeX = yorkie.targetX + 50;
+            let safeX = yorkie.targetX + 120;
             if (this.x < safeX) {
                 this.x += 100 * this.game.clockTick;
                 this.facing = 1;

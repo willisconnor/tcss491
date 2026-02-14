@@ -33,7 +33,7 @@ ASSET_MANAGER.downloadAll(() => {
     // The game was originally scaled at 4x. Diving the current scale by 4 is the factor by which everything else needs
     // to be scaled by to look proportional to the new scale.
     const scaleFactor = sceneManager.scale / 4;
-    // add yorkie first so the white lines of the rat's attack animation isn't covered by him
+    // add yorkie first so the white lines of the rat's attack animation aren't covered by him
     gameEngine.addEntity(new Yorkie(gameEngine, 320 * scaleFactor, 150 * scaleFactor, scaleFactor, scaleFactor));
     gameEngine.addEntity(new Rat(gameEngine, 97 * scaleFactor, 220 * scaleFactor, scaleFactor, scaleFactor));
     gameEngine.addEntity(new GoldenKey(gameEngine, 65 * scaleFactor, 120 * scaleFactor));
