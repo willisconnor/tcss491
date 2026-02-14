@@ -10,13 +10,13 @@
 //while it has the dog treats.
 
 class Yorkie {
-    constructor(game, x, y) {
+    constructor(game, x, y, scaleFactor) {
         this.game = game;
         this.x = x;
         this.y = y;
 
         this.facing = 0; // start facing Down row 0
-        this.scale = 4;
+        this.scale = 4 * scaleFactor;
 
         // stats
         this.health = 5;
@@ -30,8 +30,8 @@ class Yorkie {
         this.startX = 0;
 
         // target Coordinates for leaving
-        this.targetX = 420;
-        this.targetY = 420;
+        this.targetX = 420 * scaleFactor;
+        this.targetY = 420 * scaleFactor;
 
         this.sprite = ASSET_MANAGER.getAsset("./assets/yorkie animation.png");
 
@@ -42,7 +42,7 @@ class Yorkie {
 
         // bounding box
         this.width = 18 * this.scale;
-        this.height = 30 * this.scale;
+        this.height = 18 * this.scale;
         this.updateBB();
 
         // Dialogue lines for the Yorkie NPC

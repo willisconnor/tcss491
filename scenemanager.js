@@ -7,11 +7,11 @@ class SceneManager {
         this.x = 0;
         this.y = 0;
 
-        // map SCALE;matches Tiled 4x
-        this.scale = 4;
+        // map scale
+        this.scale = 6;
 
         // camera zoom preferred by team
-        this.zoom = 1.75;
+        this.zoom = 1.25;
 
         this.fadeAlpha = 1;
         this.isFading = true;
@@ -59,6 +59,7 @@ class SceneManager {
     }
 
     update() {
+
         // audio UI input logic
         if (this.game.click) {
             const mouseX = this.game.click.x;
@@ -204,6 +205,8 @@ class SceneManager {
             this.x = Math.max(0, Math.min(this.x, this.worldWidth - viewW));
             this.y = Math.max(0, Math.min(this.y, this.worldHeight - viewH));
         }
+
+
     }
 
     loadLevelOne() {
