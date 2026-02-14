@@ -5,8 +5,13 @@ class SceneManager {
 
         this.x = 0;
         this.y = 0;
-        this.scale = 4;
-        this.zoom = 1.75;
+
+        // map scale
+        this.scale = 6;
+
+        // camera zoom preferred by team
+        this.zoom = 1.25;
+
         this.fadeAlpha = 1;
         this.isFading = true;
         this.currentMusicPath = "./assets/background_music.wav";
@@ -62,6 +67,8 @@ class SceneManager {
     }
 
     update() {
+
+        // audio UI input logic
         if (this.game.click) {
             const mouseX = this.game.click.x;
             const mouseY = this.game.click.y;

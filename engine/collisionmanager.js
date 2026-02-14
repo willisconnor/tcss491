@@ -1,7 +1,7 @@
 class CollisionManager {
-            constructor() {
+            constructor(scale) {
                 this.colliders = [];
-                this.scale = 4;
+                this.scale = scale;
             }
 
     loadFromTiledJSON(json) {
@@ -35,7 +35,7 @@ class CollisionManager {
                 for (const col of this.colliders) {
                     if (col.type === 'rect') {
                         if (this.rectIntersect(entityX, entityY, entityWidth, entityHeight, col.x, col.y, col.width, col.height)) {
-                            return true;
+                            return true; // Hit a wall
                         }
                     } else if (col.type === 'ellipse') {
                         if (this.ellipseRectIntersect(entityX, entityY, entityWidth, entityHeight, col)) {
@@ -47,6 +47,7 @@ class CollisionManager {
                         }
                     }
                 }
+
                 return false;
             }
 
