@@ -1,8 +1,8 @@
 class GoldenKey {
-    constructor(game, x, y, scaleFactor) {
+    constructor(game, x, y) {
         this.game = game;
-        this.x = x * scaleFactor;
-        this.y = y * scaleFactor;
+        this.x = x;
+        this.y = y;
         this.scale = 0.1; // scale down from 500x500 golden key png :0
         this.baseScale = 0.1;
         this.pulseSpeed = 2;

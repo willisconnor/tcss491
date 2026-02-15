@@ -10,13 +10,13 @@
 //while it has the dog treats.
 
 class Yorkie {
-    constructor(game, x, y, scaleFactor) {
+    constructor(game, x, y) {
         this.game = game;
-        this.x = x * scaleFactor;
-        this.y = y * scaleFactor;
+        this.x = x;
+        this.y = y;
 
         this.facing = 0; // start facing Down row 0
-        this.scale = 4 * scaleFactor;
+        this.scale = 4;
 
         // stats
         this.health = 5;
@@ -30,8 +30,8 @@ class Yorkie {
         this.startX = 0;
 
         // target Coordinates for leaving
-        this.targetX = 420 * scaleFactor;
-        this.targetY = 420 * scaleFactor;
+        this.targetX = 420;
+        this.targetY = 420;
 
         this.sprite = ASSET_MANAGER.getAsset("./assets/yorkie animation.png");
 
@@ -71,8 +71,8 @@ class Yorkie {
             this.dead = true;
             this.actionState = "SLEEPING";
             // needs to be equal to x and y bc the coordinates are passed to loadLevelTwo in SceneManager
-            this.x = x * scaleFactor;
-            this.y = y * scaleFactor;
+            this.x = x;
+            this.y = y;
             this.facing = 0;
         }
     }
