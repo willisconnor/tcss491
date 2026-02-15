@@ -61,7 +61,7 @@ class Rat {
 
         // 1. Get the raw dimensions
         const fullWidth = walkAnim.width * this.scale;
-        const fullHeight = walkAnim.height * this.scale;
+        const bbHeight = walkAnim.height * this.scale;
         const scaledXOffset = walkAnim.xOffset * this.scale;
         const scaledYOffset = walkAnim.yOffset * this.scale;
 
@@ -74,8 +74,6 @@ class Rat {
         }
 
         const bbWidth = fullWidth * widthMultiplier;
-        const bbHeight = fullHeight * 0.6;
-        let shiftY = fullHeight - bbHeight;
 
         // 3. Shift Logic for Left/Right (Head-First Collision)
         let shiftX;
@@ -94,7 +92,7 @@ class Rat {
         // We combine the animator's internal offset with our dynamic shifting
         this.BB = new BoundingBox(
             predictX + scaledXOffset + shiftX,
-            predictY + scaledYOffset + shiftY,
+            predictY + scaledYOffset,
             bbWidth,
             bbHeight
         );
