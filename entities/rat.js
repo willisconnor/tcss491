@@ -51,31 +51,17 @@ class Rat {
         this.animations.set("dead", new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[1]), 0, 312, 48, 18, 3, 0.7, 0, 0, 14, false));
     }
 
-    /**
-     * Updates the bounding box based on the current walking animation dimensions.
-     * x and y are optional parameters for collision prediction.
-     */
-    updateBB(predictX = this.x, predictY = this.y) {
-        const walkAnim = this.animations.get("walk")[this.facing];
+    updateBB() {
+        const spriteWidth = 48 * this.scale;
+        const fixedHeight = 38 * this.scale;
+        const colliderRadius = 12 * this.scale;
+        const colliderWidth = colliderRadius * 2;
+        const colliderHeight = colliderRadius;
 
-        // Get the raw dimensions
-        const fullWidth = walkAnim.width * this.scale;
-        const fullHeight = walkAnim.height * this.scale;
-        const scaledXOffset = walkAnim.xOffset * this.scale;
-        const scaledYOffset = walkAnim.yOffset * this.scale;
+        const colliderX = this.x + (spriteWidth / 2) - colliderRadius;
+        const colliderY = this.y + fixedHeight - colliderHeight;
 
-        const bbWidth = fullWidth * 0.3;
-        const bbHeight = fullHeight;
-        let shiftY = (fullHeight - bbHeight) + 12;
-        let shiftX = (fullWidth - bbWidth) / 2;
-
-        // Final bounding box
-        this.BB = new BoundingBox(
-            predictX + scaledXOffset + shiftX,
-            predictY + scaledYOffset + shiftY,
-            bbWidth,
-            bbHeight
-        );
+        this.BB = new BoundingBox(colliderX, colliderY, colliderWidth, colliderHeight);
     }
 
     update() {
@@ -157,30 +143,41 @@ class Rat {
         }
 
         this.speed = targetSpeed;
+        // stored your this.x and this.y into variable references
+        let newX = this.x;
+        let newY = this.y;
+        if (this.facing === 0) newX -= this.speed * this.game.clockTick;
+        if (this.facing === 1) newX += this.speed * this.game.clockTick;
+        if (this.facing === 2) newY += this.speed * this.game.clockTick;
+        if (this.facing === 3) newY -= this.speed * this.game.clockTick;
 
-        // --- MOVEMENT & COLLISION ---
-        let nextX = this.x;
-        let nextY = this.y;
-        if (this.facing === 0) nextX -= this.speed * this.game.clockTick;
-        if (this.facing === 1) nextX += this.speed * this.game.clockTick;
-        if (this.facing === 2) nextY += this.speed * this.game.clockTick;
-        if (this.facing === 3) nextY -= this.speed * this.game.clockTick;
+        // using small circle collider at feet instead of full sprite box
+        const spriteWidth = this.animator.width * this.scale;
+        const fixedHeight = 38 * this.scale; // same as what is used in draw()
 
-        // Predict collision for X movement
-        this.updateBB(nextX, this.y);
-        if (!this.game.collisionManager.checkCollision(this.BB.x, this.BB.y, this.BB.width, this.BB.height) &&
-            !this.checkYorkieCollision(this.BB.x, this.BB.y, this.BB.width, this.BB.height)) {
-            this.x = nextX;
+        // small collision box placed at rat's feet (bottom center)
+        const colliderRadius = 12 * this.scale;
+        const colliderWidth = colliderRadius * 2;
+        const colliderHeight = colliderRadius;
+
+        // X-Axis
+        let testColliderX = newX + (spriteWidth / 2) - colliderRadius;
+        let currentColliderY = this.y + fixedHeight - colliderHeight;
+
+        if (!this.game.collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight) &&
+            !this.checkYorkieCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
+            this.x = newX;
+        }
+        // checking Y-axis movement only, using potentially UPDATED X we re-calculate X because if we moved left/right
+        // above we need the new position for this check
+        let currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
+        let testColliderY = newY + fixedHeight - colliderHeight;
+
+        if (!this.game.collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight) &&
+            !this.checkYorkieCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
+            this.y = newY; // safe to move Y
         }
 
-        // Predict collision for Y movement
-        this.updateBB(this.x, nextY);
-        if (!this.game.collisionManager.checkCollision(this.BB.x, this.BB.y, this.BB.width, this.BB.height) &&
-            !this.checkYorkieCollision(this.BB.x, this.BB.y, this.BB.width, this.BB.height)) {
-            this.y = nextY;
-        }
-
-        // Final BB update for current position
         this.updateBB();
 
         if (this.animator === this.animations.get("attack")[this.facing]) {
