@@ -16,6 +16,8 @@ class Snake extends Enemy{
         this.scale = 2.5;  // Scaled down from 4
         this.facing = 1; // 0=left, 1=right, 2=down, 3=up
 
+        this.attackCooldownMax = 1.5;
+
         // Patrol system
         this.patrolPath = patrolPath;
         this.patrolIndex = 0;
@@ -29,6 +31,8 @@ class Snake extends Enemy{
         // Attack timing
         this.attackAnimationTimer = 0;
         this.attackAnimationDuration = 0.5;
+        this.hurtAnimationTimer = 0;
+        this.stateBeforeHurt = null;
 
         // Load sprite
         this.sprite = ASSET_MANAGER.getAsset("./assets/Snake.png");
@@ -115,16 +119,12 @@ class Snake extends Enemy{
         const dx = targetX - this.x;
         const dy = targetY - this.y;
 
-        // Speed in pixels per second (matching Rat's speed system)
-        const pixelsPerSecond = 75; // Adjust to tune snake speed (Rat uses 100-200)
+        const pixelsPerSecond = 75;
 
-        // Move only in the direction with greater distance (cardinal only)
         if (Math.abs(dx) > Math.abs(dy)) {
-            // Move horizontally
             this.velocity.x = dx > 0 ? pixelsPerSecond : -pixelsPerSecond;
             this.velocity.y = 0;
         } else {
-            // Move vertically
             this.velocity.x = 0;
             this.velocity.y = dy > 0 ? pixelsPerSecond : -pixelsPerSecond;
         }
@@ -228,9 +228,20 @@ class Snake extends Enemy{
      * Override hurt to show feedback
      */
     onHurt() {
+        // Store the previous state so we can return to it
+        this.stateBeforeHurt = this.state;
         this.state = "HURT";
+
+        // Set hurt animation
+        this.currentAnimation = this.animations.get("hurt")[this.facing];
+        this.currentAnimation.elapsedTime = 0; // Reset animation to start
+
+        // Brief pause when hurt
         this.velocity.x = 0;
         this.velocity.y = 0;
+
+        // Set a timer for how long the hurt animation plays
+        this.hurtAnimationTimer = 0.3; // 0.3 seconds
     }
 
     /**
@@ -269,6 +280,21 @@ class Snake extends Enemy{
             return;
         }
 
+        // Handle hurt animation timer
+        if (this.hurtAnimationTimer > 0) {
+            this.hurtAnimationTimer -= this.game.clockTick;
+            this.velocity.x = 0;
+            this.velocity.y = 0;
+
+            // When hurt animation is done, return to previous state
+            if (this.hurtAnimationTimer <= 0) {
+                this.state = this.stateBeforeHurt || "IDLE";
+                this.hurtAnimationTimer = 0;
+            }
+            this.updateBoundingBox();
+            return;
+        }
+
         const player = this.detectPlayer();
 
         if (player && this.state !== "HURT") {
@@ -280,17 +306,9 @@ class Snake extends Enemy{
             }
         } else {
             if (this.state === "HURT") {
-                this.velocity.x = 0;
-                this.velocity.y = 0;
-                if (!this.hurtRecoveryTimer) {
-                    this.hurtRecoveryTimer = 0.3;
-                } else {
-                    this.hurtRecoveryTimer -= this.game.clockTick;
-                    if (this.hurtRecoveryTimer <= 0) {
-                        this.hurtRecoveryTimer = 0;
-                        this.state = this.patrolPath ? "PATROL" : "IDLE";
-                    }
-                }
+                // Hurt state is handled above with hurtAnimationTimer
+                this.updateBoundingBox();
+                return;
             } else {
                 if (this.patrolPath && this.patrolPath.length > 0) {
                     this.state = "PATROL";
@@ -304,8 +322,10 @@ class Snake extends Enemy{
             }
         }
 
+        // Apply velocity
         this.x += this.velocity.x * this.game.clockTick;
         this.y += this.velocity.y * this.game.clockTick;
+
         this.updateBoundingBox();
     }
 
@@ -314,26 +334,26 @@ class Snake extends Enemy{
             const drawX = this.x - game.camera.x;
             const drawY = this.y - game.camera.y;
 
-            // Check if we need to flip (when facing left or when moving vertically while horizontally facing left)
+            // Check if we need to flip
             const shouldFlip = (this.facing === 0) ||
                 ((this.facing === 2 || this.facing === 3) && this.horizontalFacing === 0);
 
+            ctx.save();
+
             if (shouldFlip) {
-                ctx.save();
-                // Flip around the center of the sprite
+                // Translate to the sprite position, flip, then draw at origin
                 const spriteWidth = 32 * this.scale;
-                ctx.translate(drawX + spriteWidth / 2, drawY);
+                ctx.translate(drawX + spriteWidth, drawY);
                 ctx.scale(-1, 1);
+                ctx.translate(-spriteWidth, 0);
 
                 this.currentAnimation.drawFrame(
                     game.clockTick,
                     ctx,
-                    -spriteWidth / 2,
+                    0,
                     0,
                     this.scale
                 );
-
-                ctx.restore();
             } else {
                 this.currentAnimation.drawFrame(
                     game.clockTick,
@@ -343,6 +363,8 @@ class Snake extends Enemy{
                     this.scale
                 );
             }
+
+            ctx.restore();
         }
 
         if (game.options.debugging) {
