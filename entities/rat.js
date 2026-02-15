@@ -64,10 +64,9 @@ class Rat {
         const scaledXOffset = walkAnim.xOffset * this.scale;
         const scaledYOffset = walkAnim.yOffset * this.scale;
 
-        const bbWidth = fullWidth * 0.4;
-        const bbHeight = fullHeight * 0.4;
-        let shiftY = fullHeight - bbHeight;
-
+        const bbWidth = fullWidth * 0.3;
+        const bbHeight = fullHeight;
+        let shiftY = (fullHeight - bbHeight) + 12;
         let shiftX = (fullWidth - bbWidth) / 2;
 
         // Final bounding box
