@@ -1,5 +1,5 @@
 const ASSET_MANAGER = new AssetManager();
-const gameEngine = new GameEngine();
+const gameEngine = new GameEngine({});
 const RAT_SPRITES = ["./assets/rats.png", "./assets/rats_extras.png", "./assets/rat_lunge.png"];
 
 ASSET_MANAGER.queueDownload(RAT_SPRITES[0])
@@ -36,7 +36,7 @@ ASSET_MANAGER.downloadAll(() => {
     gameEngine.addEntity(new Yorkie(gameEngine, 320, 150));
     gameEngine.addEntity(new Rat(gameEngine, 97, 220));
     gameEngine.addEntity(new GoldenKey(gameEngine, 65, 120));
-    gameEngine.addEntity(new Door(gameEngine, 448, 128, "Level2", true));
+    gameEngine.addEntity(new Door(gameEngine, 420, 90, "Level2", true));
     gameEngine.addEntity(new StuartBig(gameEngine, 200, 215, 2));
     const sceneManager = new SceneManager(gameEngine);
     gameEngine.addEntity(sceneManager);

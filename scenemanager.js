@@ -195,7 +195,7 @@ class SceneManager {
         this.game.addEntity(new Rat(this.game, 448, 196));
         this.game.addEntity(new StuartBig(this.game, 200, 215, 2));
         this.game.addEntity(new Yorkie(this.game, 420, 420));
-        this.game.addEntity(new Door(this.game, 448, 128, "Level2", true));
+        this.game.addEntity(new Door(this.game, 420, 90, "Level2", true));
 
         // Play music
         this.currentMusicPath = "./assets/background_music.wav";
@@ -221,7 +221,7 @@ class SceneManager {
         this.game.audio.playMusic(this.currentMusicPath);
 
         this.game.addEntity(new Rat(this.game, 250, 180));
-        this.game.addEntity(new Door(this.game, 256, 160, "Level1", false));
+        this.game.addEntity(new Door(this.game, 220, 90, "Level1", false));
 
         console.log("Loaded level 2!");
     }

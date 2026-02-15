@@ -94,7 +94,7 @@ class AssetManager {
         if (audio) {
             let temp = audio.cloneNode();
             temp.volume = 0.5;
-            temp.play().catch(e => console.error(e));
+            temp.play().catch(() => {/** Avoid AbortError from rapid audio skipping*/});
             return temp; // added line to allow tracking
         }
         return null;
