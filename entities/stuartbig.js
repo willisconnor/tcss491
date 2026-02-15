@@ -1,7 +1,7 @@
 // Author: Christina Blackwell
 
 class StuartBig {
-    constructor(game, x, y, facing, scaleFactor) {
+    constructor(game, x, y, facing) {
         this.game = game;
         this.canvas = document.getElementById("gameWorld");
         this.animations = new Map();
@@ -9,7 +9,7 @@ class StuartBig {
         this.loadAnimations();
         // 0 = left, 1 = right, 2 = down, 3 = up
         this.facing = facing;
-        this.scale = 1.5 * scaleFactor;
+        this.scale = 1.5;
         this.animator = this.animations.get("idle")[this.facing];
         this.x = x * scaleFactor;
         this.y = y * scaleFactor;
@@ -85,7 +85,7 @@ class StuartBig {
     };
 
     draw(ctx) {
-        ctx.imageSmoothingEnabled = false;
+        ctx.imageSmoothingEnabled = true;
 
         // ensure animator matches current facing (so cutscene-facing changes immediately apply)
         this.animator = this.animations.get("idle")[this.facing];

@@ -1,12 +1,10 @@
 const ASSET_MANAGER = new AssetManager();
 const gameEngine = new GameEngine();
-const RAT_SPRITES = ["./assets/rats.png", "./assets/rats_extras.png", "./assets/rat_lunge.png"];
+const RAT_SPRITES = ["./assets/rats.png", "./assets/rats_extras.png"];
 
 ASSET_MANAGER.queueDownload(RAT_SPRITES[0])
 ASSET_MANAGER.queueDownload(RAT_SPRITES[1])
-ASSET_MANAGER.queueDownload(RAT_SPRITES[2])
-const scale = 6;
-gameEngine.collisionManager = new CollisionManager(scale);
+gameEngine.collisionManager = new CollisionManager();
 
 ASSET_MANAGER.queueDownload("./assets/Level1LivingRoom.json");
 ASSET_MANAGER.queueDownload("./assets/global.png");
@@ -32,16 +30,13 @@ ASSET_MANAGER.downloadAll(() => {
 
     const levelData = ASSET_MANAGER.getAsset("./assets/Level1LivingRoom.json");
     gameEngine.collisionManager.loadFromTiledJSON(levelData);
+    
+    gameEngine.addEntity(new Rat(gameEngine, 97, 220));
+    gameEngine.addEntity(new GoldenKey(gameEngine, 65, 120));
+    gameEngine.addEntity(new Door(gameEngine, 448, 128, "Level2", true));
+    gameEngine.addEntity(new Yorkie(gameEngine, 320, 150));
+    gameEngine.addEntity(new StuartBig(gameEngine, 200, 215, 2));
 
-    // The game was originally scaled at 4x. Diving the current scale by 4 is the factor by which everything else needs
-    // to be scaled by to look proportional to the new scale.
-    const scaleFactor = scale / 4;
-    // add yorkie first so the white lines of the rat's attack animation aren't covered by him
-    gameEngine.addEntity(new Yorkie(gameEngine, 320, 150, scaleFactor));
-    gameEngine.addEntity(new Rat(gameEngine, 97, 220, scaleFactor));
-    gameEngine.addEntity(new GoldenKey(gameEngine, 65, 120, scaleFactor));
-    gameEngine.addEntity(new Door(gameEngine, 448, 128, "Level2", true, scaleFactor));
-    gameEngine.addEntity(new StuartBig(gameEngine, 200, 215, 2, scaleFactor));
     const sceneManager = new SceneManager(gameEngine);
     gameEngine.addEntity(sceneManager);
 
