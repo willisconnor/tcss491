@@ -286,7 +286,6 @@ class Snake extends Enemy{
             this.velocity.x = 0;
             this.velocity.y = 0;
 
-            // When hurt animation is done, return to previous state
             if (this.hurtAnimationTimer <= 0) {
                 this.state = this.stateBeforeHurt || "IDLE";
                 this.hurtAnimationTimer = 0;
@@ -306,7 +305,6 @@ class Snake extends Enemy{
             }
         } else {
             if (this.state === "HURT") {
-                // Hurt state is handled above with hurtAnimationTimer
                 this.updateBoundingBox();
                 return;
             } else {
@@ -322,9 +320,32 @@ class Snake extends Enemy{
             }
         }
 
-        // Apply velocity
-        this.x += this.velocity.x * this.game.clockTick;
-        this.y += this.velocity.y * this.game.clockTick;
+        // Apply velocity WITH COLLISION DETECTION (like Rat)
+        const spriteWidth = 32 * this.scale;
+        const spriteHeight = 32 * this.scale;
+        const colliderRadius = 10 * this.scale;
+        const colliderWidth = colliderRadius * 2;
+        const colliderHeight = colliderRadius;
+
+        // Calculate potential new positions
+        let newX = this.x + this.velocity.x * this.game.clockTick;
+        let newY = this.y + this.velocity.y * this.game.clockTick;
+
+        // Test X-axis movement
+        let testColliderX = newX + (spriteWidth / 2) - colliderRadius;
+        let currentColliderY = this.y + spriteHeight - colliderHeight;
+
+        if (!this.game.collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
+            this.x = newX; // Safe to move X
+        }
+
+        // Test Y-axis movement (using potentially updated X)
+        let currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
+        let testColliderY = newY + spriteHeight - colliderHeight;
+
+        if (!this.game.collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
+            this.y = newY; // Safe to move Y
+        }
 
         this.updateBoundingBox();
     }

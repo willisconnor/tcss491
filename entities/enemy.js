@@ -152,12 +152,16 @@ class Enemy{
      * updates bounding box position
      * call this after moving the enemy
      */
+    /**
+     * Updates bounding box position
+     * Uses a smaller circular collider at the center/base like the Rat
+     */
     updateBoundingBox() {
         if (!this.boundingBox) {
             // Initialize bounding box if it doesn't exist
-            const colliderRadius = 8 * this.scale; // Smaller than full sprite
+            const colliderRadius = 10 * this.scale; // Adjust size as needed
             const colliderWidth = colliderRadius * 2;
-            const colliderHeight = colliderRadius * 2;
+            const colliderHeight = colliderRadius;
 
             this.boundingBox = new BoundingBox(
                 this.x,
@@ -167,13 +171,20 @@ class Enemy{
             );
         }
 
-        // Center the collider on the snake's sprite
-        const spriteWidth = 16 * this.scale; // 32px / 2 for center
-        const spriteHeight = 16 * this.scale;
-        const colliderRadius = 8 * this.scale;
+        // Position the collider at the snake's base/center
+        const spriteWidth = 32 * this.scale; // Snake sprite is 32px wide
+        const spriteHeight = 32 * this.scale;
+        const colliderRadius = 10 * this.scale;
+        const colliderWidth = colliderRadius * 2;
+        const colliderHeight = colliderRadius;
 
-        this.boundingBox.x = this.x + spriteWidth - colliderRadius;
-        this.boundingBox.y = this.y + spriteHeight - colliderRadius;
+        // Center horizontally, place at bottom vertically (like rat's feet)
+        this.boundingBox.x = this.x + (spriteWidth / 2) - colliderRadius;
+        this.boundingBox.y = this.y + spriteHeight - colliderHeight;
+        this.boundingBox.width = colliderWidth;
+        this.boundingBox.height = colliderHeight;
+
+        // Update AABB properties
         this.boundingBox.left = this.boundingBox.x;
         this.boundingBox.top = this.boundingBox.y;
         this.boundingBox.right = this.boundingBox.left + this.boundingBox.width;
