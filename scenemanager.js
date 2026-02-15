@@ -7,10 +7,10 @@ class SceneManager {
         this.y = 0;
 
         // map scale
-        this.scale = 6;
+        this.scale = 4;
 
         // camera zoom preferred by team
-        this.zoom = 1.25;
+        this.zoom = 1.75;
 
         this.fadeAlpha = 1;
         this.isFading = true;
@@ -180,12 +180,10 @@ class SceneManager {
     }
 
     loadLevelOne() {
-        // 1. Clear the world of old entities
         this.game.entities.forEach(entity => {
             if (!(entity instanceof SceneManager)) entity.removeFromWorld = true;
         });
 
-        // 2. Reset level state
         this.level = ASSET_MANAGER.getAsset("./assets/Level1LivingRoom.json");
         this.levelNumber = 1;
         this.mapCached = false; // Important: This triggers the map to redraw at the correct scale
@@ -194,35 +192,27 @@ class SceneManager {
             this.game.collisionManager.loadFromTiledJSON(this.level);
         }
 
-        // 3. Calculate Scale Factor (ensure this matches main.js)
-        const scaleFactor = this.scale / 4;
-
-        // 4. Re-add entities using the SAME logic as main.js
-        // Note: Use the same coordinates you used in main.js to ensure they appear in the right spot
-        this.game.addEntity(new Rat(this.game, 448, 196, scaleFactor));
-        this.game.addEntity(new StuartBig(this.game, 200, 215, 2, scaleFactor));
-        this.game.addEntity(new Yorkie(this.game, 420, 420, scaleFactor));
-        this.game.addEntity(new Door(this.game, 448, 128, "Level2", true, scaleFactor));
+        this.game.addEntity(new Rat(this.game, 448, 196));
+        this.game.addEntity(new StuartBig(this.game, 200, 215, 2));
+        this.game.addEntity(new Yorkie(this.game, 420, 420));
+        this.game.addEntity(new Door(this.game, 448, 128, "Level2", true));
 
         // Play music
         this.currentMusicPath = "./assets/background_music.wav";
         this.game.audio.playMusic(this.currentMusicPath);
 
-        console.log("Level 1 Restored with scale factor: " + scaleFactor);
+        console.log("Loaded level one!");
     }
 
     loadLevelTwo() {
-        // 1. Clear world
         this.game.entities.forEach(entity => {
             if (!(entity instanceof SceneManager)) entity.removeFromWorld = true;
         });
 
-        // 2. Load Level Data
         this.level = ASSET_MANAGER.getAsset("./assets/Level2DiningRoom.json");
         this.levelNumber = 2;
         this.mapCached = false; // Forces buildLevelCache to run next draw
 
-        // 3. Update Collision Manager
         if (this.game.collisionManager) {
             this.game.collisionManager.loadFromTiledJSON(this.level);
         }
@@ -230,15 +220,10 @@ class SceneManager {
         this.currentMusicPath = "./assets/Desert.mp3";
         this.game.audio.playMusic(this.currentMusicPath);
 
-        // 4. Use the same scaleFactor logic from main.js
-        const scaleFactor = this.scale / 4;
+        this.game.addEntity(new Rat(this.game, 250, 180));
+        this.game.addEntity(new Door(this.game, 256, 160, "Level1", false));
 
-        // 5. Spawn entities with the correct scale and scaled coordinates
-        // Ensure 256 and 160 are the intended 'raw' coordinates
-        this.game.addEntity(new Rat(this.game, 250, 180, scaleFactor));
-        this.game.addEntity(new Door(this.game, 256, 160, "Level1", false, scaleFactor));
-
-        console.log("Level 2 Loaded with scale factor: " + scaleFactor);
+        console.log("Loaded level 2!");
     }
 
     draw(ctx) {
@@ -268,6 +253,12 @@ class SceneManager {
             ctx.fillStyle = "red";
             ctx.font = "20px Arial";
             ctx.fillText("Press E to see Lvl 2 Lose", 1000, 120);
+        }
+
+        if (this.game.options && this.game.options.debugging) {
+            if (this.game.collisionManager) {
+                this.game.collisionManager.draw(ctx);
+            }
         }
     }
 

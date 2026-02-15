@@ -1,7 +1,7 @@
 class CollisionManager {
-            constructor(scale) {
+            constructor() {
+                this.scale = 4;
                 this.colliders = [];
-                this.scale = scale;
             }
 
     loadFromTiledJSON(json) {
@@ -132,4 +132,40 @@ class CollisionManager {
                 const ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom;
                 return ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1;
             }
+
+
+    draw(ctx) {
+        ctx.save();
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 2;
+
+        for (const col of this.colliders) {
+            ctx.beginPath(); // Start fresh path for each shape
+
+            if (col.type === 'rect') {
+                ctx.strokeRect(col.x, col.y, col.width, col.height);
+            } else if (col.type === 'ellipse') {
+                const radiusX = col.width / 2;
+                const radiusY = col.height / 2;
+                const centerX = col.x + radiusX;
+                const centerY = col.y + radiusY;
+
+                ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+                ctx.stroke();
+            } else if (col.type === 'polygon') {
+                if (col.points.length > 0) {
+                    // Move to the first point (relative to the object's x,y)
+                    ctx.moveTo(col.x + col.points[0].x, col.y + col.points[0].y);
+
+                    // Draw lines to the rest
+                    for (let i = 1; i < col.points.length; i++) {
+                        ctx.lineTo(col.x + col.points[i].x, col.y + col.points[i].y);
+                    }
+                    ctx.closePath(); // Connect last point to first
+                    ctx.stroke();
+                }
+            }
         }
+        ctx.restore();
+        }
+}

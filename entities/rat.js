@@ -1,8 +1,7 @@
 // Author: Christina Blackwell
-// I modified it to include attack logic w/ lunge animation and Yorkie interaction
 
 class Rat {
-    constructor(game, x, y, scaleFactor) {
+    constructor(game, x, y) {
         this.game = game;
         this.canvas = document.getElementById("gameWorld");
         this.animations = new Map();
@@ -15,11 +14,11 @@ class Rat {
 
         // 0 = left, 1 = right, 2 = down, 3 = up
         this.facing = 2;
-        this.scale = 1.25 * scaleFactor;
+        this.scale = 1.25;
         this.animator = this.animations.get("idle")[this.facing];
 
-        this.x = x * scaleFactor;
-        this.y = y * scaleFactor;
+        this.x = x;
+        this.y = y;
         this.speed = 0;
 
         this.attackCooldown = 0;
@@ -59,39 +58,19 @@ class Rat {
     updateBB(predictX = this.x, predictY = this.y) {
         const walkAnim = this.animations.get("walk")[this.facing];
 
-        // 1. Get the raw dimensions
+        // Get the raw dimensions
         const fullWidth = walkAnim.width * this.scale;
         const fullHeight = walkAnim.height * this.scale;
         const scaledXOffset = walkAnim.xOffset * this.scale;
         const scaledYOffset = walkAnim.yOffset * this.scale;
 
-        // 2. Determine Narrowness (Width Multipliers)
-        let widthMultiplier;
-        if (this.facing === 2 || this.facing === 3) { // Up or Down
-            widthMultiplier = 0.5; // Narrower for front/back view
-        } else { // Left or Right
-            widthMultiplier = 0.8; // Slightly narrower to avoid tail/ears clipping
-        }
-
-        const bbWidth = fullWidth * widthMultiplier;
-        const bbHeight = fullHeight * 0.6;
+        const bbWidth = fullWidth * 0.4;
+        const bbHeight = fullHeight * 0.4;
         let shiftY = fullHeight - bbHeight;
 
-        // 3. Shift Logic for Left/Right (Head-First Collision)
-        let shiftX;
-        if (this.facing === 0) { // Facing Left
-            // The box stays at the far left of the sprite area
-            shiftX = 0;
-        } else if (this.facing === 1) { // Facing Right
-            // Shift the box to the far right of the sprite area
-            shiftX = fullWidth - bbWidth;
-        } else { // Up or Down
-            // Center the narrow box for vertical movement
-            shiftX = (fullWidth - bbWidth) / 2;
-        }
+        let shiftX = (fullWidth - bbWidth) / 2;
 
-        // 4. Final Bounding Box
-        // We combine the animator's internal offset with our dynamic shifting
+        // Final bounding box
         this.BB = new BoundingBox(
             predictX + scaledXOffset + shiftX,
             predictY + scaledYOffset + shiftY,
@@ -116,7 +95,7 @@ class Rat {
         let yorkie = this.game.entities.find(e => e.constructor.name === "Yorkie");
 
         if (yorkie && yorkie.actionState === "WAIT_FOR_RAT") {
-            let safeX = yorkie.targetX + 120;
+            let safeX = yorkie.targetX + 80;
             if (this.x < safeX) {
                 this.x += 100 * this.game.clockTick;
                 this.facing = 1;
