@@ -7,7 +7,7 @@ class Animator {
         this.totalTime = frameCount * frameDuration;
     };
 
-    drawFrame(tick, ctx, x, y, scale) {
+    drawFrame(tick, ctx, x, y, scale, debug = false) {
         this.elapsedTime += tick;
         if (this.isDone()) {
             if (this.loop) {
@@ -25,6 +25,12 @@ class Animator {
         ctx.drawImage(this.spritesheet, this.xStart + frame * (this.width + this.framePadding),
             this.yStart, this.width, this.height, x - (this.xOffset * scale), y + (this.yOffset * scale),
             this.width * scale, this.height * scale);
+
+        if (debug) {
+            ctx.strokeStyle = "green";
+            ctx.strokeRect(x - (this.xOffset * scale),
+                y + (this.yOffset * scale), this.width * scale, this.height * scale);
+        }
     };
 
     currentFrame() {

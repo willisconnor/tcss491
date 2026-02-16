@@ -85,7 +85,7 @@ class StuartBig {
     };
 
     draw(ctx) {
-        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingEnabled = false;
 
         // ensure animator matches current facing (so cutscene-facing changes immediately apply)
         this.animator = this.animations.get("idle")[this.facing];

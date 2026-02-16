@@ -42,7 +42,7 @@ class Yorkie {
 
         // bounding box
         this.width = 18 * this.scale;
-        this.height = 30 * this.scale;
+        this.height = 18 * this.scale;
         this.updateBB();
 
         // Dialogue lines for the Yorkie NPC
@@ -70,8 +70,9 @@ class Yorkie {
             this.lastHealth = 0;
             this.dead = true;
             this.actionState = "SLEEPING";
-            this.x = 420;
-            this.y = 420;
+            // needs to be equal to x and y bc the coordinates are passed to loadLevelTwo in SceneManager
+            this.x = x;
+            this.y = y;
             this.facing = 0;
         }
     }

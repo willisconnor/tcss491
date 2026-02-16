@@ -1045,8 +1045,17 @@
  "tileheight":16,
  "tilesets":[
         {
+         "columns":270,
          "firstgid":1,
-         "source":"..\/Desktop\/GlobalAssets.tsx"
+         "image":"global.png",
+         "imageheight":3440,
+         "imagewidth":4320,
+         "margin":0,
+         "name":"global",
+         "spacing":0,
+         "tilecount":58050,
+         "tileheight":16,
+         "tilewidth":16
         }],
  "tilewidth":16,
  "type":"map",
