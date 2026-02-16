@@ -27,9 +27,11 @@ class Door {
                 if (this.game.keys["KeyE"]) {
                     this.game.keys["KeyE"] = false; // prevent double triggering
                     if (this.destination === "Level2") {
-                        this.game.camera.loadLevelTwo();
+                        this.game.camera.loadLevelTwo(this.game.camera.levelNumber);
                     } else if (this.destination === "Level1") {
                         this.game.camera.loadLevelOne();
+                    } else if (this.destination === "Level3") {
+                        this.game.camera.loadLevelThree();
                     }
                 }
             } else {
@@ -43,13 +45,14 @@ class Door {
             ctx.font = "20px Arial";
             ctx.fillStyle = "yellow";
             ctx.textAlign = "center";
-            ctx.fillText("Press 'E' to Enter", this.x - this.game.camera.x + 50, this.y - this.game.camera.y - 20);
+            // removed this.game.camera.x so door don't float around (fixed in debug mode)
+            ctx.fillText("Press 'E' to Enter", this.x + 50, this.y - 20);
         }
 
-        // Debug box
+        // removed this.game.camera.x for red debug box too
         if (this.game.options && this.game.options.debugging) {
             ctx.strokeStyle = "red";
-            ctx.strokeRect(this.x - this.game.camera.x, this.y - this.game.camera.y, this.width, this.height);
+            ctx.strokeRect(this.x, this.y, this.width, this.height);
         }
     }
 }
