@@ -27,9 +27,11 @@ class Door {
                 if (this.game.keys["KeyE"]) {
                     this.game.keys["KeyE"] = false; // prevent double triggering
                     if (this.destination === "Level2") {
-                        this.game.camera.loadLevelTwo();
+                        this.game.camera.loadLevelTwo(this.game.camera.levelNumber);
                     } else if (this.destination === "Level1") {
                         this.game.camera.loadLevelOne();
+                    } else if (this.destination === "Level3") {
+                        this.game.camera.loadLevelThree();
                     }
                 }
             } else {

@@ -51,6 +51,8 @@ class SceneManager {
         this.minimapWidth = 250;
         this.minimapMargin = 10;
 
+        this.stuartIntroPlayed = false;
+        this.gameplayStarted = false;
         // lose scenario variables
         this.loseState = false;
         this.loseTimer = 0;
@@ -180,6 +182,7 @@ class SceneManager {
     }
 
     loadLevelOne() {
+        this.gameplayStarted = true;
         this.game.entities.forEach(entity => {
             if (!(entity instanceof SceneManager)) entity.removeFromWorld = true;
         });
@@ -204,7 +207,7 @@ class SceneManager {
         console.log("Loaded level one!");
     }
 
-    loadLevelTwo() {
+    loadLevelTwo(fromLevel) {
         this.game.entities.forEach(entity => {
             if (!(entity instanceof SceneManager)) entity.removeFromWorld = true;
         });
@@ -220,10 +223,42 @@ class SceneManager {
         this.currentMusicPath = "./assets/Desert.mp3";
         this.game.audio.playMusic(this.currentMusicPath);
 
-        this.game.addEntity(new Rat(this.game, 250, 180));
+        if (fromLevel === 3) {
+            this.game.addEntity(new Rat(this.game, 707, 130));
+        } else {
+            // default spawn from level 1
+            this.game.addEntity(new Rat(this.game, 250, 180));
+        }
         this.game.addEntity(new Door(this.game, 220, 90, "Level1", false));
-
+        this.game.addEntity(new Door(this.game, 707, 32, "Level3", false));
         console.log("Loaded level 2!");
+    }
+
+    loadLevelThree() {
+        // clear current entities, preserves SceneManager state like yorkieDefeated
+        this.game.entities.forEach(entity => {
+            if (!(entity instanceof SceneManager)) entity.removeFromWorld = true;
+        });
+
+        // load new Kitchen Map
+        this.level = ASSET_MANAGER.getAsset("./assets/Level3Kitchen.json");
+        this.levelNumber = 3;
+        this.mapCached = false;
+
+        // load collisions
+        if (this.game.collisionManager) {
+            this.game.collisionManager.loadFromTiledJSON(this.level);
+        }
+        this.currentMusicPath = "./assets/MiiParade.mp3";
+        this.game.audio.playMusic(this.currentMusicPath);
+
+        // place Rat at entrance to kitchen door
+        this.game.addEntity(new Rat(this.game, 80, 190));
+
+        // add door to return to Level 2
+        this.game.addEntity(new Door(this.game, 80, 95, "Level2", false));
+
+        console.log("Loaded level 3!");
     }
 
     draw(ctx) {

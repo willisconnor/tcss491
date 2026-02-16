@@ -17,6 +17,8 @@ ASSET_MANAGER.queueDownload("./assets/stuart_big.png");
 ASSET_MANAGER.queueDownload("./assets/background_music.wav");
 ASSET_MANAGER.queueDownload("./assets/Level2DiningRoom.json");
 ASSET_MANAGER.queueDownload("./assets/Desert.mp3");
+ASSET_MANAGER.queueDownload("./assets/Level3Kitchen.json");
+ASSET_MANAGER.queueDownload("./assets/MiiParade.mp3");
 ASSET_MANAGER.queueDownload("./assets/snake-eat-rat.png");
 ASSET_MANAGER.queueDownload("./assets/in-the-arms-of-an-angel.mp3");
 ASSET_MANAGER.queueDownload("./assets/crunchy-bite.mp3");

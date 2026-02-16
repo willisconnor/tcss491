@@ -128,7 +128,7 @@ class Menu {
 
     startGame() {
         this.stopTypingSounds(); // cleanup
-
+        if (this.game.camera) this.game.camera.loreCompleted = true;
         // 1. START THE MUSIC
         // Use the music path stored in SceneManager so it matches the current level
         if (this.game.camera && this.game.camera.currentMusicPath) {
@@ -172,7 +172,8 @@ class Menu {
             if (this.checkBounds(x, y, centerX, centerY - 40, this.btnW, this.btnH)) {
                 // modification: check if we are resuming
                 // if intro has been played skip story text -> go straight to game
-                if (this.game.camera && this.game.camera.stuartIntroPlayed) {
+                const cam = this.game.camera;
+                if (cam && (cam.stuartIntroPlayed || cam.loreCompleted)) {
                     this.startGame();
                 } else {
                     // otherwise play story lines
