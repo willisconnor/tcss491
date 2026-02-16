@@ -258,6 +258,11 @@ class SceneManager {
         // add door to return to Level 2
         this.game.addEntity(new Door(this.game, 80, 95, "Level2", false));
 
+        //ADD SNAKES TO LEVEL 2
+        const stationarySnake = new Snake(this.game, 400, 200, 32, 32, null);
+        this.game.addEntity(stationarySnake);
+
+        console.log("Level 2 Loaded!");
         console.log("Loaded level 3!");
     }
 

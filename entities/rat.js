@@ -22,6 +22,14 @@ class Rat {
         this.speed = 0;
 
         this.attackCooldown = 0;
+        // initialize Bounding Box
+        //health system
+        this.health = 10;
+        this.maxHealth = 10;
+        this.invulnerabilityTimer = 0; //prevent spam damage
+        this.invulnerabilityDuration = 0.5; //0.5 seconds of invuln after damaged
+
+
         this.hasHit = false;
 
         this.updateBB();
@@ -64,8 +72,30 @@ class Rat {
         this.BB = new BoundingBox(colliderX, colliderY, colliderWidth, colliderHeight);
     }
 
+    takeDamage(damage) {
+        if (this.invulnerabilityTimer > 0) return; // Can't take damage while invulnerable
+
+        this.health -= damage;
+        this.invulnerabilityTimer = this.invulnerabilityDuration;
+
+        console.log(`Rat took ${damage} damage! Health: ${this.health}/${this.maxHealth}`);
+
+        if (this.health <= 0) {
+            this.health = 0;
+            this.die();
+        }
+    }
+
+    die() {
+        console.log("Rat died!");
+        // For now, just set the death animation
+        // You can add game over logic later
+        this.animator = this.animations.get("dead");
+    }
+
     update() {
         if (this.attackCooldown > 0) this.attackCooldown -= this.game.clockTick;
+        if (this.invulnerabilityTimer > 0) this.invulnerabilityTimer -= this.game.clockTick;
 
         if ((this.game.camera && this.game.camera.preDialogueActive) || this.frozenForDialogue) {
             if (this.game.camera && this.game.camera.preDialogueActive) this.facing = 1;
@@ -196,6 +226,28 @@ class Rat {
         else if (this.facing === 3) hitY -= range;
 
         let attackBox = new BoundingBox(hitX, hitY, 50, 50);
+
+        // find Yorkie and check collision
+        //let yorkie = this.game.entities.find(e => e.constructor.name === "Yorkie");
+        //check all entities for hits
+        for (let entity of this.game.entities) {
+            //check yorkie
+            if (entity.constructor.name === "Yorkie" && entity.actionState === "TRAINING" && entity.BB) {
+                if (attackBox.collide(entity.BB)) {
+                    entity.health -= 1;
+                }
+            }
+            //check enemies
+            if (entity.constructor.name === "Snake" && !entity.dead && entity.boundingBox){
+                if (attackBox.collide(entity.boundingBox)) {
+                    entity.takeDamage(1); //deal 1 damage to enemy
+                    console.log(`Hit ${entity.constructor.name}! Health: ${entity.health}`);
+                }
+            }
+        }
+
+        /**
+        // validate Yorkie exists, is in training state,  initialized its own BoundingBox
         let yorkie = this.game.entities.find(e => e.constructor.name === "Yorkie");
 
         if (yorkie && yorkie.actionState === "TRAINING" && yorkie.BB) {
@@ -204,6 +256,7 @@ class Rat {
                 this.hasHit = true;
             }
         }
+        */
     }
 
     checkYorkieCollision(newX, newY, colliderW, colliderH) {

@@ -2,6 +2,7 @@
 //@date: 2/5/26
 
 class Enemy{
+    scale;
     constructor(game, x, y, maxHealth, attackDamage, detectionRange, attackRange, speed){
         Object.assign(this, {game, x, y, maxHealth, attackDamage, detectionRange, attackRange, speed});
 
@@ -115,7 +116,7 @@ class Enemy{
     /**
      * hook method once more
      */
-    onhurt(){
+    onHurt(){
         //override
     }
 
@@ -143,7 +144,7 @@ class Enemy{
      * might have to tweak this based on Mariott videos
      * @returns {Object|null} player entity or nulkl
      */
-    findPLayer(){
+    findPlayer(){
         return this.game.entities.find(entity => entity.constructor.name === 'Rat');
     }
 
@@ -151,15 +152,43 @@ class Enemy{
      * updates bounding box position
      * call this after moving the enemy
      */
+    /**
+     * Updates bounding box position
+     * Uses a smaller circular collider at the center/base like the Rat
+     */
     updateBoundingBox() {
-        if (this.boundingBox){
-            this.boundingBox.x = this.x;
-            this.boundingBox.y = this.y;
-            this.boundingBox.left = this.x;
-            this.boundingBox.top = this.y;
-            this.boundingBox.right = this.boundingBox.left + this.boundingBox.width;
-            this.boundingBox.bottom = this.boundingBox.top + this.boundingBox.height;
+        if (!this.boundingBox) {
+            // Initialize bounding box if it doesn't exist
+            const colliderRadius = 10 * this.scale; // Adjust size as needed
+            const colliderWidth = colliderRadius * 2;
+            const colliderHeight = colliderRadius;
+
+            this.boundingBox = new BoundingBox(
+                this.x,
+                this.y,
+                colliderWidth,
+                colliderHeight
+            );
         }
+
+        // Position the collider at the snake's base/center
+        const spriteWidth = 32 * this.scale; // Snake sprite is 32px wide
+        const spriteHeight = 32 * this.scale;
+        const colliderRadius = 10 * this.scale;
+        const colliderWidth = colliderRadius * 2;
+        const colliderHeight = colliderRadius;
+
+        // Center horizontally, place at bottom vertically (like rat's feet)
+        this.boundingBox.x = this.x + (spriteWidth / 2) - colliderRadius;
+        this.boundingBox.y = this.y + spriteHeight - colliderHeight;
+        this.boundingBox.width = colliderWidth;
+        this.boundingBox.height = colliderHeight;
+
+        // Update AABB properties
+        this.boundingBox.left = this.boundingBox.x;
+        this.boundingBox.top = this.boundingBox.y;
+        this.boundingBox.right = this.boundingBox.left + this.boundingBox.width;
+        this.boundingBox.bottom = this.boundingBox.top + this.boundingBox.height;
     }
 
     update(){
