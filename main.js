@@ -1,6 +1,6 @@
 const ASSET_MANAGER = new AssetManager();
 const gameEngine = new GameEngine();
-const RAT_SPRITES = ["./assets/rats.png", "./assets/rats_extras.png"];
+
 const SNAKE_SPRITES = [
     "./assets/snakes/Green/SnakeGreen-Attack.png",
     "./assets/snakes/Green/SnakeGreen-Death.png",
@@ -15,7 +15,7 @@ ASSET_MANAGER.queueDownload(RAT_SPRITES[1])
 for(let i = 0; i < SNAKE_SPRITES.length; i++){
     ASSET_MANAGER.queueDownload(SNAKE_SPRITES[i]);
 }
-const gameEngine = new GameEngine({});
+
 const RAT_SPRITES = ["./assets/rats.png", "./assets/rats_extras.png", "./assets/rat_lunge.png"];
 
 ASSET_MANAGER.queueDownload(RAT_SPRITES[0])
