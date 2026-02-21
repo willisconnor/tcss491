@@ -72,6 +72,7 @@ class SceneManager {
         if (this.crunchSound) {
             this.crunchSound.loop = true;
             this.crunchSound.playbackRate = 3.1; // crunch speed
+            this.crunchSound.volume = 0.2;
         }
     }
 
