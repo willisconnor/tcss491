@@ -60,4 +60,12 @@ ASSET_MANAGER.downloadAll(() => {
     gameEngine.addEntity(sceneManager);
 
     gameEngine.start();
+
+    document.getElementById("debugSkip").addEventListener("click", () => {
+        if (gameEngine.camera && gameEngine.camera.skipToLevel2) {
+            gameEngine.camera.skipToLevel2();
+            // Shift focus so the Rat moves immediately
+            document.getElementById("gameWorld").focus();
+        }
+    });
 });

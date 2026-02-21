@@ -467,4 +467,33 @@ class SceneManager {
         this.mapCached = true;
         console.log("Map cached successfully at scale " + this.scale);
     }
+    
+    skipToLevel2() {
+        console.log("DEBUG: Skipping Level 1. Story state updated.");
+
+        // 1. Logic Flags: Pretend we finished Level 1
+        this.levelNumber = 2;
+        this.storyState = "LEVEL2";
+        this.yorkieDefeated = true; // This lets you walk back through the Lvl 1 door
+        this.stuartIntroPlayed = true;
+        this.hasGoldenKey = true;   // In case doors check for the item
+        
+        this.dialogueActive = false;
+        this.game.paused = false;
+
+        // 2. Clear current level entities
+        this.game.entities.forEach(entity => {
+            if (!(entity instanceof SceneManager)) {
+                entity.removeFromWorld = true;
+            }
+        });
+
+        // 3. Call your existing Level 2 loader
+        this.loadLevelTwo(1); 
+        
+        // 4. Reset Menu state to allow Game Over text to appear later
+        if (this.menu) {
+            this.menu.state = "START";
+        }
+    }
 }
