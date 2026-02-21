@@ -96,6 +96,12 @@ class Rat {
     }
 
     update() {
+        // stop all movement and action if the rat is dead
+        if (this.health <=0) {
+            this.animator = this.animations.get("dead");
+            this.updateBB();
+            return;
+        }
         if (this.attackCooldown > 0) this.attackCooldown -= this.game.clockTick;
         if (this.invulnerabilityTimer > 0) this.invulnerabilityTimer -= this.game.clockTick;
 

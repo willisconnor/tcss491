@@ -62,6 +62,8 @@ class SceneManager {
         this.loseTimer = 0;
         this.snakeStates = new Map(); // Store snake states by unique ID
 
+        // global rat health tracker
+        this.ratHealth = 10;
         this.snakeEatAnim = new Animator(ASSET_MANAGER.getAsset("./assets/snake-eat-rat.png"), 0, 0, 728, 720, 2, 0.5, 0, false, true);
 
         // looping crunch sound for lose scenario
@@ -150,6 +152,10 @@ class SceneManager {
 
         let rat = this.game.entities.find(e => e.constructor.name === "Rat");
         if (rat) {
+            // constantly backup the rats health to the SceneManager
+            if (rat.health > 0) {
+                this.ratHealth = rat.health;
+            }
             let viewW = this.game.ctx.canvas.width / this.zoom;
             let viewH = this.game.ctx.canvas.height / this.zoom;
             this.x = rat.x - (viewW / 2);
@@ -161,20 +167,17 @@ class SceneManager {
         //snake state saving for level 2
         if (this.levelNumber === 2) {
             this.game.entities.forEach(entity => {
-                if (entity.constructor.name === "Snake") {
-                    const snakeId = `snake_${Math.floor(entity.x)}_${Math.floor(entity.y)}`;
-                    this.saveSnakeState(entity, snakeId);
+                // check for static id so movement doesn't break save state
+                if (entity.constructor.name === "Snake" && entity.id) {
+                    this.saveSnakeState(entity, entity.id);
                 }
             });
         }
 
-        // lose scenario trigger for level 2
-        if (this.levelNumber === 2 && !this.loseState && rat) {
-            let dist = Math.sqrt(Math.pow(rat.x - 960, 2) + Math.pow(rat.y - 128, 2));
-            if (dist < 100 && this.game.keys["KeyE"]) {
+        // lose scenario trigger for level 2 if rat dies (no more E key debug box)
+        if (!this.loseState && rat && rat.health <= 0) {
                 this.loseState = true;
                 this.loseTimer = 0;
-
                 this.game.click = null;
                 Object.keys(this.game.keys).forEach(k => this.game.keys[k] = false);
 
@@ -187,7 +190,7 @@ class SceneManager {
                     this.crunchSound.play().catch(e => console.error(e));
                 }
             }
-        }
+
 
         if (this.loseState) {
             this.loseTimer += this.game.clockTick;
@@ -218,7 +221,9 @@ class SceneManager {
             this.game.collisionManager.loadFromTiledJSON(this.level);
         }
 
-        this.game.addEntity(new Rat(this.game, 448, 196));
+        let rat = new Rat(this.game, 448, 196);
+        rat.health = this.ratHealth; // restore health
+        this.game.addEntity(rat);
         this.game.addEntity(new StuartBig(this.game, 200, 215, 2));
         this.game.addEntity(new Yorkie(this.game, 420, 420));
         this.game.addEntity(new Door(this.game, 420, 90, "Level2", true));
@@ -246,22 +251,27 @@ class SceneManager {
         this.currentMusicPath = "./assets/Desert.mp3";
         this.game.audio.playMusic(this.currentMusicPath);
 
+        let rat;
         if (fromLevel === 3) {
-            this.game.addEntity(new Rat(this.game, 707, 130));
+            rat = new Rat(this.game, 707, 130);
         } else {
             // default spawn from level 1
-            this.game.addEntity(new Rat(this.game, 250, 180));
+            rat = new Rat(this.game, 250, 180);
         }
+        rat.health = this.ratHealth; // restore health
+        this.game.addEntity(rat);
+
         this.game.addEntity(new Door(this.game, 220, 90, "Level1", false));
         this.game.addEntity(new Door(this.game, 707, 32, "Level3", false));
         //ADD SNAKES TO LEVEL 2: restoring the state
         const stationarySnake = new Snake(this.game, 400, 200, null);
-        const snakeId = `snake_${Math.floor(stationarySnake.x)}_${Math.floor(stationarySnake.y)}`;
-        this.loadSnakeState(stationarySnake, snakeId);  // ✓ Restore saved state
+
+        // I fixed by giving snake persistent string ID so movement doesn't break saving
+        stationarySnake.id = "level2_snake_main";
+        this.loadSnakeState(stationarySnake, stationarySnake.id);
         this.game.addEntity(stationarySnake);
 
         console.log("Level 2 Loaded!");
-        console.log("Loaded level 2!");
     }
 
     loadLevelThree() {
@@ -283,7 +293,9 @@ class SceneManager {
         this.game.audio.playMusic(this.currentMusicPath);
 
         // place Rat at entrance to kitchen door
-        this.game.addEntity(new Rat(this.game, 80, 190));
+        let rat = new Rat(this.game, 80, 190);
+        rat.health = this.ratHealth; // restore health
+        this.game.addEntity(rat);
 
         // add door to return to Level 2
         this.game.addEntity(new Door(this.game, 80, 95, "Level2", false));
@@ -353,15 +365,6 @@ class SceneManager {
 
         if (this.mapCached) {
             ctx.drawImage(this.mapCanvas, 0, 0);
-        }
-
-        if (this.levelNumber === 2 && !this.loseState) {
-            ctx.strokeStyle = "red";
-            ctx.lineWidth = 3;
-            ctx.strokeRect(960, 128, 50, 50);
-            ctx.fillStyle = "red";
-            ctx.font = "20px Arial";
-            ctx.fillText("Press E to see Lvl 2 Lose", 1000, 120);
         }
 
         if (this.game.options && this.game.options.debugging) {
