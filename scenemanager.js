@@ -27,7 +27,7 @@ class SceneManager {
         this.paused = false;
         this.pauseMenu = new PauseMenu(this.game);
 
-        this.cbX = 20; 
+        this.cbX = 20;
         this.cbY = 20;
         this.cbSize = 24;
 
@@ -94,9 +94,9 @@ class SceneManager {
             // Check if click is inside the Checkbox
             if (mouseX >= this.cbX && mouseX <= this.cbX + this.cbSize &&
                 mouseY >= this.cbY && mouseY <= this.cbY + this.cbSize) {
-                
+
                 this.skipToLevel2();
-                
+                this.game.options.debugging = !this.game.options.debugging;
                 this.game.click = null; // Consume the click
             }
         }
@@ -121,13 +121,27 @@ class SceneManager {
 
             let rat = this.game.entities.find(e => e.constructor.name === "Rat");
             let stuart = this.game.entities.find(e => e.constructor.name === "StuartBig");
-            if (rat) { rat.frozenForDialogue = true; rat.facing = 1; rat.animator = rat.animations.get("idle")[rat.facing]; }
-            if (stuart) { stuart.frozenForDialogue = true; stuart.facing = 0; stuart.animator = stuart.animations.get("idle")[stuart.facing]; }
+            if (rat) {
+                rat.frozenForDialogue = true;
+                rat.facing = 1;
+                rat.animator = rat.animations.get("idle")[rat.facing];
+            }
+            if (stuart) {
+                stuart.frozenForDialogue = true;
+                stuart.facing = 0;
+                stuart.animator = stuart.animations.get("idle")[stuart.facing];
+            }
             this.game.paused = true;
         }
 
-        if (this.menuActive) { this.menu.update(); return; }
-        if (this.paused) { this.pauseMenu.update(); if (!this.paused) this.game.paused = false; else return; }
+        if (this.menuActive) {
+            this.menu.update();
+            return;
+        }
+        if (this.paused) {
+            this.pauseMenu.update();
+            if (!this.paused) this.game.paused = false; else return;
+        }
         if (this.dialogueActive) this.dialogue.update();
 
         if (this.preDialogueActive) {
@@ -143,9 +157,17 @@ class SceneManager {
 
         if (!this.dialogueActive && this._dialogueWasActive && !this.preDialogueActive) {
             let rat = this.game.entities.find(e => e.constructor.name === "Rat");
-            if (rat) { rat.frozenForDialogue = false; rat.facing = 2; rat.animator = rat.animations.get("idle")[rat.facing]; }
+            if (rat) {
+                rat.frozenForDialogue = false;
+                rat.facing = 2;
+                rat.animator = rat.animations.get("idle")[rat.facing];
+            }
             let stuart = this.game.entities.find(e => e.constructor.name === "StuartBig");
-            if (stuart) { stuart.frozenForDialogue = false; stuart.facing = 2; stuart.animator = stuart.animations.get("idle")[stuart.facing]; }
+            if (stuart) {
+                stuart.frozenForDialogue = false;
+                stuart.facing = 2;
+                stuart.animator = stuart.animations.get("idle")[stuart.facing];
+            }
             this.stuartIntroPlayed = true;
             this._dialogueWasActive = false;
         }
@@ -176,20 +198,20 @@ class SceneManager {
 
         // lose scenario trigger for level 2 if rat dies (no more E key debug box)
         if (!this.loseState && rat && rat.health <= 0) {
-                this.loseState = true;
-                this.loseTimer = 0;
-                this.game.click = null;
-                Object.keys(this.game.keys).forEach(k => this.game.keys[k] = false);
+            this.loseState = true;
+            this.loseTimer = 0;
+            this.game.click = null;
+            Object.keys(this.game.keys).forEach(k => this.game.keys[k] = false);
 
-                // play music
-                this.game.audio.playMusic("./assets/in-the-arms-of-an-angel.mp3", true);
+            // play music
+            this.game.audio.playMusic("./assets/in-the-arms-of-an-angel.mp3", true);
 
-                // play crunch
-                if (this.crunchSound) {
-                    this.crunchSound.currentTime = 0;
-                    this.crunchSound.play().catch(e => console.error(e));
-                }
+            // play crunch
+            if (this.crunchSound) {
+                this.crunchSound.currentTime = 0;
+                this.crunchSound.play().catch(e => console.error(e));
             }
+        }
 
 
         if (this.loseState) {
@@ -264,13 +286,16 @@ class SceneManager {
         this.game.addEntity(new Door(this.game, 220, 90, "Level1", false));
         this.game.addEntity(new Door(this.game, 707, 32, "Level3", false));
         //ADD SNAKES TO LEVEL 2: restoring the state
-        const stationarySnake = new Snake(this.game, 400, 200, null);
+        const stationarySnake = new Snake(this.game, 707, 130, null);
 
         // I fixed by giving snake persistent string ID so movement doesn't break saving
         stationarySnake.id = "level2_snake_main";
         this.loadSnakeState(stationarySnake, stationarySnake.id);
-        this.game.addEntity(stationarySnake);
 
+        // only add snake to the canvas if its still alive
+        if (!stationarySnake.dead) {
+            this.game.addEntity(stationarySnake);
+        }
         console.log("Level 2 Loaded!");
     }
 
@@ -346,7 +371,7 @@ class SceneManager {
         ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
         ctx.fillRect(x, y, size, size);
 
-        ctx.strokeStyle = "#ffcc00"; 
+        ctx.strokeStyle = "#ffcc00";
         ctx.lineWidth = 2;
         ctx.strokeRect(x, y, size, size);
 
@@ -354,6 +379,11 @@ class SceneManager {
         ctx.font = "12px 'Press Start 2P'";
         ctx.textAlign = "left";
         ctx.fillText("DEBUG MODE", x + size + 10, y + size - 6);
+        // draw 'X' if debugging is on
+        if (this.game.options && this.game.options.debugging) {
+            ctx.fillStyle = "#39FF14";
+            ctx.fillText("X", x+5, y+size-5);
+        }
         ctx.restore();
     }
 
@@ -447,14 +477,14 @@ class SceneManager {
             ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
             ctx.restore();
 
-            ctx.fillText("Look at you, where is our hero now?", ctx.canvas.width/2, 70);
-            ctx.fillText("You've been defeated by the silent slitherer...", ctx.canvas.width/2, 105);
-            ctx.fillText("Your fate is in their jaws.", ctx.canvas.width/2, 140);
+            ctx.fillText("Look at you, where is our hero now?", ctx.canvas.width / 2, 70);
+            ctx.fillText("You've been defeated by the silent slitherer...", ctx.canvas.width / 2, 105);
+            ctx.fillText("Your fate is in their jaws.", ctx.canvas.width / 2, 140);
 
             if (this.loseTimer > 10) {
                 ctx.font = "30px 'Press Start 2P', 'Courier New'";
                 ctx.fillStyle = "red";
-                ctx.fillText("PRESS ANY KEY TO RESTART", ctx.canvas.width/2, ctx.canvas.height - 20);
+                ctx.fillText("PRESS ANY KEY TO RESTART", ctx.canvas.width / 2, ctx.canvas.height - 20);
             }
         }
     }
@@ -489,16 +519,24 @@ class SceneManager {
             ctx.beginPath();
             if (entity.constructor.name === "Rat") {
                 ctx.arc(entX, entY, 4, 0, Math.PI * 2);
-                ctx.fillStyle = "#39FF14"; ctx.fill();
+                ctx.fillStyle = "#39FF14";
+                ctx.fill();
             } else if (entity.constructor.name === "Yorkie") {
                 ctx.arc(entX, entY, 4, 0, Math.PI * 2);
-                ctx.fillStyle = "red"; ctx.fill();
+                ctx.fillStyle = "red";
+                ctx.fill();
             } else if (entity.constructor.name === "StuartBig") {
                 ctx.arc(entX, entY, 3, 0, Math.PI * 2);
-                ctx.fillStyle = "cyan"; ctx.fill();
+                ctx.fillStyle = "cyan";
+                ctx.fill();
+            } else if (entity.constructor.name === "Snake" && !entity.dead) {
+                ctx.arc(entX, entY, 4, 0, Math.PI * 2);
+                ctx.fillStyle = "#031c04";
+                ctx.fill();
             } else if (entity.constructor.name === "GoldenKey" && !entity.collected) {
                 ctx.arc(entX, entY, 3, 0, Math.PI * 2);
-                ctx.fillStyle = "gold"; ctx.fill();
+                ctx.fillStyle = "gold";
+                ctx.fill();
             }
         });
 
@@ -538,21 +576,21 @@ class SceneManager {
         this.mapCached = true;
         console.log("Map cached successfully at scale " + this.scale);
     }
-    
+
     skipToLevel2() {
         console.log("DEBUG: Instant Warp to Level 2 Gameplay...");
 
         // et story flags 
         this.levelNumber = 2;
         this.storyState = "LEVEL2";
-        this.yorkieDefeated = true; 
+        this.yorkieDefeated = true;
         this.stuartIntroPlayed = true;
-        this.hasGoldenKey = true;   
-        
+        this.hasGoldenKey = true;
+
         //  Turn off all menus and dialogue
-        this.menuActive = false;    
-        this.dialogueActive = false; 
-        this.game.paused = false;   
+        this.menuActive = false;
+        this.dialogueActive = false;
+        this.game.paused = false;
 
         //  Clear entities safely 
         this.game.entities.forEach(entity => {
@@ -562,8 +600,8 @@ class SceneManager {
         });
 
         // Load the level (This should spawn the Rat and the Snake)
-        this.loadLevelTwo(1); 
-        
+        this.loadLevelTwo(1);
+
         // 5. Force the map to redraw
         this.mapCached = false;
     }

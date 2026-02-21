@@ -227,11 +227,11 @@ class Enemy{
 
         // attempt to center health bar over the enemy
         let barX = this.x;
-        if (this.width) {
-            barX = this.x + (this.width/2) - (barWidth/2);
+        if (this.boundingBox) {
+            barX = this.boundingBox.x + (this.boundingBox.width/2) - (barWidth/2);
         }
 
-        ctx.filleStyle = "red";
+        ctx.fillStyle = "red";
         ctx.fillRect(barX, this.y-20, barWidth, barHeight);
         ctx.fillStyle = "#39FF14"; // from html color picker, neon green
         ctx.fillRect(barX, this.y-20, barWidth * healthPercent, barHeight);

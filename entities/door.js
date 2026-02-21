@@ -41,6 +41,7 @@ class Door {
     }
 
     draw(ctx) {
+        ctx.save();
         if (this.showPrompt) {
             ctx.font = "20px Arial";
             ctx.fillStyle = "yellow";
@@ -48,11 +49,14 @@ class Door {
             // removed this.game.camera.x so door don't float around (fixed in debug mode)
             ctx.fillText("Press 'E' to Enter", this.x + 50, this.y - 20);
         }
+        ctx.restore();
 
         // removed this.game.camera.x for red debug box too
         if (this.game.options && this.game.options.debugging) {
+            ctx.save();
             ctx.strokeStyle = "red";
             ctx.strokeRect(this.x, this.y, this.width, this.height);
+            ctx.restore();
         }
     }
 }

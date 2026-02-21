@@ -385,7 +385,6 @@ class Snake extends Enemy{
                 const spriteWidth = 32 * this.scale;
                 ctx.translate(drawX + spriteWidth, drawY);
                 ctx.scale(-1, 1);
-                ctx.translate(-spriteWidth, 0);
 
                 this.currentAnimation.drawFrame(
                     game.clockTick,
