@@ -315,6 +315,25 @@ class Rat {
         this.animator.drawFrame(this.game.clockTick, ctx, drawX, drawY, this.scale);
         ctx.restore();
 
+        // new addition: rat boss battle health bar
+        // check if there are enemies alive on the current map layer
+        let activeBoss = this.game.entities.some(e => e instanceof Enemy && !e.dead);
+        if (activeBoss && this.game.camera && this.game.camera.levelNumber >= 2) {
+            ctx.save();
+            const barWidth = 50;
+            const barHeight = 5;
+            const healthPercent = Math.max(0, this.health / this.maxHealth);
+
+            let barX = drawX + (width/2) - (barWidth/2);
+            let barY = drawY - 20;
+
+            ctx.fillStyle = "red";
+            ctx.fillRect(barX, barY, barWidth, barHeight);
+            ctx.fillStyle = "#39FF14"; // neon green
+            ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+            ctx.restore();
+        }
+
         // Debug Hitboxes
         if (this.game.options.debugging) {
             const isAttacking = (this.animator === this.animations.get("attack")[this.facing]);

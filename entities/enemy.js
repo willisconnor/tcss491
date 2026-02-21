@@ -161,13 +161,12 @@ class Enemy{
             // Initialize bounding box if it doesn't exist
             const colliderRadius = 10 * this.scale; // Adjust size as needed
             const colliderWidth = colliderRadius * 2;
-            const colliderHeight = colliderRadius;
 
             this.boundingBox = new BoundingBox(
                 this.x,
                 this.y,
                 colliderWidth,
-                colliderHeight
+                colliderRadius
             );
         }
 
@@ -176,13 +175,12 @@ class Enemy{
         const spriteHeight = 32 * this.scale;
         const colliderRadius = 10 * this.scale;
         const colliderWidth = colliderRadius * 2;
-        const colliderHeight = colliderRadius;
 
         // Center horizontally, place at bottom vertically (like rat's feet)
         this.boundingBox.x = this.x + (spriteWidth / 2) - colliderRadius;
-        this.boundingBox.y = this.y + spriteHeight - colliderHeight;
+        this.boundingBox.y = this.y + spriteHeight - colliderRadius;
         this.boundingBox.width = colliderWidth;
-        this.boundingBox.height = colliderHeight;
+        this.boundingBox.height = colliderRadius;
 
         // Update AABB properties
         this.boundingBox.left = this.boundingBox.x;
@@ -205,7 +203,7 @@ class Enemy{
         //basic AI behavior (prob override)
         const player = this.detectPlayer();
         if (player) {
-            if (this.canAttackPLayer()) {
+            if (this.canAttackPlayer()) {
                 this.attack();
             } else {
                 this.moveToward(player.x, player.y);
@@ -219,17 +217,40 @@ class Enemy{
         this.updateBoundingBox();
     }
 
+    drawHealthBar(ctx) {
+        if (this.dead) return; // do not draw if dead
+        const barWidth = 50;
+        const barHeight = 5;
+        const healthPercent = Math.max(0, this.health/this.maxHealth);
+
+        ctx.save();
+
+        // attempt to center health bar over the enemy
+        let barX = this.x;
+        if (this.width) {
+            barX = this.x + (this.width/2) - (barWidth/2);
+        }
+
+        ctx.filleStyle = "red";
+        ctx.fillRect(barX, this.y-20, barWidth, barHeight);
+        ctx.fillStyle = "#39FF14"; // from html color picker, neon green
+        ctx.fillRect(barX, this.y-20, barWidth * healthPercent, barHeight);
+        ctx.restore();
+    }
+
     draw(ctx, game){
         //draw current animation if available
         if (this.currentAnimation) {
             this.currentAnimation.drawFrame(
                 game.clockTick,
                 ctx,
-                this.x -game.camera.x,
-                this.y - game.camera.y,
+                this.x,
+                this.y,
                 game.camera.scale || 1
             );
         }
+        // call new standardized health bar drawing method
+        this.drawHealthBar(ctx);
 
         //debug: draw detection and attack ranges
         if (game.options.debugging) {
@@ -239,35 +260,13 @@ class Enemy{
             ctx.strokeStyle = "yellow";
             ctx.beginPath();
             ctx.arc(
-                this.x - game.camera.x,
-                this.y - game.camera.y,
+                this.x,
+                this.y,
                 this.attackRange,
                 0,
                 Math.PI * 2
             );
             ctx.stroke();
-
-            //health bar
-            const barWidth = 50;
-            const barHeight = 5;
-            const healthPercent = this.health / this.maxHealth;
-
-            ctx.fillStyle = "red";
-            ctx.fillRect (
-                this.x - game.camera.x - barWidth/ 2,
-                this.y - game.camera.y - 20,
-                barWidth,
-                barHeight
-            );
-
-            ctx.fillStyle = "green";
-            ctx.fillRect(
-                this.x - game.camera.x - barWidth/2,
-                this.y - game.camera.y - 20,
-                barWidth * healthPercent,
-                barHeight
-            );
-
             ctx.restore();
         }
     }

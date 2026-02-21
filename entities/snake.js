@@ -369,8 +369,10 @@ class Snake extends Enemy{
 
     draw(ctx, game) {
         if (this.currentAnimation) {
-            const drawX = this.x - game.camera.x;
-            const drawY = this.y - game.camera.y;
+            // fixed connors minor snake sliding issue; SceneManager already handles camera translation. Subtracting
+            // camera values here caused the snake to slide!
+            const drawX = this.x;
+            const drawY = this.y;
 
             // Check if we need to flip
             const shouldFlip = (this.facing === 0) ||
@@ -404,7 +406,8 @@ class Snake extends Enemy{
 
             ctx.restore();
         }
-
+        // inherited from enemy class, will hide automatically when dead!
+        this.drawHealthBar(ctx);
         if (game.options.debugging) {
             ctx.save();
 
@@ -412,8 +415,8 @@ class Snake extends Enemy{
             ctx.strokeStyle = "yellow";
             ctx.beginPath();
             ctx.arc(
-                this.x - game.camera.x + this.width / 2,
-                this.y - game.camera.y + this.height / 2,
+                this.x + this.width / 2,
+                this.y + this.height / 2,
                 this.detectionRange,
                 0,
                 Math.PI * 2
@@ -424,41 +427,20 @@ class Snake extends Enemy{
             ctx.strokeStyle = "red";
             ctx.beginPath();
             ctx.arc(
-                this.x - game.camera.x + this.width / 2,
-                this.y - game.camera.y + this.height / 2,
+                this.x + this.width / 2,
+                this.y + this.height / 2,
                 this.attackRange,
                 0,
                 Math.PI * 2
             );
             ctx.stroke();
 
-            // Health bar
-            const barWidth = 50;
-            const barHeight = 5;
-            const healthPercent = this.health / this.maxHealth;
-
-            ctx.fillStyle = "red";
-            ctx.fillRect(
-                this.x - game.camera.x,
-                this.y - game.camera.y - 20,
-                barWidth,
-                barHeight
-            );
-
-            ctx.fillStyle = "green";
-            ctx.fillRect(
-                this.x - game.camera.x,
-                this.y - game.camera.y - 20,
-                barWidth * healthPercent,
-                barHeight
-            );
-
             // Bounding box
             if (this.boundingBox) {
                 ctx.strokeStyle = "cyan";
                 ctx.strokeRect(
-                    this.boundingBox.x - game.camera.x,
-                    this.boundingBox.y - game.camera.y,
+                    this.boundingBox.x,
+                    this.boundingBox.y,
                     this.boundingBox.width,
                     this.boundingBox.height
                 );
@@ -470,13 +452,13 @@ class Snake extends Enemy{
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(
-                    this.patrolPath[0].x - game.camera.x,
-                    this.patrolPath[0].y - game.camera.y
+                    this.patrolPath[0].x,
+                    this.patrolPath[0].y
                 );
                 for (let i = 1; i < this.patrolPath.length; i++) {
                     ctx.lineTo(
-                        this.patrolPath[i].x - game.camera.x,
-                        this.patrolPath[i].y - game.camera.y
+                        this.patrolPath[i].x,
+                        this.patrolPath[i].y
                     );
                 }
                 ctx.stroke();
@@ -486,8 +468,8 @@ class Snake extends Enemy{
                 ctx.fillStyle = "orange";
                 for (const point of this.patrolPath) {
                     ctx.fillRect(
-                        point.x - game.camera.x - 3,
-                        point.y - game.camera.y - 3,
+                        point.x - 3,
+                        point.y - 3,
                         6,
                         6
                     );
@@ -498,8 +480,8 @@ class Snake extends Enemy{
                 const currentTarget = this.patrolPath[this.patrolIndex];
                 if (currentTarget) {
                     ctx.fillRect(
-                        currentTarget.x - game.camera.x - 5,
-                        currentTarget.y - game.camera.y - 5,
+                        currentTarget.x - 5,
+                        currentTarget.y - 5,
                         10,
                         10
                     );
@@ -511,8 +493,8 @@ class Snake extends Enemy{
             ctx.font = "12px Arial";
             ctx.fillText(
                 `${this.state} F:${this.facing} HF:${this.horizontalFacing}`,
-                this.x - game.camera.x,
-                this.y - game.camera.y - 30
+                this.x,
+                this.y- 30
             );
 
             ctx.restore();
