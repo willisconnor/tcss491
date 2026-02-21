@@ -66,6 +66,7 @@ class SceneManager {
         this.ratHealth = 10;
         this.snakeEatAnim = new Animator(ASSET_MANAGER.getAsset("./assets/snake-eat-rat.png"), 0, 0, 728, 720, 2, 0.5, 0, false, true);
 
+        this.isReloading = false;
         // looping crunch sound for lose scenario
         let crunchRaw = ASSET_MANAGER.getAsset("./assets/crunchy-bite.mp3");
         this.crunchSound = crunchRaw ? crunchRaw.cloneNode() : null;
@@ -222,7 +223,8 @@ class SceneManager {
             if (this.loseTimer > 10) {
                 let anyKeyPressed = Object.values(this.game.keys).some(k => k === true);
 
-                if (this.game.click || anyKeyPressed) {
+                if (!this.isReloading && (this.game.click || anyKeyPressed)) {
+                    this.isReloading = true;
                     if (this.crunchSound) this.crunchSound.pause();
                     location.reload();
                 }
