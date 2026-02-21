@@ -27,6 +27,10 @@ class SceneManager {
         this.paused = false;
         this.pauseMenu = new PauseMenu(this.game);
 
+        this.cbX = 20; 
+        this.cbY = 20;
+        this.cbSize = 24;
+
         this.menuActive = true;
         this.menu = new Menu(this.game);
         this.dialogueActive = false;
@@ -83,6 +87,14 @@ class SceneManager {
                 this.game.audio.toggleMute();
                 this.game.click = null;
                 return;
+            }
+            // Check if click is inside the Checkbox
+            if (mouseX >= this.cbX && mouseX <= this.cbX + this.cbSize &&
+                mouseY >= this.cbY && mouseY <= this.cbY + this.cbSize) {
+                
+                this.skipToLevel2();
+                
+                this.game.click = null; // Consume the click
             }
         }
 
@@ -275,6 +287,25 @@ class SceneManager {
             this.drawWorld(ctx);
             this.drawOverlays(ctx);
         }
+        // --- NEW DEBUG CHECKBOX ---
+        const x = this.cbX;
+        const y = this.cbY;
+        const size = this.cbSize;
+
+        ctx.save();
+
+        ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
+        ctx.fillRect(x, y, size, size);
+
+        ctx.strokeStyle = "#ffcc00"; 
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, size, size);
+
+        ctx.fillStyle = "white";
+        ctx.font = "12px 'Press Start 2P'";
+        ctx.textAlign = "left";
+        ctx.fillText("DEBUG MODE", x + size + 10, y + size - 6);
+        ctx.restore();
     }
 
     drawWorld(ctx) {
@@ -469,31 +500,31 @@ class SceneManager {
     }
     
     skipToLevel2() {
-        console.log("DEBUG: Skipping Level 1. Story state updated.");
+        console.log("DEBUG: Instant Warp to Level 2 Gameplay...");
 
-        // 1. Logic Flags: Pretend we finished Level 1
+        // et story flags 
         this.levelNumber = 2;
         this.storyState = "LEVEL2";
-        this.yorkieDefeated = true; // This lets you walk back through the Lvl 1 door
+        this.yorkieDefeated = true; 
         this.stuartIntroPlayed = true;
-        this.hasGoldenKey = true;   // In case doors check for the item
+        this.hasGoldenKey = true;   
         
-        this.dialogueActive = false;
-        this.game.paused = false;
+        //  Turn off all menus and dialogue
+        this.menuActive = false;    
+        this.dialogueActive = false; 
+        this.game.paused = false;   
 
-        // 2. Clear current level entities
+        //  Clear entities safely 
         this.game.entities.forEach(entity => {
-            if (!(entity instanceof SceneManager)) {
+            if (entity !== this) {
                 entity.removeFromWorld = true;
             }
         });
 
-        // 3. Call your existing Level 2 loader
+        // Load the level (This should spawn the Rat and the Snake)
         this.loadLevelTwo(1); 
         
-        // 4. Reset Menu state to allow Game Over text to appear later
-        if (this.menu) {
-            this.menu.state = "START";
-        }
+        // 5. Force the map to redraw
+        this.mapCached = false;
     }
 }
