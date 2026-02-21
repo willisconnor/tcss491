@@ -56,6 +56,7 @@ class SceneManager {
         // lose scenario variables
         this.loseState = false;
         this.loseTimer = 0;
+        this.snakeStates = new Map(); // Store snake states by unique ID
 
         this.snakeEatAnim = new Animator(ASSET_MANAGER.getAsset("./assets/snake-eat-rat.png"), 0, 0, 728, 720, 2, 0.5, 0, false, true);
 
@@ -145,6 +146,16 @@ class SceneManager {
             this.y = Math.max(0, Math.min(this.y, this.worldHeight - viewH));
         }
 
+        //snake state saving for level 2
+        if (this.levelNumber === 2) {
+            this.game.entities.forEach(entity => {
+                if (entity.constructor.name === "Snake") {
+                    const snakeId = `snake_${Math.floor(entity.x)}_${Math.floor(entity.y)}`;
+                    this.saveSnakeState(entity, snakeId);
+                }
+            });
+        }
+
         // lose scenario trigger for level 2
         if (this.levelNumber === 2 && !this.loseState && rat) {
             let dist = Math.sqrt(Math.pow(rat.x - 960, 2) + Math.pow(rat.y - 128, 2));
@@ -231,8 +242,10 @@ class SceneManager {
         }
         this.game.addEntity(new Door(this.game, 220, 90, "Level1", false));
         this.game.addEntity(new Door(this.game, 707, 32, "Level3", false));
-        //ADD SNAKES TO LEVEL 2
-        const stationarySnake = new Snake(this.game, 400, 200,  null);
+        //ADD SNAKES TO LEVEL 2: restoring the state
+        const stationarySnake = new Snake(this.game, 400, 200, null);
+        const snakeId = `snake_${Math.floor(stationarySnake.x)}_${Math.floor(stationarySnake.y)}`;
+        this.loadSnakeState(stationarySnake, snakeId);  // ✓ Restore saved state
         this.game.addEntity(stationarySnake);
 
         console.log("Level 2 Loaded!");
@@ -266,6 +279,30 @@ class SceneManager {
 
         console.log("Loaded level 3!");
     }
+
+    saveSnakeState(snake, snakeId) {
+        this.snakeStates.set(snakeId, {
+            dead: snake.dead,
+            health: snake.health,
+            x: snake.x,
+            y: snake.y
+        });
+    }
+
+    loadSnakeState(snake, snakeId) {
+        if (this.snakeStates.has(snakeId)) {
+            const state = this.snakeStates.get(snakeId);
+            snake.dead = state.dead;
+            snake.health = state.health;
+            snake.x = state.x;
+            snake.y = state.y;
+
+            if (snake.dead) {
+                snake.onDeath();
+            }
+        }
+    }
+
 
     draw(ctx) {
         if (this.menuActive) {

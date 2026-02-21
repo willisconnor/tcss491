@@ -8,7 +8,7 @@ class Snake extends Enemy{
             game,
             x, y,
             3,
-            0.1,
+            10,
             200,
             50,
             0.5  // Slowed down from 1.0
@@ -222,6 +222,13 @@ class Snake extends Enemy{
         this.attackAnimationTimer = this.attackAnimationDuration;
         this.currentAnimation = this.animations.get("attack")[this.facing];
         this.currentAnimation.elapsedTime = 0;
+
+        // FIXED: Actually damage the rat!
+        const player = this.findPlayer();
+        if (player && player.takeDamage) {
+            player.takeDamage(this.attackDamage); // 0.1 damage per attack
+            console.log(`Snake hit rat for ${this.attackDamage} damage!`);
+        }
     }
 
     /**
@@ -328,23 +335,33 @@ class Snake extends Enemy{
         const colliderHeight = colliderRadius;
 
         // Calculate potential new positions
-        let newX = this.x + this.velocity.x * this.game.clockTick;
-        let newY = this.y + this.velocity.y * this.game.clockTick;
+        const moveX = this.velocity.x * this.game.clockTick;
+        const moveY = this.velocity.y * this.game.clockTick;
 
-        // Test X-axis movement
-        let testColliderX = newX + (spriteWidth / 2) - colliderRadius;
-        let currentColliderY = this.y + spriteHeight - colliderHeight;
+        // Test X movement independently - ONLY if actually moving
+        if (Math.abs(moveX) > 0.01) {
+            const testX = this.x + moveX;
+            const testColliderX = testX + (spriteWidth / 2) - colliderRadius;
+            const currentColliderY = this.y + spriteHeight - colliderHeight;
 
-        if (!this.game.collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
-            this.x = newX; // Safe to move X
+            if (!this.game.collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
+                this.x = testX; // Safe to move
+            } else {
+                this.velocity.x = 0; // ✓ STOP sliding - zero velocity!
+            }
         }
 
-        // Test Y-axis movement (using potentially updated X)
-        let currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
-        let testColliderY = newY + spriteHeight - colliderHeight;
+        // Test Y movement independently - ONLY if actually moving
+        if (Math.abs(moveY) > 0.01) {
+            const testY = this.y + moveY;
+            const currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
+            const testColliderY = testY + spriteHeight - colliderHeight;
 
-        if (!this.game.collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
-            this.y = newY; // Safe to move Y
+            if (!this.game.collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
+                this.y = testY; // Safe to move
+            } else {
+                this.velocity.y = 0; // ✓ STOP sliding - zero velocity!
+            }
         }
 
         this.updateBoundingBox();

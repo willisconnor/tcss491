@@ -1,6 +1,7 @@
 // Author: Christina Blackwell
 
 class Rat {
+
     constructor(game, x, y) {
         this.game = game;
         this.canvas = document.getElementById("gameWorld");
@@ -12,6 +13,7 @@ class Rat {
         this.animations.set("dead", null);
         this.loadAnimations();
 
+        this.attackCooldownMax = .5
         // 0 = left, 1 = right, 2 = down, 3 = up
         this.facing = 2;
         this.scale = 1.25;
@@ -124,7 +126,7 @@ class Rat {
             }
         }
 
-        if (this.game.keys["Space"]) {
+        if (this.game.keys["Space"] && this.attackCooldown <= 0) {
             targetSpeed = 0;
             targetAnim = this.animations.get("attack")[this.facing];
             this.performAttack();
@@ -224,6 +226,7 @@ class Rat {
         else if (this.facing === 1) hitX += range;
         else if (this.facing === 2) hitY += range;
         else if (this.facing === 3) hitY -= range;
+        if (this.attackCooldown > 0 || this.hasHit) return;
 
         let attackBox = new BoundingBox(hitX, hitY, 50, 50);
 
@@ -235,13 +238,19 @@ class Rat {
             if (entity.constructor.name === "Yorkie" && entity.actionState === "TRAINING" && entity.BB) {
                 if (attackBox.collide(entity.BB)) {
                     entity.health -= 1;
+                    this.hasHit = true;
+                    this.attackCooldown = this.attackCooldownMax;
+                    break;
                 }
             }
             //check enemies
             if (entity.constructor.name === "Snake" && !entity.dead && entity.boundingBox){
                 if (attackBox.collide(entity.boundingBox)) {
-                    entity.takeDamage(1); //deal 1 damage to enemy
+                    entity.takeDamage(1);
+                    this.hasHit = true;
+                    this.attackCooldown = this.attackCooldownMax; // ✓ Start cooldown!
                     console.log(`Hit ${entity.constructor.name}! Health: ${entity.health}`);
+                    break; // ✓ Only hit one entity
                 }
             }
         }
