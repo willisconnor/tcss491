@@ -270,4 +270,27 @@ class Enemy{
             ctx.restore();
         }
     }
+
+    updatePoison(tick) {
+        if (this.isPoisoned) {
+            this.poisonTimer -= tick;
+            if (this.poisonTimer <= 0) {
+                this.isPoisoned = false;
+                if (this.originalSpeed) {
+                    this.speed = this.originalSpeed;
+                }
+            }
+        }
+    }
+
+    drawPoisonTint(ctx, x, y, width, height) {
+        if (this.isPoisoned) {
+            ctx.save();
+            ctx.globalCompositeOperation = "source-atop";
+            ctx.fillStyle = "rgba(0, 255, 0, 0.5)";
+            ctx.fillRect(x, y, width, height);
+            ctx.restore();
+        }
+    }
+
 }

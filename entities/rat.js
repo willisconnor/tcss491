@@ -23,6 +23,9 @@ class Rat {
         this.y = y;
         this.speed = 0;
 
+        this.poisonCooldown = 0;
+        this.poisonCooldownMax = 3;
+
         this.attackCooldown = 0;
         // initialize Bounding Box
         //health system
@@ -96,6 +99,20 @@ class Rat {
     }
 
     update() {
+        if (this.poisonCooldown > 0) this.poisonCooldown -= this.game.clockTick;
+
+        // 2. Check for the "1" key
+                if (this.game.keys["Digit1"] && this.poisonCooldown <= 0) {
+            const ratCenterX = this.x + (48 * this.scale) / 2;
+            const ratCenterY = this.y + (38 * this.scale) / 2;
+            const projSize = 64 * this.scale;
+            const projX = ratCenterX - projSize / 2;
+            const projY = ratCenterY - projSize / 2;
+            
+            let projectile = new PoisonProjectile(this.game, projX, projY, this.facing, this.scale);
+            this.game.addEntity(projectile);
+            this.poisonCooldown = this.poisonCooldownMax;
+        }
         // stop all movement and action if the rat is dead
         if (this.health <=0) {
             this.animator = this.animations.get("dead");

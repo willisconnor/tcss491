@@ -25,6 +25,7 @@ class GameEngine {
             "ArrowUp" : false,
             "ArrowDown" : false,
             "ArrowLeft" : false,
+            "Digit1": false,
             "Space" : false,
             "KeyD" : false,
             "KeyW" : false,

@@ -23,6 +23,9 @@ class Yorkie {
         this.maxHealth = 5;
         this.lastHealth = 5;
         this.hurtTimer = 0;
+        this.isPoisoned = false;
+        this.poisonTimer = 0;
+        this.speed = 0; // Yorkie doesn't usually move but we need the prop for poison
 
         // state management
         this.actionState = "IDLE";
@@ -117,6 +120,12 @@ class Yorkie {
     }
 
     update() {
+        if (this.isPoisoned) {
+            this.poisonTimer -= this.game.clockTick;
+            if (this.poisonTimer <= 0) {
+                this.isPoisoned = false;
+            }
+        }
         this.updateBB();
 
         // damage detection
@@ -261,6 +270,13 @@ class Yorkie {
 
         // drawn sprite
         this.animator.drawFrame(this.game.clockTick, ctx, Math.floor(drawX), Math.floor(drawY), this.scale);
+        if (this.isPoisoned) {
+            ctx.save();
+            ctx.globalCompositeOperation = "source-atop";
+            ctx.fillStyle = "rgba(0, 255, 0, 0.5)";
+            ctx.fillRect(Math.floor(drawX), Math.floor(drawY), 18 * this.scale, 18 * this.scale);
+            ctx.restore();
+        }
 
         if (this.hurtTimer > 0) {
             ctx.restore();

@@ -263,6 +263,7 @@ class Snake extends Enemy{
     }
 
     update() {
+        this.updatePoison(this.game.clockTick);
         if (this.dead) {
             if (this.currentAnimation && this.currentAnimation.isDone()) {
                 this.removeFromWorld = true;
@@ -386,21 +387,11 @@ class Snake extends Enemy{
                 ctx.translate(drawX + spriteWidth, drawY);
                 ctx.scale(-1, 1);
 
-                this.currentAnimation.drawFrame(
-                    game.clockTick,
-                    ctx,
-                    0,
-                    0,
-                    this.scale
-                );
+                this.currentAnimation.drawFrame(game.clockTick, ctx, 0, 0, this.scale);
+                this.drawPoisonTint(ctx, 0, 0, 32 * this.scale, 32 * this.scale);
             } else {
-                this.currentAnimation.drawFrame(
-                    game.clockTick,
-                    ctx,
-                    drawX,
-                    drawY,
-                    this.scale
-                );
+                this.currentAnimation.drawFrame(game.clockTick, ctx, drawX, drawY, this.scale);
+                this.drawPoisonTint(ctx, drawX, drawY, 32 * this.scale, 32 * this.scale);
             }
 
             ctx.restore();
