@@ -328,6 +328,7 @@ class SceneManager {
         // add door to return to Level 2
         this.game.addEntity(new Door(this.game, 80, 95, "Level2", false));
 
+        //add cat in location that has yet to be determined
 
         console.log("Loaded level 3!");
     }

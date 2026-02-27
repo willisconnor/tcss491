@@ -39,6 +39,7 @@ ASSET_MANAGER.queueDownload("./assets/snake-eat-rat.png");
 ASSET_MANAGER.queueDownload("./assets/in-the-arms-of-an-angel.mp3");
 ASSET_MANAGER.queueDownload("./assets/crunchy-bite.mp3");
 ASSET_MANAGER.queueDownload("./assets/keyboard-click.mp3");
+ASSET_MANAGER.queueDownload("./assets/OrangeCat.png");
 
 ASSET_MANAGER.downloadAll(() => {
     const canvas = document.getElementById("gameWorld");
