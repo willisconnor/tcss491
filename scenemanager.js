@@ -238,7 +238,7 @@ class SceneManager {
             }
 
             // restart logic, adjusted to 15 because of the 5 second delay
-            if (this.loseTimer > 15) {
+            if (this.loseTimer > 10) {
                 let anyKeyPressed = Object.values(this.game.keys).some(k => k === true);
 
                 if (!this.isReloading && (this.game.click || anyKeyPressed)) {
