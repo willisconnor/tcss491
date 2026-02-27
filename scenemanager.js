@@ -207,20 +207,20 @@ class SceneManager {
 
             // play music
             this.game.audio.playMusic("./assets/in-the-arms-of-an-angel.mp3", true);
-
-            // play crunch
-            if (this.crunchSound) {
-                this.crunchSound.currentTime = 0;
-                this.crunchSound.play().catch(e => console.error(e));
-            }
         }
-
-
         if (this.loseState) {
             this.loseTimer += this.game.clockTick;
 
-            // restart logic
-            if (this.loseTimer > 10) {
+            // play crunch only after 5 second fade transition
+            if (this.loseTimer >= 5 && this.loseTimer - this.game.clockTick < 5) {
+                if (this.crunchSound) {
+                    this.crunchSound.currentTime = 0;
+                    this.crunchSound.play().catch(e => console.error(e));
+                }
+            }
+
+            // restart logic, adjusted to 15 because of the 5 second delay
+            if (this.loseTimer > 15) {
                 let anyKeyPressed = Object.values(this.game.keys).some(k => k === true);
 
                 if (!this.isReloading && (this.game.click || anyKeyPressed)) {
@@ -231,7 +231,6 @@ class SceneManager {
             }
         }
     }
-
     loadLevelOne() {
         this.gameplayStarted = true;
         this.game.entities.forEach(entity => {
@@ -450,6 +449,15 @@ class SceneManager {
 
         // draw lose screen
         if (this.loseState) {
+            // slow fade to black
+            if (this.loseTimer < 5) {
+                ctx.save();
+                ctx.fillStyle = "black";
+                ctx.globalAlpha = Math.min(1, this.loseTimer / 5);
+                ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.restore();
+                return; // wait 5 seconds before showing snake eat animation
+            }
             ctx.save();
             ctx.fillStyle = "black";
             ctx.globalAlpha = 1;
