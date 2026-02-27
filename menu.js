@@ -257,8 +257,8 @@ class Menu {
         ctx.fillText("Movement: WASD or Arrow Keys", w / 2, h / 2 - 100);
         ctx.fillText("Sprint: Hold SHIFT", w / 2, h / 2 - 50);
         ctx.fillText("Bite: Press SPACE ", w / 2, h / 2);
-        ctx.fillText("Poison: Press 1", w / 2, h / 2 + 30);
-        ctx.fillText("Death: Press x", w / 2, h / 2 + 80);
+        ctx.fillText("Poison: Press 1", w / 2, h / 2 + 50);
+        ctx.fillText("Death: Press x", w / 2, h / 2 + 100);
 
         this.drawBtn(ctx, w / 2 - this.btnW / 2, h / 2 + 180, "BACK");
     }

@@ -137,7 +137,23 @@ class Rat {
         if (yorkie && yorkie.actionState === "WAIT_FOR_RAT") {
             let safeX = yorkie.targetX + 80;
             if (this.x < safeX) {
-                this.x += 100 * this.game.clockTick;
+                let moveAmount = 100 * this.game.clockTick;
+
+                // add collision check for cutscene movement
+                const spriteWidth = this.animator.width * this.scale;
+                const fixedHeight = 38 * this.scale;
+                const colliderRadius = 12 * this.scale;
+                let testColliderX = (this.x + moveAmount) + (spriteWidth / 2) - colliderRadius;
+                let currentColliderY = this.y + fixedHeight - colliderRadius;
+
+                if (!this.game.collisionManager.checkCollision(testColliderX, currentColliderY, colliderRadius * 2, colliderRadius)) {
+                    this.x += moveAmount;
+                } else {
+                    // hit a wall during cutscene, end cutscene movement phase early so we don't get stuck
+                    yorkie.actionState = "LEAVING";
+                    yorkie.leavingPhase = 1;
+                }
+
                 this.facing = 1;
                 this.animator = this.animations.get("walk")[1];
                 this.updateBB();
@@ -148,7 +164,6 @@ class Rat {
                 return;
             }
         }
-
         if (this.game.keys["Space"] && this.attackCooldown <= 0) {
             targetSpeed = 0;
             targetAnim = this.animations.get("attack")[this.facing];
