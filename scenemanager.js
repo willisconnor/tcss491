@@ -3,11 +3,10 @@ class SceneManager {
         this.game = game;
         this.game.camera = this;
 
-        // camera coordinates
         this.x = 0;
         this.y = 0;
 
-        // map SCALE;matches Tiled 4x
+        // map scale
         this.scale = 4;
 
         // camera zoom preferred by team
@@ -15,8 +14,6 @@ class SceneManager {
 
         this.fadeAlpha = 1;
         this.isFading = true;
-
-        // track music
         this.currentMusicPath = "./assets/background_music.wav";
 
         this.yorkieDefeated = false;
@@ -25,10 +22,14 @@ class SceneManager {
 
         this.preDialogueActive = false;
         this.preDialogueTimer = 0;
-        this.preDialogueDuration = 0; //How long before Stuart starts speaking (if we wanted to implement an exclamation or other intro)
+        this.preDialogueDuration = 0;
         this._dialogueWasActive = false;
         this.paused = false;
         this.pauseMenu = new PauseMenu(this.game);
+
+        this.cbX = 20;
+        this.cbY = 20;
+        this.cbSize = 24;
 
         this.menuActive = true;
         this.menu = new Menu(this.game);
@@ -36,14 +37,12 @@ class SceneManager {
         this.dialogue = new Dialogue(this.game, this);
 
         this.level = ASSET_MANAGER.getAsset("./assets/Level1LivingRoom.json");
-        // Load spritesheet
+        this.levelNumber = 1;
         this.spritesheet = ASSET_MANAGER.getAsset("./assets/global.png");
 
-        // optimization: Cache the map b/c sprites were laggy :(
         this.mapCached = false;
         this.mapCanvas = document.createElement('canvas');
         this.mapCtx = this.mapCanvas.getContext('2d');
-        // disable smoothing on the offscreen canvas to prevent blur
         this.mapCtx.imageSmoothingEnabled = false;
 
         this.worldWidth = 0;
@@ -53,228 +52,346 @@ class SceneManager {
             this.game.collisionManager.loadFromTiledJSON(this.level);
         }
 
-        // minimap constants
         this.minimapWidth = 250;
         this.minimapMargin = 10;
+
+        this.stuartIntroPlayed = false;
+        this.gameplayStarted = false;
+        // lose scenario variables
+        this.loseState = false;
+        this.loseTimer = 0;
+        this.snakeStates = new Map(); // Store snake states by unique ID
+
+        // global rat health tracker
+        this.ratHealth = 10;
+        this.snakeEatAnim = new Animator(ASSET_MANAGER.getAsset("./assets/snake-eat-rat.png"), 0, 0, 728, 720, 2, 0.5, 0, false, true);
+
+        this.isReloading = false;
+        // looping crunch sound for lose scenario
+        let crunchRaw = ASSET_MANAGER.getAsset("./assets/crunchy-bite.mp3");
+        this.crunchSound = crunchRaw ? crunchRaw.cloneNode() : null;
+        if (this.crunchSound) {
+            this.crunchSound.loop = true;
+            this.crunchSound.playbackRate = 3.1; // crunch speed
+            this.crunchSound.volume = 0.2;
+        }
     }
 
     update() {
+
         // audio UI input logic
         if (this.game.click) {
             const mouseX = this.game.click.x;
             const mouseY = this.game.click.y;
-
-            // calculate dynamic UI positions to match drawOverlays
             const aspect = this.worldWidth > 0 ? this.worldHeight / this.worldWidth : 0.5;
             const mapH = this.minimapWidth * aspect;
+            const muteX = this.game.ctx.canvas.width - this.minimapMargin - 60;
+            const muteY = this.minimapMargin + mapH + 10;
 
-            // mute Button Dimensions
-            const muteW = 60;
-            const muteH = 30;
-
-            // mute Button Coords; Bottom RIGHT of Minimap
-            // X = Right edge of canvas - margin - button width
-            const muteX = this.game.ctx.canvas.width - this.minimapMargin - muteW;
-            const muteY = this.minimapMargin + mapH + 10; // 10px padding below map
-
-            // collision check
-            if (mouseX >= muteX && mouseX <= muteX + muteW && mouseY >= muteY && mouseY <= muteY + muteH) {
+            if (mouseX >= muteX && mouseX <= muteX + 60 && mouseY >= muteY && mouseY <= muteY + 30) {
                 this.game.audio.toggleMute();
                 this.game.click = null;
                 return;
             }
+            // Check if click is inside the Checkbox
+            if (mouseX >= this.cbX && mouseX <= this.cbX + this.cbSize &&
+                mouseY >= this.cbY && mouseY <= this.cbY + this.cbSize) {
+
+                this.skipToLevel2();
+                this.game.options.debugging = !this.game.options.debugging;
+                this.game.click = null; // Consume the click
+            }
         }
-        // 1. Toggle pause or skip menu with Escape
+
         if (this.game.keys["Escape"]) {
-            this.game.keys["Escape"] = false;
-            if (this.menuActive) {
-                // If in intro/tutorial, ESC returns to Start Menu
-                if (this.menu.state === "STORY" || this.menu.state === "TUTORIAL") {
-                    this.menu.state = "START";
-                }
-            } else {
-                // Toggle pause during gameplay
+            if (!this.menuActive) {
+                this.game.keys["Escape"] = false;
                 this.paused = !this.paused;
                 if (!this.paused) this.game.paused = false;
             }
         }
-        // sync game.paused with SceneManager states
-        // if we are in ESC Pause or Dialogue force GameEngine to pause
+
         if (this.paused || this.dialogueActive) {
             this.game.paused = true;
         }
 
-        // If dialogue was triggered (e.g., from Menu) and it's the Stuart intro, intercept
         if (this.dialogueActive && this.storyState === "STUART_TALK" && !this.preDialogueActive && !this._dialogueWasActive && !this.stuartIntroPlayed) {
             this.preDialogueActive = true;
             this.preDialogueTimer = this.preDialogueDuration;
-            // prevent Dialogue from running immediately
             this.dialogueActive = false;
             this._dialogueWasActive = true;
 
-            // lock facings and freeze movement for involved entities
             let rat = this.game.entities.find(e => e.constructor.name === "Rat");
             let stuart = this.game.entities.find(e => e.constructor.name === "StuartBig");
             if (rat) {
                 rat.frozenForDialogue = true;
-                rat.facing = 1; // look right
+                rat.facing = 1;
                 rat.animator = rat.animations.get("idle")[rat.facing];
             }
             if (stuart) {
                 stuart.frozenForDialogue = true;
-                stuart.facing = 0; // look left
+                stuart.facing = 0;
                 stuart.animator = stuart.animations.get("idle")[stuart.facing];
             }
-            // keep game paused while pre-dialogue runs
             this.game.paused = true;
         }
-        // 2. Main Menu Logic
+
         if (this.menuActive) {
             this.menu.update();
-            return; // Stop here so game doesn't run behind menu
+            return;
         }
-
-        // 3. Pause Menu Logic
         if (this.paused) {
             this.pauseMenu.update();
-            // check if PauseMenu (Resume button) turned off pause just now
-            // if it did must unpause GameEngine immediately.
-            if (!this.paused) {
-                this.game.paused = false;
-            } else {
-                return; // Still paused, stop here
-            }
+            if (!this.paused) this.game.paused = false; else return;
         }
-        // 4. Dialogue Logic (Stuart Big or Key Picked Up)
-        if (this.dialogueActive) {
-            this.dialogue.update(); // This allows Space bar to advance text
-            // world is frozen b/c we exit update early by not running the rest of the function;
-            // no explicit 'return' needed if this is already the last statement
-        }
+        if (this.dialogueActive) this.dialogue.update();
 
-        // Handle pre-dialogue cutscene that shows exclamation and zooms before dialogue starts
         if (this.preDialogueActive) {
-            // decrement timer
             this.preDialogueTimer -= this.game.clockTick;
             if (this.preDialogueTimer <= 0) {
-                // End pre-dialogue: start actual dialogue
                 this.preDialogueActive = false;
                 this.dialogueActive = true;
-                // ensure game remains paused during dialogue
                 this.game.paused = true;
             } else {
-                // While pre-dialogue is active we don't run normal camera centering below
                 return;
             }
         }
 
-        // If we previously intercepted a dialogue and that dialogue just finished, restore state
         if (!this.dialogueActive && this._dialogueWasActive && !this.preDialogueActive) {
-            // unlock entities and reset to front-facing idle
             let rat = this.game.entities.find(e => e.constructor.name === "Rat");
-            let stuart = this.game.entities.find(e => e.constructor.name === "StuartBig");
             if (rat) {
                 rat.frozenForDialogue = false;
-                rat.facing = 2; // front-facing idle
+                rat.facing = 2;
                 rat.animator = rat.animations.get("idle")[rat.facing];
             }
+            let stuart = this.game.entities.find(e => e.constructor.name === "StuartBig");
             if (stuart) {
                 stuart.frozenForDialogue = false;
                 stuart.facing = 2;
                 stuart.animator = stuart.animations.get("idle")[stuart.facing];
             }
-            // mark intro as played so it won't trigger again this session
             this.stuartIntroPlayed = true;
             this._dialogueWasActive = false;
         }
 
-        // camera scrolling logic (zoomed)
         let rat = this.game.entities.find(e => e.constructor.name === "Rat");
-
         if (rat) {
-            // viewport width in WORLD units; Screen Width / Zoom Level
+            // constantly backup the rats health to the SceneManager
+            if (rat.health > 0) {
+                this.ratHealth = rat.health;
+            }
             let viewW = this.game.ctx.canvas.width / this.zoom;
             let viewH = this.game.ctx.canvas.height / this.zoom;
-
-            // center camera on Rat
             this.x = rat.x - (viewW / 2);
             this.y = rat.y - (viewH / 2);
-
-            // clamp camera in place
             this.x = Math.max(0, Math.min(this.x, this.worldWidth - viewW));
             this.y = Math.max(0, Math.min(this.y, this.worldHeight - viewH));
+        }
+
+        //snake state saving for level 2
+        if (this.levelNumber === 2) {
+            this.game.entities.forEach(entity => {
+                // check for static id so movement doesn't break save state
+                if (entity.constructor.name === "Snake" && entity.id) {
+                    this.saveSnakeState(entity, entity.id);
+                }
+            });
+        }
+
+        // lose scenario trigger for level 2 if rat dies (no more E key debug box)
+        if (!this.loseState && rat && rat.health <= 0) {
+            this.loseState = true;
+            this.loseTimer = 0;
+            this.game.click = null;
+            Object.keys(this.game.keys).forEach(k => this.game.keys[k] = false);
+
+            // play music
+            this.game.audio.playMusic("./assets/in-the-arms-of-an-angel.mp3", true);
+
+            // play crunch
+            if (this.crunchSound) {
+                this.crunchSound.currentTime = 0;
+                this.crunchSound.play().catch(e => console.error(e));
+            }
+        }
+
+
+        if (this.loseState) {
+            this.loseTimer += this.game.clockTick;
+
+            // restart logic
+            if (this.loseTimer > 10) {
+                let anyKeyPressed = Object.values(this.game.keys).some(k => k === true);
+
+                if (!this.isReloading && (this.game.click || anyKeyPressed)) {
+                    this.isReloading = true;
+                    if (this.crunchSound) this.crunchSound.pause();
+                    location.reload();
+                }
+            }
         }
     }
 
     loadLevelOne() {
+        this.gameplayStarted = true;
         this.game.entities.forEach(entity => {
             if (!(entity instanceof SceneManager)) entity.removeFromWorld = true;
         });
 
         this.level = ASSET_MANAGER.getAsset("./assets/Level1LivingRoom.json");
-        this.mapCached = false;
+        this.levelNumber = 1;
+        this.mapCached = false; // Important: This triggers the map to redraw at the correct scale
 
         if (this.game.collisionManager) {
             this.game.collisionManager.loadFromTiledJSON(this.level);
         }
 
-        // update track
+        let rat = new Rat(this.game, 448, 196);
+        rat.health = this.ratHealth; // restore health
+        this.game.addEntity(rat);
+        this.game.addEntity(new StuartBig(this.game, 200, 215, 2));
+        this.game.addEntity(new Yorkie(this.game, 420, 420));
+        this.game.addEntity(new Door(this.game, 420, 90, "Level2", true));
+
+        // Play music
         this.currentMusicPath = "./assets/background_music.wav";
         this.game.audio.playMusic(this.currentMusicPath);
 
-        this.game.addEntity(new Rat(this.game, 448, 190));
-        this.game.addEntity(new StuartBig(this.game, 200, 215, 2));
-
-        if (!this.yorkieDefeated) {
-            this.game.addEntity(new Yorkie(this.game, 320, 150));
-        } else {
-            // Even if defeated, we add him so he can spawn in his bed
-            this.game.addEntity(new Yorkie(this.game, 320, 150));
-        }
-
-        this.game.addEntity(new Door(this.game, 448, 128, "Level2", true));
-
-        console.log("Level 1 Loaded!");
+        console.log("Loaded level one!");
     }
 
-    loadLevelTwo() {
+    loadLevelTwo(fromLevel) {
         this.game.entities.forEach(entity => {
             if (!(entity instanceof SceneManager)) entity.removeFromWorld = true;
         });
 
         this.level = ASSET_MANAGER.getAsset("./assets/Level2DiningRoom.json");
-        this.mapCached = false;
+        this.levelNumber = 2;
+        this.mapCached = false; // Forces buildLevelCache to run next draw
 
         if (this.game.collisionManager) {
             this.game.collisionManager.loadFromTiledJSON(this.level);
         }
 
-        // update track
         this.currentMusicPath = "./assets/Desert.mp3";
         this.game.audio.playMusic(this.currentMusicPath);
 
-        this.game.addEntity(new Rat(this.game, 256, 160));
-        this.game.addEntity(new Door(this.game, 256, 160, "Level1", false));
+        let rat;
+        if (fromLevel === 3) {
+            rat = new Rat(this.game, 707, 130);
+        } else {
+            // default spawn from level 1
+            rat = new Rat(this.game, 250, 180);
+        }
+        rat.health = this.ratHealth; // restore health
+        this.game.addEntity(rat);
 
+        this.game.addEntity(new Door(this.game, 220, 90, "Level1", false));
+        this.game.addEntity(new Door(this.game, 707, 32, "Level3", false));
+        //ADD SNAKES TO LEVEL 2: restoring the state
+        const stationarySnake = new Snake(this.game, 707, 130, null);
+
+        // I fixed by giving snake persistent string ID so movement doesn't break saving
+        stationarySnake.id = "level2_snake_main";
+        this.loadSnakeState(stationarySnake, stationarySnake.id);
+
+        // only add snake to the canvas if its still alive
+        if (!stationarySnake.dead) {
+            this.game.addEntity(stationarySnake);
+        }
         console.log("Level 2 Loaded!");
     }
+
+    loadLevelThree() {
+        // clear current entities, preserves SceneManager state like yorkieDefeated
+        this.game.entities.forEach(entity => {
+            if (!(entity instanceof SceneManager)) entity.removeFromWorld = true;
+        });
+
+        // load new Kitchen Map
+        this.level = ASSET_MANAGER.getAsset("./assets/Level3Kitchen.json");
+        this.levelNumber = 3;
+        this.mapCached = false;
+
+        // load collisions
+        if (this.game.collisionManager) {
+            this.game.collisionManager.loadFromTiledJSON(this.level);
+        }
+        this.currentMusicPath = "./assets/MiiParade.mp3";
+        this.game.audio.playMusic(this.currentMusicPath);
+
+        // place Rat at entrance to kitchen door
+        let rat = new Rat(this.game, 80, 190);
+        rat.health = this.ratHealth; // restore health
+        this.game.addEntity(rat);
+
+        // add door to return to Level 2
+        this.game.addEntity(new Door(this.game, 80, 95, "Level2", false));
+
+
+        console.log("Loaded level 3!");
+    }
+
+    saveSnakeState(snake, snakeId) {
+        this.snakeStates.set(snakeId, {
+            dead: snake.dead,
+            health: snake.health,
+            x: snake.x,
+            y: snake.y
+        });
+    }
+
+    loadSnakeState(snake, snakeId) {
+        if (this.snakeStates.has(snakeId)) {
+            const state = this.snakeStates.get(snakeId);
+            snake.dead = state.dead;
+            snake.health = state.health;
+            snake.x = state.x;
+            snake.y = state.y;
+
+            if (snake.dead) {
+                snake.onDeath();
+            }
+        }
+    }
+
 
     draw(ctx) {
         if (this.menuActive) {
             this.menu.draw(ctx);
-            return;
+        } else {
+            // if menu is NOT active, must draw the world
+            this.drawWorld(ctx);
+            this.drawOverlays(ctx);
         }
+        // --- NEW DEBUG CHECKBOX ---
+        const x = this.cbX;
+        const y = this.cbY;
+        const size = this.cbSize;
 
-        this.drawWorld(ctx);
-        // Entities are drawn by GameEngine here
-        this.drawOverlays(ctx);
+        ctx.save();
+
+        ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
+        ctx.fillRect(x, y, size, size);
+
+        ctx.strokeStyle = "#ffcc00";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, size, size);
+
+        ctx.fillStyle = "white";
+        ctx.font = "12px 'Press Start 2P'";
+        ctx.textAlign = "left";
+        ctx.fillText("DEBUG MODE", x + size + 10, y + size - 6);
+        // draw 'X' if debugging is on
+        if (this.game.options && this.game.options.debugging) {
+            ctx.fillStyle = "#39FF14";
+            ctx.fillText("X", x+5, y+size-5);
+        }
+        ctx.restore();
     }
 
     drawWorld(ctx) {
-        if (!this.mapCached) {
-            this.buildLevelCache();
-        }
-
+        if (!this.mapCached) this.buildLevelCache();
         ctx.save();
         ctx.scale(this.zoom, this.zoom);
         ctx.translate(-this.x, -this.y);
@@ -282,54 +399,45 @@ class SceneManager {
         if (this.mapCached) {
             ctx.drawImage(this.mapCanvas, 0, 0);
         }
-        // No restore here; GameEngine draws entities next
+
+        if (this.game.options && this.game.options.debugging) {
+            if (this.game.collisionManager) {
+                this.game.collisionManager.draw(ctx);
+            }
+        }
     }
 
     drawOverlays(ctx) {
-        ctx.restore(); // Restore scale/translation for UI
-
-        // --- MINIMAP ---
+        ctx.restore();
         this.drawMinimap(ctx);
-
-        // --- Dialogue & Pause ---
         if (this.dialogueActive) this.dialogue.draw(ctx);
         if (this.paused) this.pauseMenu.draw(ctx);
 
-        // --- Mute Toggle (Relative to Minimap) ---
         const aspect = this.worldHeight / this.worldWidth;
         const mapH = this.minimapWidth * aspect;
-        const w = 60, h = 30, radius = h / 2;
-
-        // Bottom RIGHT of Minimap
-        const x = ctx.canvas.width - this.minimapMargin - w;
+        const x = ctx.canvas.width - this.minimapMargin - 60;
         const y = this.minimapMargin + mapH + 10;
-
         const isMuted = this.game.audio.muted;
 
         ctx.save();
         ctx.beginPath();
-        ctx.roundRect(x, y, w, h, radius);
+        ctx.roundRect(x, y, 60, 30, 15);
         ctx.fillStyle = isMuted ? "#ccc" : "#4CD964";
         ctx.fill();
         ctx.strokeStyle = "white";
         ctx.lineWidth = 2;
         ctx.stroke();
-
-        // Knob
         ctx.beginPath();
-        const knobX = isMuted ? x + radius : x + w - radius;
-        ctx.arc(knobX, y + radius, radius - 4, 0, Math.PI * 2);
+        const knobX = isMuted ? x + 15 : x + 60 - 15;
+        ctx.arc(knobX, y + 15, 11, 0, Math.PI * 2);
         ctx.fillStyle = "white";
         ctx.fill();
-
-        // Text
         ctx.font = "bold 12px Arial";
         ctx.fillStyle = "white";
         ctx.textAlign = "center";
-        ctx.fillText("MUSIC", x + w / 2, y + h + 15);
+        ctx.fillText("MUSIC", x + 30, y + 45);
         ctx.restore();
 
-        // --- Fade Effect ---
         if (this.isFading) {
             ctx.fillStyle = `rgba(0, 0, 0, ${this.fadeAlpha})`;
             ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -339,76 +447,104 @@ class SceneManager {
                 this.isFading = false;
             }
         }
+
+        // draw lose screen
+        if (this.loseState) {
+            ctx.save();
+            ctx.fillStyle = "black";
+            ctx.globalAlpha = 1;
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.restore();
+
+            const frameWidth = 728;
+            const frameHeight = 720;
+            const xPos = (ctx.canvas.width - frameWidth) / 2;
+            const yPos = (ctx.canvas.height - frameHeight) / 2;
+
+            this.snakeEatAnim.drawFrame(this.game.clockTick, ctx, xPos, yPos, 1);
+
+            ctx.fillStyle = "white";
+            ctx.font = "20px 'Press Start 2P', 'Courier New'";
+            ctx.textAlign = "center";
+
+            let boxWidth = 950;
+            let boxHeight = 150;
+            let boxX = (ctx.canvas.width - boxWidth) / 2;
+            let boxY = 30;
+
+            ctx.save();
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+            ctx.restore();
+
+            ctx.fillText("Look at you, where is our hero now?", ctx.canvas.width / 2, 70);
+            ctx.fillText("You've been defeated by the silent slitherer...", ctx.canvas.width / 2, 105);
+            ctx.fillText("Your fate is in their jaws.", ctx.canvas.width / 2, 140);
+
+            if (this.loseTimer > 10) {
+                ctx.font = "30px 'Press Start 2P', 'Courier New'";
+                ctx.fillStyle = "red";
+                ctx.fillText("PRESS ANY KEY TO RESTART", ctx.canvas.width / 2, ctx.canvas.height - 20);
+            }
+        }
     }
 
     drawMinimap(ctx) {
         if (!this.mapCached) return;
-
-        // Minimap Layout
         const mapW = this.minimapWidth;
         const mapH = mapW * (this.worldHeight / this.worldWidth);
         const mapX = ctx.canvas.width - mapW - this.minimapMargin;
         const mapY = this.minimapMargin;
 
-        // 1. Draw Background
         ctx.save();
         ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
         ctx.fillRect(mapX - 2, mapY - 2, mapW + 4, mapH + 4);
         ctx.strokeStyle = "white";
         ctx.lineWidth = 2;
         ctx.strokeRect(mapX - 2, mapY - 2, mapW + 4, mapH + 4);
-
-        // 2. Draw Cached Map
         ctx.drawImage(this.mapCanvas, mapX, mapY, mapW, mapH);
 
-        // Constants for coordinate conversion
         const ratioX = mapW / this.worldWidth;
         const ratioY = mapH / this.worldHeight;
 
-        // 3. Draw Entities
         this.game.entities.forEach(entity => {
-            // Default: use top-left x/y
             let worldX = entity.x;
             let worldY = entity.y;
-
-            // FIX: For Yorkie, use the CENTER of the bounding box
             if (entity.constructor.name === "Yorkie") {
                 worldX += entity.width / 2;
                 worldY += entity.height / 2;
             }
-
             const entX = mapX + (worldX * ratioX);
             const entY = mapY + (worldY * ratioY);
-
             ctx.beginPath();
-
             if (entity.constructor.name === "Rat") {
-                // Player: Bright Green
                 ctx.arc(entX, entY, 4, 0, Math.PI * 2);
                 ctx.fillStyle = "#39FF14";
                 ctx.fill();
             } else if (entity.constructor.name === "Yorkie") {
-                // Enemy: Red
                 ctx.arc(entX, entY, 4, 0, Math.PI * 2);
                 ctx.fillStyle = "red";
                 ctx.fill();
             } else if (entity.constructor.name === "StuartBig") {
-                // Ghost/NPC: Cyan
                 ctx.arc(entX, entY, 3, 0, Math.PI * 2);
                 ctx.fillStyle = "cyan";
                 ctx.fill();
+            } else if (entity.constructor.name === "Snake" && !entity.dead) {
+                ctx.arc(entX, entY, 4, 0, Math.PI * 2);
+                ctx.fillStyle = "#031c04";
+                ctx.fill();
             } else if (entity.constructor.name === "GoldenKey" && !entity.collected) {
-                // Item: Gold
                 ctx.arc(entX, entY, 3, 0, Math.PI * 2);
                 ctx.fillStyle = "gold";
                 ctx.fill();
             }
         });
 
-        // 4. Draw Viewport Rectangle
         let viewW = ctx.canvas.width / this.zoom;
         let viewH = ctx.canvas.height / this.zoom;
-
         ctx.strokeStyle = "yellow";
         ctx.lineWidth = 1.5;
         ctx.strokeRect(mapX + (this.x * ratioX), mapY + (this.y * ratioY), viewW * ratioX, viewH * ratioY);
@@ -417,17 +553,13 @@ class SceneManager {
 
     buildLevelCache() {
         if (!this.level || !this.level.layers) return;
-
         const sourceSize = 16;
         const destSize = sourceSize * this.scale;
         const columns = 270;
-
         this.worldWidth = this.level.width * destSize;
         this.worldHeight = this.level.height * destSize;
-
         this.mapCanvas.width = this.worldWidth;
         this.mapCanvas.height = this.worldHeight;
-
         this.mapCtx.imageSmoothingEnabled = false;
 
         this.level.layers.forEach(layer => {
@@ -446,5 +578,34 @@ class SceneManager {
         });
         this.mapCached = true;
         console.log("Map cached successfully at scale " + this.scale);
+    }
+
+    skipToLevel2() {
+        console.log("DEBUG: Instant Warp to Level 2 Gameplay...");
+
+        // et story flags 
+        this.levelNumber = 2;
+        this.storyState = "LEVEL2";
+        this.yorkieDefeated = true;
+        this.stuartIntroPlayed = true;
+        this.hasGoldenKey = true;
+
+        //  Turn off all menus and dialogue
+        this.menuActive = false;
+        this.dialogueActive = false;
+        this.game.paused = false;
+
+        //  Clear entities safely 
+        this.game.entities.forEach(entity => {
+            if (entity !== this) {
+                entity.removeFromWorld = true;
+            }
+        });
+
+        // Load the level (This should spawn the Rat and the Snake)
+        this.loadLevelTwo(1);
+
+        // 5. Force the map to redraw
+        this.mapCached = false;
     }
 }

@@ -25,6 +25,7 @@ class GameEngine {
             "ArrowUp" : false,
             "ArrowDown" : false,
             "ArrowLeft" : false,
+            "Digit1": false,
             "Space" : false,
             "KeyD" : false,
             "KeyW" : false,
@@ -163,9 +164,10 @@ class GameEngine {
             if (this.camera && this.camera.menuActive) {
                 if (entity === this.camera) entity.update();
             } else {
-                // Yorkie stops moving when paused.
-                // only camera (SceneManager) and GoldenKey (for animation/logic) should updat
+                // Add Yorkie and PoisonParticle to the list of things that NEVER stop
                 let isEssential = entity.constructor.name === "GoldenKey" ||
+                    entity.constructor.name === "Yorkie" || 
+                    entity.constructor.name === "PoisonParticle" ||
                     entity === this.camera;
 
                 if (!this.paused || isEssential) {

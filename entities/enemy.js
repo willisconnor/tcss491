@@ -2,6 +2,7 @@
 //@date: 2/5/26
 
 class Enemy{
+    scale;
     constructor(game, x, y, maxHealth, attackDamage, detectionRange, attackRange, speed){
         Object.assign(this, {game, x, y, maxHealth, attackDamage, detectionRange, attackRange, speed});
 
@@ -115,7 +116,7 @@ class Enemy{
     /**
      * hook method once more
      */
-    onhurt(){
+    onHurt(){
         //override
     }
 
@@ -143,7 +144,7 @@ class Enemy{
      * might have to tweak this based on Mariott videos
      * @returns {Object|null} player entity or nulkl
      */
-    findPLayer(){
+    findPlayer(){
         return this.game.entities.find(entity => entity.constructor.name === 'Rat');
     }
 
@@ -151,15 +152,41 @@ class Enemy{
      * updates bounding box position
      * call this after moving the enemy
      */
+    /**
+     * Updates bounding box position
+     * Uses a smaller circular collider at the center/base like the Rat
+     */
     updateBoundingBox() {
-        if (this.boundingBox){
-            this.boundingBox.x = this.x;
-            this.boundingBox.y = this.y;
-            this.boundingBox.left = this.x;
-            this.boundingBox.top = this.y;
-            this.boundingBox.right = this.boundingBox.left + this.boundingBox.width;
-            this.boundingBox.bottom = this.boundingBox.top + this.boundingBox.height;
+        if (!this.boundingBox) {
+            // Initialize bounding box if it doesn't exist
+            const colliderRadius = 10 * this.scale; // Adjust size as needed
+            const colliderWidth = colliderRadius * 2;
+
+            this.boundingBox = new BoundingBox(
+                this.x,
+                this.y,
+                colliderWidth,
+                colliderRadius
+            );
         }
+
+        // Position the collider at the snake's base/center
+        const spriteWidth = 32 * this.scale; // Snake sprite is 32px wide
+        const spriteHeight = 32 * this.scale;
+        const colliderRadius = 10 * this.scale;
+        const colliderWidth = colliderRadius * 2;
+
+        // Center horizontally, place at bottom vertically (like rat's feet)
+        this.boundingBox.x = this.x + (spriteWidth / 2) - colliderRadius;
+        this.boundingBox.y = this.y + spriteHeight - colliderRadius;
+        this.boundingBox.width = colliderWidth;
+        this.boundingBox.height = colliderRadius;
+
+        // Update AABB properties
+        this.boundingBox.left = this.boundingBox.x;
+        this.boundingBox.top = this.boundingBox.y;
+        this.boundingBox.right = this.boundingBox.left + this.boundingBox.width;
+        this.boundingBox.bottom = this.boundingBox.top + this.boundingBox.height;
     }
 
     update(){
@@ -176,7 +203,7 @@ class Enemy{
         //basic AI behavior (prob override)
         const player = this.detectPlayer();
         if (player) {
-            if (this.canAttackPLayer()) {
+            if (this.canAttackPlayer()) {
                 this.attack();
             } else {
                 this.moveToward(player.x, player.y);
@@ -190,17 +217,40 @@ class Enemy{
         this.updateBoundingBox();
     }
 
+    drawHealthBar(ctx) {
+        if (this.dead) return; // do not draw if dead
+        const barWidth = 50;
+        const barHeight = 5;
+        const healthPercent = Math.max(0, this.health/this.maxHealth);
+
+        ctx.save();
+
+        // attempt to center health bar over the enemy
+        let barX = this.x;
+        if (this.boundingBox) {
+            barX = this.boundingBox.x + (this.boundingBox.width/2) - (barWidth/2);
+        }
+
+        ctx.fillStyle = "red";
+        ctx.fillRect(barX, this.y-20, barWidth, barHeight);
+        ctx.fillStyle = "#39FF14"; // from html color picker, neon green
+        ctx.fillRect(barX, this.y-20, barWidth * healthPercent, barHeight);
+        ctx.restore();
+    }
+
     draw(ctx, game){
         //draw current animation if available
         if (this.currentAnimation) {
             this.currentAnimation.drawFrame(
                 game.clockTick,
                 ctx,
-                this.x -game.camera.x,
-                this.y - game.camera.y,
+                this.x,
+                this.y,
                 game.camera.scale || 1
             );
         }
+        // call new standardized health bar drawing method
+        this.drawHealthBar(ctx);
 
         //debug: draw detection and attack ranges
         if (game.options.debugging) {
@@ -210,36 +260,37 @@ class Enemy{
             ctx.strokeStyle = "yellow";
             ctx.beginPath();
             ctx.arc(
-                this.x - game.camera.x,
-                this.y - game.camera.y,
+                this.x,
+                this.y,
                 this.attackRange,
                 0,
                 Math.PI * 2
             );
             ctx.stroke();
-
-            //health bar
-            const barWidth = 50;
-            const barHeight = 5;
-            const healthPercent = this.health / this.maxHealth;
-
-            ctx.fillStyle = "red";
-            ctx.fillRect (
-                this.x - game.camera.x - barWidth/ 2,
-                this.y - game.camera.y - 20,
-                barWidth,
-                barHeight
-            );
-
-            ctx.fillStyle = "green";
-            ctx.fillRect(
-                this.x - game.camera.x - barWidth/2,
-                this.y - game.camera.y - 20,
-                barWidth * healthPercent,
-                barHeight
-            );
-
             ctx.restore();
         }
     }
+
+    updatePoison(tick) {
+        if (this.isPoisoned) {
+            this.poisonTimer -= tick;
+
+            // Spawn particles! 
+            // 0.2 means 20% chance per tick to spawn a bubble
+            if (Math.random() < 0.2) {
+                // Spawn inside the enemy's general area
+                const px = this.x + Math.random() * (this.width || 32);
+                const py = this.y + Math.random() * (this.height || 32);
+                this.game.addEntity(new PoisonParticle(this.game, px, py));
+            }
+
+            if (this.poisonTimer <= 0) {
+                this.isPoisoned = false;
+                if (this.originalSpeed) {
+                    this.speed = this.originalSpeed;
+                }
+            }
+        }
+    }
+
 }

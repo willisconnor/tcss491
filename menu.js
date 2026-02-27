@@ -1,7 +1,7 @@
 class Menu {
     constructor(game) {
         this.game = game;
-        this.state = "STORY"; // Initial state
+        this.state = "START";
 
         // Updated Lore: The Legend of the Golden Wheel
         this.storyLines = [
@@ -13,26 +13,56 @@ class Menu {
             "But beware... the Great Feline and the Silent Slitherer lurk in the halls above.",
             "Go now. Our survival rests in your paws."
         ];
-        
+
         this.currentLine = 0;
         this.displayText = "";
         this.charIndex = 0;
-        this.typeSpeed = 0.06; 
+        this.typeSpeed = 0.06;
         this.typeTimer = 0;
 
         // Button dimensions (we will calculate X/Y in draw to keep them centered)
         this.btnW = 240;
         this.btnH = 60;
+
+        // Track audio
+        this.activeSounds = []; // stores all active 'click' sounds to stop them
+    }
+
+    // helper to play and track sound
+    playTypingSound() {
+        // play sound using AssetManager
+        let snd = ASSET_MANAGER.playAsset("./assets/keyboard-click.mp3");
+        if (snd) {
+            this.activeSounds.push(snd);
+            // auto remove from list when done to save memory
+            snd.onended = () => {
+                this.activeSounds = this.activeSounds.filter(s => s !== snd);
+            };
+        }
+    }
+
+    // helper to INSTANTLY stop all typing sounds
+    stopTypingSounds() {
+        this.activeSounds.forEach(snd => {
+            snd.pause();
+            snd.currentTime = 0;
+        });
+        this.activeSounds = [];
     }
 
     update() {
         // Check for ESC in ANY menu state to go back to START
         if (this.game.keys["Escape"]) {
             this.game.keys["Escape"] = false; // Reset the key so it doesn't double-trigger
-            
-            if (this.state === "STORY" || this.state === "TUTORIAL") {
+
+            this.stopTypingSounds(); // KILL SWITCH
+
+            if (this.state === "STORY") {
+                this.startGame();
+                return;
+            } else if (this.state === "TUTORIAL") {
                 this.state = "START";
-                return; 
+                return;
             }
         }
 
@@ -46,27 +76,24 @@ class Menu {
 
     updateStory() {
         let line = this.storyLines[this.currentLine];
-        
-        // Typewriter logic
-        if (this.charIndex < line.length) {
-            this.typeTimer += this.game.clockTick;
-            if (this.typeTimer >= this.typeSpeed) {
-                this.displayText += line[this.charIndex];
-                this.charIndex++;
-                this.typeTimer = 0;
-            }
-        }
+        let userSkipped = false;
 
         // "Press any key" logic
         let anyKeyPressed = Object.values(this.game.keys).some(key => key === true);
+
+        // user skip, fast forward
         if (this.game.click || anyKeyPressed) {
+            userSkipped = true;
+
+            this.stopTypingSounds(); // kill switch
+
             if (this.charIndex < line.length) {
                 this.displayText = line; // Finish line instantly
                 this.charIndex = line.length;
             } else {
                 this.currentLine++;
                 if (this.currentLine >= this.storyLines.length) {
-                    this.state = "START";
+                    this.startGame();
                 } else {
                     this.displayText = "";
                     this.charIndex = 0;
@@ -76,51 +103,86 @@ class Menu {
             // Clear keys to prevent rapid-firing through lines
             Object.keys(this.game.keys).forEach(k => this.game.keys[k] = false);
         }
+
+        // typewriter logic
+        if (!userSkipped && this.charIndex < line.length) {
+            this.typeTimer += this.game.clockTick;
+            if (this.typeTimer >= this.typeSpeed) {
+                this.displayText += line[this.charIndex];
+                this.charIndex++;
+                this.typeTimer = 0;
+
+                // play sound
+                // every 4th character
+                if (this.charIndex % 4 === 0) {
+                    this.playTypingSound();
+                }
+            }
+        }
+
+        // ensure silence if line finishes naturally
+        if (this.charIndex >= line.length) {
+            this.stopTypingSounds();
+        }
     }
 
-   handleClicks(x, y) {
+    startGame() {
+        this.stopTypingSounds(); // cleanup
+        if (this.game.camera) this.game.camera.loreCompleted = true;
+        // 1. START THE MUSIC
+        // Use the music path stored in SceneManager so it matches the current level
+        if (this.game.camera && this.game.camera.currentMusicPath) {
+            this.game.audio.playMusic(this.game.camera.currentMusicPath);
+        } else {
+            // Fallback just in case
+            this.game.audio.playMusic("./assets/background_music.wav");
+        }
+
+        // 2. Transition to Game
+        this.game.camera.menuActive = false;
+        this.game.camera.storyState = "STUART_TALK";
+
+        // Check if Stuart's intro has already been played
+        if (!this.game.camera.stuartIntroPlayed) {
+            // First time: play the intro dialogue
+            this.game.camera.dialogueActive = true;
+            this.game.camera.dialogue.currentIndex = 0;
+            this.game.camera.dialogue.charIndex = 0;
+            this.game.camera.dialogue.displayText = "";
+            this.game.camera.dialogue.phase = "INTRO";
+            this.game.camera.dialogue.selectedChoiceIndex = null;
+            this.game.camera.dialogue.selectedQuestions = new Set();
+            this.game.camera.dialogue.displayingChoiceResponse = false;
+            this.game.camera.dialogue.currentQuestionIndex = null;
+            this.game.camera.dialogue.askingFollowUp = false;
+            this.game.camera.dialogue.typeTimer = 0;
+        } else {
+            // already played intro -> skip straight to game without dialogue
+            this.game.camera.dialogueActive = false;
+        }
+    }
+
+    handleClicks(x, y) {
         const w = this.game.ctx.canvas.width;
         const h = this.game.ctx.canvas.height;
         const centerX = w / 2 - this.btnW / 2;
         const centerY = h / 2;
 
         if (this.state === "START") {
-            // --- START GAME BUTTON ---
             if (this.checkBounds(x, y, centerX, centerY - 40, this.btnW, this.btnH)) {
-
-                // 1. START THE MUSIC
-                // Use the music path stored in SceneManager so it matches the current level
-                if (this.game.camera && this.game.camera.currentMusicPath) {
-                    this.game.audio.playMusic(this.game.camera.currentMusicPath);
+                // modification: check if we are resuming
+                // if intro has been played skip story text -> go straight to game
+                const cam = this.game.camera;
+                if (cam && (cam.stuartIntroPlayed || cam.loreCompleted)) {
+                    this.startGame();
                 } else {
-                    // Fallback just in case
-                    this.game.audio.playMusic("./assets/background_music.wav");
+                    // otherwise play story lines
+                    this.state = "STORY";
+                    this.currentLine = 0;
+                    this.displayText = "";
+                    this.charIndex = 0;
                 }
-
-                // 2. Transition to Game
-                this.game.camera.menuActive = false;     // Turn off menu
-                this.game.camera.storyState = "STUART_TALK";
-                
-                // Check if Stuart's intro has already been played
-                if (!this.game.camera.stuartIntroPlayed) {
-                    // First time: play the intro dialogue
-                    this.game.camera.dialogueActive = true;  // Trigger Stuart Big intro
-                    this.game.camera.dialogue.currentIndex = 0;
-                    this.game.camera.dialogue.charIndex = 0;
-                    this.game.camera.dialogue.displayText = "";
-                    this.game.camera.dialogue.playerName = "";
-                    this.game.camera.dialogue.phase = "INTRO";
-                    this.game.camera.dialogue.selectedChoiceIndex = null;
-                    this.game.camera.dialogue.selectedQuestions = new Set();
-                    this.game.camera.dialogue.displayingChoiceResponse = false;
-                    this.game.camera.dialogue.currentQuestionIndex = null;
-                    this.game.camera.dialogue.askingFollowUp = false;
-                    this.game.camera.dialogue.typeTimer = 0;
-                } else {
-                    // Already played intro: skip straight to game without dialogue
-                    this.game.camera.dialogueActive = false;
-                }
-            } 
+            }
             // --- TUTORIAL BUTTON ---
             else if (this.checkBounds(x, y, centerX, centerY + 40, this.btnW, this.btnH)) {
                 this.state = "TUTORIAL";
@@ -174,7 +236,7 @@ class Menu {
 
     drawStartMenu(ctx, w, h) {
         ctx.fillStyle = "#ffcc00";
-        ctx.font = "bold 70px Arial";
+        ctx.font = "40px 'Press Start 2P', Arial";
         ctx.textAlign = "center";
         ctx.fillText("RAT PLAYING GAME", w / 2, h / 2 - 180);
 
@@ -187,28 +249,16 @@ class Menu {
 
     drawTutorial(ctx, w, h) {
         ctx.fillStyle = "white";
-        ctx.font = "40px Arial";
+        ctx.font = "30px 'Press Start 2P', Arial";
         ctx.textAlign = "center";
-        ctx.fillText("GUIDE FOR THE CHOSEN ONE", w / 2, h / 2 - 200);
+        ctx.fillText("GUIDE", w / 2, h / 2 - 200);
 
         ctx.font = "20px Arial";
-        ctx.textAlign = "center";
-        
-        // Movement controls
         ctx.fillText("Movement: WASD or Arrow Keys", w / 2, h / 2 - 100);
-        
-        // Sprint controls
-        ctx.fillText("Sprint: Hold SHIFT + WASD or Arrow Keys", w / 2, h / 2 - 50);
-        
-        // Attack controls
-        ctx.fillText("Attack: Press SPACE", w / 2, h / 2);
-        
-        // Objective
-        ctx.fillText("Find the Golden Wheel in the Forbidden Hearth", w / 2, h / 2 + 50);
-        
-        // Warning
-        ctx.fillStyle = "#ff6b6b";
-        ctx.fillText("Face the beasts that guard the upper world", w / 2, h / 2 + 100);
+        ctx.fillText("Sprint: Hold SHIFT", w / 2, h / 2 - 50);
+        ctx.fillText("Bite: Press SPACE ", w / 2, h / 2);
+        ctx.fillText("Poison: Press 1", w / 2, h / 2 + 30);
+        ctx.fillText("Death: Press x", w / 2, h / 2 + 80);
 
         this.drawBtn(ctx, w / 2 - this.btnW / 2, h / 2 + 180, "BACK");
     }
@@ -217,10 +267,10 @@ class Menu {
         ctx.strokeStyle = "white";
         ctx.lineWidth = 3;
         ctx.strokeRect(x, y, this.btnW, this.btnH);
-        
+
         ctx.fillStyle = "white";
-        ctx.font = "24px Arial";
+        ctx.font = "20px 'Press Start 2P', Arial";
         ctx.textAlign = "center";
-        ctx.fillText(text, x + this.btnW / 2, y + 40);
+        ctx.fillText(text, x + this.btnW / 2, y + 42);
     }
 }
