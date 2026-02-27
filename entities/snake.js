@@ -258,17 +258,55 @@ class Snake extends Enemy{
      */
     onDeath() {
         this.state = "DEAD";
-        this.currentAnimation = this.animations.get("death")[this.facing];
-        this.currentAnimation.elapsedTime = 0;
+        let anim = this.animations.get("death")[this.facing];
+        if (anim) {
+            anim.elapsedTime = 0;
+        }
+        this.currentAnimation = anim;
         this.velocity.x = 0;
         this.velocity.y = 0;
     }
 
     update() {
         this.updatePoison(this.game.clockTick);
+
+        // 1. Death Logic
         if (this.dead) {
+            // Ensure we are using the death animation
+            this.currentAnimation = this.animations.get("death")[this.facing];
+
+            // Wait until the animation is actually finished before removing from world
             if (this.currentAnimation && this.currentAnimation.isDone()) {
                 this.removeFromWorld = true;
+            }
+
+            this.updateBoundingBox();
+            return; // Stay in this block until removed
+        }
+
+        // 2. Attack and Hurt logic (existing)
+        if (this.attackCooldown > 0) {
+            this.attackCooldown -= this.game.clockTick;
+        }
+
+        if (this.attackAnimationTimer > 0) {
+            this.attackAnimationTimer -= this.game.clockTick;
+            this.velocity.x = 0;
+            this.velocity.y = 0;
+            if (this.attackAnimationTimer <= 0) {
+                this.state = "CHASE";
+            }
+            this.updateBoundingBox();
+            return;
+        }
+
+        if (this.hurtAnimationTimer > 0) {
+            this.hurtAnimationTimer -= this.game.clockTick;
+            this.velocity.x = 0;
+            this.velocity.y = 0;
+            if (this.hurtAnimationTimer <= 0) {
+                this.state = this.stateBeforeHurt || "IDLE";
+                this.hurtAnimationTimer = 0;
             }
             this.updateBoundingBox();
             return;

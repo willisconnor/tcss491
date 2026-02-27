@@ -70,13 +70,20 @@ class PoisonProjectile {
     }
 
     applyPoison(target) {
-        target.health -= 0.2; // Small impact damage
+        // Check if the target is Yorkie and if he is currently "peaceful"
+        if (target.constructor.name === "Yorkie") {
+            const combatStates = ["TRAINING", "PRE_FIGHT"];
+            if (!combatStates.includes(target.actionState)) {
+                return; // Do nothing if we aren't in combat!
+            }
+        }
+
+        target.health -= 0.2; 
         target.isPoisoned = true;
-        target.poisonTimer = 2; // Duration in seconds (requested 2)
+        target.poisonTimer = 2; 
         
-        // Save original speed if not already poisoned
         if (!target.originalSpeed) target.originalSpeed = target.speed;
-        target.speed = target.originalSpeed * 0.4; // 60% slow
+        target.speed = target.originalSpeed * 0.4; 
     }
 
     draw(ctx) {
@@ -104,5 +111,43 @@ class PoisonProjectile {
             ctx.strokeStyle = "red";
             ctx.strokeRect(this.BB.x, this.BB.y, this.BB.width, this.BB.height);
         }
+    }
+}
+
+class PoisonParticle {
+    constructor(game, x, y) {
+        Object.assign(this, { game, x, y });
+        
+        // Randomize movement slightly
+        this.velocity = { 
+            x: (Math.random() - 0.5) * 50, 
+            y: -Math.random() * 80 - 20 
+        };
+        
+        this.lifetime = 0.6; // Seconds
+        this.elapsed = 0;
+        this.removeFromWorld = false;
+        this.size = Math.random() * 3 + 2;
+    }
+
+    update() {
+        this.elapsed += this.game.clockTick;
+        if (this.elapsed > this.lifetime) {
+            this.removeFromWorld = true;
+        }
+
+        this.x += this.velocity.x * this.game.clockTick;
+        this.y += this.velocity.y * this.game.clockTick;
+    }
+
+    draw(ctx) {
+        ctx.save();
+        // Fade out based on lifetime
+        ctx.globalAlpha = 1 - (this.elapsed / this.lifetime);
+        ctx.fillStyle = "#39FF14"; // Neon Green
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
     }
 }
