@@ -79,7 +79,6 @@ class SceneManager {
     }
 
     update() {
-
         // audio UI input logic
         if (this.game.click) {
             const mouseX = this.game.click.x;
@@ -104,19 +103,24 @@ class SceneManager {
                 return;
             }
 
-            // check for Warp Button clicks if debugging is ON
+            // --- FIX: check for Warp Button clicks ONLY if debugging is ON AND computer UI is NOT active ---
             if (this.game.options && this.game.options.debugging) {
-                // warp level 2 Button bounds [x: 20, y: 130, w: 220, h: 30]
-                if (mouseX >= 20 && mouseX <= 320 && mouseY >= 130 && mouseY <= 160) {
-                    this.skipToLevel2Alive();
-                    this.game.click = null;
-                    return;
-                }
-                // warp level 3 Button bounds [x: 20, y: 170, w: 220, h: 30]
-                if (mouseX >= 20 && mouseX <= 320 && mouseY >= 170 && mouseY <= 200) {
-                    this.skipToLevel3Dead();
-                    this.game.click = null;
-                    return;
+                let computer = this.game.entities.find(e => e instanceof Computer);
+                
+                // If computer exists and is active, let it handle clicks instead of the debug buttons
+                if (!computer || !computer.active) {
+                    // warp level 2 Button bounds [x: 20, y: 130, w: 220, h: 30]
+                    if (mouseX >= 20 && mouseX <= 320 && mouseY >= 130 && mouseY <= 160) {
+                        this.skipToLevel2Alive();
+                        this.game.click = null;
+                        return;
+                    }
+                    // warp level 3 Button bounds [x: 20, y: 170, w: 220, h: 30]
+                    if (mouseX >= 20 && mouseX <= 320 && mouseY >= 170 && mouseY <= 200) {
+                        this.skipToLevel3Dead();
+                        this.game.click = null;
+                        return;
+                    }
                 }
             }
         }
