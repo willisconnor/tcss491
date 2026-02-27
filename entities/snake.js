@@ -119,7 +119,9 @@ class Snake extends Enemy{
         const dx = targetX - this.x;
         const dy = targetY - this.y;
 
-        const pixelsPerSecond = 75;
+        // Base speed was 0.5 in the constructor. 150 * 0.5 = 75.
+        // This allows the 0.4x poison modifier to actually slow the snake down!
+        const pixelsPerSecond = 150 * this.speed;
 
         if (Math.abs(dx) > Math.abs(dy)) {
             this.velocity.x = dx > 0 ? pixelsPerSecond : -pixelsPerSecond;
@@ -370,8 +372,6 @@ class Snake extends Enemy{
 
     draw(ctx, game) {
         if (this.currentAnimation) {
-            // fixed connors minor snake sliding issue; SceneManager already handles camera translation. Subtracting
-            // camera values here caused the snake to slide!
             const drawX = this.x;
             const drawY = this.y;
 
@@ -381,6 +381,11 @@ class Snake extends Enemy{
 
             ctx.save();
 
+            // 1. Apply the poison tint filter BEFORE drawing the sprite
+            if (this.isPoisoned) {
+                ctx.filter = "sepia(1) hue-rotate(70deg) saturate(5)";
+            }
+
             if (shouldFlip) {
                 // Translate to the sprite position, flip, then draw at origin
                 const spriteWidth = 32 * this.scale;
@@ -388,16 +393,18 @@ class Snake extends Enemy{
                 ctx.scale(-1, 1);
 
                 this.currentAnimation.drawFrame(game.clockTick, ctx, 0, 0, this.scale);
-                this.drawPoisonTint(ctx, 0, 0, 32 * this.scale, 32 * this.scale);
+                // Notice: No drawPoisonTint call here anymore!
             } else {
                 this.currentAnimation.drawFrame(game.clockTick, ctx, drawX, drawY, this.scale);
-                this.drawPoisonTint(ctx, drawX, drawY, 32 * this.scale, 32 * this.scale);
+                // Notice: No drawPoisonTint call here anymore!
             }
 
             ctx.restore();
         }
+        
         // inherited from enemy class, will hide automatically when dead!
         this.drawHealthBar(ctx);
+        
         if (game.options.debugging) {
             ctx.save();
 

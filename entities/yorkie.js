@@ -258,29 +258,24 @@ class Yorkie {
         let drawX = this.x;
         let drawY = this.y;
 
+        ctx.save(); // Save before applying any filters
+
         // shake effect when hurt
         if (this.hurtTimer > 0) {
-            ctx.save();
             ctx.filter = "sepia(1) saturate(5) hue-rotate(-50deg)";
             let shakeX = Math.random() * 4 - 2;
             let shakeY = Math.random() * 4 - 2;
             drawX += shakeX;
             drawY += shakeY;
+        } else if (this.isPoisoned) {
+            // Apply poison filter if poisoned
+            ctx.filter = "sepia(1) hue-rotate(70deg) saturate(5)";
         }
 
         // drawn sprite
         this.animator.drawFrame(this.game.clockTick, ctx, Math.floor(drawX), Math.floor(drawY), this.scale);
-        if (this.isPoisoned) {
-            ctx.save();
-            ctx.globalCompositeOperation = "source-atop";
-            ctx.fillStyle = "rgba(0, 255, 0, 0.5)";
-            ctx.fillRect(Math.floor(drawX), Math.floor(drawY), 18 * this.scale, 18 * this.scale);
-            ctx.restore();
-        }
-
-        if (this.hurtTimer > 0) {
-            ctx.restore();
-        }
+        
+        ctx.restore(); // Restore to clear the filters
 
         // ui
         let rat = this.game.entities.find(e => e.constructor.name === "Rat");
