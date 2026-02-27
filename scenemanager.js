@@ -502,9 +502,6 @@ class SceneManager {
             }
         }
         this.drawMinimap(ctx);
-        if (this.dialogueActive) this.dialogue.draw(ctx);
-        if (this.paused) this.pauseMenu.draw(ctx);
-
         const aspect = this.worldHeight / this.worldWidth;
         const mapH = this.minimapWidth * aspect;
         const x = ctx.canvas.width - this.minimapMargin - 60;
@@ -529,6 +526,10 @@ class SceneManager {
         ctx.textAlign = "center";
         ctx.fillText("MUSIC", x + 30, y + 45);
         ctx.restore();
+
+        // now pause menu overlay will draw ON TOP of the music button, we want to gray them out
+        if (this.dialogueActive) this.dialogue.draw(ctx);
+        if (this.paused) this.pauseMenu.draw(ctx);
 
         if (this.isFading) {
             ctx.fillStyle = `rgba(0, 0, 0, ${this.fadeAlpha})`;
