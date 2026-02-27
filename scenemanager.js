@@ -287,6 +287,10 @@ class SceneManager {
 
         this.game.addEntity(new Door(this.game, 220, 90, "Level1", false));
         this.game.addEntity(new Door(this.game, 707, 32, "Level3", false));
+        
+        // Adjust the X (500) and Y (100) to fit your dining room map!
+        this.game.addEntity(new Computer(this.game, 1280, 490));
+        
         //ADD SNAKES TO LEVEL 2: restoring the state
         const stationarySnake = new Snake(this.game, 707, 130, null);
 
@@ -497,6 +501,10 @@ class SceneManager {
                 ctx.fillStyle = "red";
                 ctx.fillText("PRESS ANY KEY TO RESTART", ctx.canvas.width / 2, ctx.canvas.height - 20);
             }
+        }
+            let computer = this.game.entities.find(e => e instanceof Computer);
+            if (computer) {
+                computer.drawUI(ctx);
         }
     }
 
