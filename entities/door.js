@@ -16,7 +16,9 @@ class Door {
 
         // find Rat
         const rat = this.game.entities.find(e => e.constructor.name === "Rat");
-        if (rat) {
+
+        // verify rat isn't dead before allowing room transitions
+        if (rat && rat.health > 0) {
             // simple distance check
             const dist = Math.sqrt(Math.pow((rat.x - this.x), 2) + Math.pow((rat.y - this.y), 2));
 

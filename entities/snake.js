@@ -140,11 +140,14 @@ class Snake extends Enemy{
         // Determine which horizontal direction to face based on rat position
         const rat = this.game.entities.find(e => e instanceof Rat);
         if (rat) {
-            if (rat.x > this.x) {
-                this.horizontalFacing = 1; // Rat is to the right
-            } else {
-                this.horizontalFacing = 0; // Rat is to the left
+            // add small dead zone to prevent rapid flickering when vertically aligned
+            const dx = rat.x - this.x;
+            if (dx > 2) {
+                this.horizontalFacing = 1; // rat is clearly to the right
+            } else if (dx < -2) {
+                this.horizontalFacing = 0; // rat is clearly to the left
             }
+            // if dx is between -2 and 2, it keeps the previous horizontalFacing
         }
 
         // Set facing based on actual movement direction
@@ -300,34 +303,6 @@ class Snake extends Enemy{
             return;
         }
 
-        if (this.hurtAnimationTimer > 0) {
-            this.hurtAnimationTimer -= this.game.clockTick;
-            this.velocity.x = 0;
-            this.velocity.y = 0;
-            if (this.hurtAnimationTimer <= 0) {
-                this.state = this.stateBeforeHurt || "IDLE";
-                this.hurtAnimationTimer = 0;
-            }
-            this.updateBoundingBox();
-            return;
-        }
-
-        if (this.attackCooldown > 0) {
-            this.attackCooldown -= this.game.clockTick;
-        }
-
-        if (this.attackAnimationTimer > 0) {
-            this.attackAnimationTimer -= this.game.clockTick;
-            this.velocity.x = 0;
-            this.velocity.y = 0;
-
-            if (this.attackAnimationTimer <= 0) {
-                this.state = "CHASE";
-            }
-            this.updateBoundingBox();
-            return;
-        }
-
         // Handle hurt animation timer
         if (this.hurtAnimationTimer > 0) {
             this.hurtAnimationTimer -= this.game.clockTick;
@@ -368,47 +343,23 @@ class Snake extends Enemy{
             }
         }
 
-        // Apply velocity WITH COLLISION DETECTION (like Rat)
+        // replacing all manual x,y testing and sliding (inherited from enemy)
         const spriteWidth = 32 * this.scale;
         const spriteHeight = 32 * this.scale;
         const colliderRadius = 10 * this.scale;
-        const colliderWidth = colliderRadius * 2;
-        const colliderHeight = colliderRadius;
+        const ratTarget = this.state === "CHASE" ? this.game.entities.find(e => e.constructor.name === "Rat") : null;
 
-        // Calculate potential new positions
-        const moveX = this.velocity.x * this.game.clockTick;
-        const moveY = this.velocity.y * this.game.clockTick;
-
-        // Test X movement independently - ONLY if actually moving
-        if (Math.abs(moveX) > 0.01) {
-            const testX = this.x + moveX;
-            const testColliderX = testX + (spriteWidth / 2) - colliderRadius;
-            const currentColliderY = this.y + spriteHeight - colliderHeight;
-
-            if (!this.game.collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
-                this.x = testX; // Safe to move
-            } else {
-                this.velocity.x = 0; // ✓ STOP sliding - zero velocity!
-            }
-        }
-
-        // Test Y movement independently - ONLY if actually moving
-        if (Math.abs(moveY) > 0.01) {
-            const testY = this.y + moveY;
-            const currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
-            const testColliderY = testY + spriteHeight - colliderHeight;
-
-            if (!this.game.collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
-                this.y = testY; // Safe to move
-            } else {
-                this.velocity.y = 0; // ✓ STOP sliding - zero velocity!
-            }
-        }
+        // call parent class's sliding method
+        this.moveWithSliding(this.game.clockTick, this.game.collisionManager, ratTarget, spriteWidth, spriteHeight, colliderRadius);
 
         this.updateBoundingBox();
     }
 
     draw(ctx, game) {
+        // if dead & animation done, draw nothing so it vanishes instantly
+        if (this.dead && this.currentAnimation && this.currentAnimation.isDone()) {
+            return;
+        }
         if (this.currentAnimation) {
             const drawX = this.x;
             const drawY = this.y;
@@ -423,18 +374,25 @@ class Snake extends Enemy{
             if (this.isPoisoned) {
                 ctx.filter = "sepia(1) hue-rotate(70deg) saturate(5)";
             }
+            // stop passing time to animator once death animation finishes
+            let tick = game.clockTick;
 
+            // prevent Animator from advancing into the non-existent 10th frame - idle row
+            if (this.dead && this.currentAnimation.elapsedTime + tick >= this.currentAnimation.totalTime) {
+                this.removeFromWorld = true; // tell game engine to delete it immediately
+
+                // shrink tick so it lands EXACTLY on final valid frame of the death animation
+                tick = this.currentAnimation.totalTime - this.currentAnimation.elapsedTime - 0.001;
+                if (tick < 0) tick = 0;
+            }
             if (shouldFlip) {
                 // Translate to the sprite position, flip, then draw at origin
                 const spriteWidth = 32 * this.scale;
                 ctx.translate(drawX + spriteWidth, drawY);
                 ctx.scale(-1, 1);
-
-                this.currentAnimation.drawFrame(game.clockTick, ctx, 0, 0, this.scale);
-                // Notice: No drawPoisonTint call here anymore!
+                this.currentAnimation.drawFrame(tick, ctx, 0, 0, this.scale);
             } else {
-                this.currentAnimation.drawFrame(game.clockTick, ctx, drawX, drawY, this.scale);
-                // Notice: No drawPoisonTint call here anymore!
+                this.currentAnimation.drawFrame(tick, ctx, drawX, drawY, this.scale);
             }
 
             ctx.restore();
