@@ -119,7 +119,9 @@ class Snake extends Enemy{
         const dx = targetX - this.x;
         const dy = targetY - this.y;
 
-        const pixelsPerSecond = 75;
+        // Base speed was 0.5 in the constructor. 150 * 0.5 = 75.
+        // This allows the 0.4x poison modifier to actually slow the snake down!
+        const pixelsPerSecond = 150 * this.speed;
 
         if (Math.abs(dx) > Math.abs(dy)) {
             this.velocity.x = dx > 0 ? pixelsPerSecond : -pixelsPerSecond;
@@ -256,16 +258,55 @@ class Snake extends Enemy{
      */
     onDeath() {
         this.state = "DEAD";
-        this.currentAnimation = this.animations.get("death")[this.facing];
-        this.currentAnimation.elapsedTime = 0;
+        let anim = this.animations.get("death")[this.facing];
+        if (anim) {
+            anim.elapsedTime = 0;
+        }
+        this.currentAnimation = anim;
         this.velocity.x = 0;
         this.velocity.y = 0;
     }
 
     update() {
+        this.updatePoison(this.game.clockTick);
+
+        // 1. Death Logic
         if (this.dead) {
+            // Ensure we are using the death animation
+            this.currentAnimation = this.animations.get("death")[this.facing];
+
+            // Wait until the animation is actually finished before removing from world
             if (this.currentAnimation && this.currentAnimation.isDone()) {
                 this.removeFromWorld = true;
+            }
+
+            this.updateBoundingBox();
+            return; // Stay in this block until removed
+        }
+
+        // 2. Attack and Hurt logic (existing)
+        if (this.attackCooldown > 0) {
+            this.attackCooldown -= this.game.clockTick;
+        }
+
+        if (this.attackAnimationTimer > 0) {
+            this.attackAnimationTimer -= this.game.clockTick;
+            this.velocity.x = 0;
+            this.velocity.y = 0;
+            if (this.attackAnimationTimer <= 0) {
+                this.state = "CHASE";
+            }
+            this.updateBoundingBox();
+            return;
+        }
+
+        if (this.hurtAnimationTimer > 0) {
+            this.hurtAnimationTimer -= this.game.clockTick;
+            this.velocity.x = 0;
+            this.velocity.y = 0;
+            if (this.hurtAnimationTimer <= 0) {
+                this.state = this.stateBeforeHurt || "IDLE";
+                this.hurtAnimationTimer = 0;
             }
             this.updateBoundingBox();
             return;
@@ -369,8 +410,6 @@ class Snake extends Enemy{
 
     draw(ctx, game) {
         if (this.currentAnimation) {
-            // fixed connors minor snake sliding issue; SceneManager already handles camera translation. Subtracting
-            // camera values here caused the snake to slide!
             const drawX = this.x;
             const drawY = this.y;
 
@@ -380,33 +419,30 @@ class Snake extends Enemy{
 
             ctx.save();
 
+            // 1. Apply the poison tint filter BEFORE drawing the sprite
+            if (this.isPoisoned) {
+                ctx.filter = "sepia(1) hue-rotate(70deg) saturate(5)";
+            }
+
             if (shouldFlip) {
                 // Translate to the sprite position, flip, then draw at origin
                 const spriteWidth = 32 * this.scale;
                 ctx.translate(drawX + spriteWidth, drawY);
                 ctx.scale(-1, 1);
 
-                this.currentAnimation.drawFrame(
-                    game.clockTick,
-                    ctx,
-                    0,
-                    0,
-                    this.scale
-                );
+                this.currentAnimation.drawFrame(game.clockTick, ctx, 0, 0, this.scale);
+                // Notice: No drawPoisonTint call here anymore!
             } else {
-                this.currentAnimation.drawFrame(
-                    game.clockTick,
-                    ctx,
-                    drawX,
-                    drawY,
-                    this.scale
-                );
+                this.currentAnimation.drawFrame(game.clockTick, ctx, drawX, drawY, this.scale);
+                // Notice: No drawPoisonTint call here anymore!
             }
 
             ctx.restore();
         }
+        
         // inherited from enemy class, will hide automatically when dead!
         this.drawHealthBar(ctx);
+        
         if (game.options.debugging) {
             ctx.save();
 

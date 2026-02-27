@@ -270,4 +270,27 @@ class Enemy{
             ctx.restore();
         }
     }
+
+    updatePoison(tick) {
+        if (this.isPoisoned) {
+            this.poisonTimer -= tick;
+
+            // Spawn particles! 
+            // 0.2 means 20% chance per tick to spawn a bubble
+            if (Math.random() < 0.2) {
+                // Spawn inside the enemy's general area
+                const px = this.x + Math.random() * (this.width || 32);
+                const py = this.y + Math.random() * (this.height || 32);
+                this.game.addEntity(new PoisonParticle(this.game, px, py));
+            }
+
+            if (this.poisonTimer <= 0) {
+                this.isPoisoned = false;
+                if (this.originalSpeed) {
+                    this.speed = this.originalSpeed;
+                }
+            }
+        }
+    }
+
 }
