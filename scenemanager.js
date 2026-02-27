@@ -64,6 +64,7 @@ class SceneManager {
 
         // global rat health tracker
         this.ratHealth = 10;
+        this.ratLives = 3;
         this.snakeEatAnim = new Animator(ASSET_MANAGER.getAsset("./assets/snake-eat-rat.png"), 0, 0, 728, 720, 2, 0.5, 0, false, true);
 
         this.isReloading = false;
@@ -93,15 +94,33 @@ class SceneManager {
                 this.game.click = null;
                 return;
             }
-            // Check if click is inside the Checkbox
+            // Check if click is inside the Debug Checkbox
             if (mouseX >= this.cbX && mouseX <= this.cbX + this.cbSize &&
                 mouseY >= this.cbY && mouseY <= this.cbY + this.cbSize) {
 
-                this.skipToLevel2();
+                // ONLY toggle debug mode (removed the instant warp from here)
                 this.game.options.debugging = !this.game.options.debugging;
                 this.game.click = null; // Consume the click
+                return;
+            }
+
+            // check for Warp Button clicks if debugging is ON
+            if (this.game.options && this.game.options.debugging) {
+                // warp level 2 Button bounds [x: 20, y: 130, w: 220, h: 30]
+                if (mouseX >= 20 && mouseX <= 320 && mouseY >= 130 && mouseY <= 160) {
+                    this.skipToLevel2Alive();
+                    this.game.click = null;
+                    return;
+                }
+                // warp level 3 Button bounds [x: 20, y: 170, w: 220, h: 30]
+                if (mouseX >= 20 && mouseX <= 320 && mouseY >= 170 && mouseY <= 200) {
+                    this.skipToLevel3Dead();
+                    this.game.click = null;
+                    return;
+                }
             }
         }
+
 
         if (this.game.keys["Escape"]) {
             if (!this.menuActive) {
@@ -197,9 +216,8 @@ class SceneManager {
                 }
             });
         }
-
         // lose scenario trigger for level 2 if rat dies (no more E key debug box)
-        if (!this.loseState && rat && rat.health <= 0) {
+        if (!this.loseState && rat && rat.health <= 0 && this.ratLives === 0) {
             this.loseState = true;
             this.loseTimer = 0;
             this.game.click = null;
@@ -220,7 +238,7 @@ class SceneManager {
             }
 
             // restart logic, adjusted to 15 because of the 5 second delay
-            if (this.loseTimer > 15) {
+            if (this.loseTimer > 10) {
                 let anyKeyPressed = Object.values(this.game.keys).some(k => k === true);
 
                 if (!this.isReloading && (this.game.click || anyKeyPressed)) {
@@ -381,10 +399,29 @@ class SceneManager {
         ctx.font = "12px 'Press Start 2P'";
         ctx.textAlign = "left";
         ctx.fillText("DEBUG MODE", x + size + 10, y + size - 6);
-        // draw 'X' if debugging is on
+        // draw 'X' & Warp Buttons if debugging is on
         if (this.game.options && this.game.options.debugging) {
             ctx.fillStyle = "#39FF14";
-            ctx.fillText("X", x+5, y+size-5);
+            ctx.fillText("X", x + 5, y + size - 5);
+
+            // draw warp buttons
+            ctx.font = "10px 'Press Start 2P'"; // slightly smaller font for buttons
+
+            // button 1: level 2 Alive -> Spawned below the hearts
+            ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
+            ctx.fillRect(20, 130, 310, 30);
+            ctx.strokeStyle = "#ffcc00";
+            ctx.strokeRect(20, 130, 310, 30);
+            ctx.fillStyle = "white";
+            ctx.fillText("WARP Level 2 (SNAKE IS ALIVE)", 35, 151);
+
+            // button 2: Level 3 Dead
+            ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
+            ctx.fillRect(20, 170, 310, 30);
+            ctx.strokeStyle = "#ffcc00";
+            ctx.strokeRect(20, 170, 310, 30);
+            ctx.fillStyle = "white";
+            ctx.fillText("WARP Level 3 (SNAKE IS DEAD)", 35, 191);
         }
         ctx.restore();
     }
@@ -408,10 +445,63 @@ class SceneManager {
 
     drawOverlays(ctx) {
         ctx.restore();
-        this.drawMinimap(ctx);
-        if (this.dialogueActive) this.dialogue.draw(ctx);
-        if (this.paused) this.pauseMenu.draw(ctx);
+        // updated lives hud - flashing red mechanism
+        let heartAsset = ASSET_MANAGER.getAsset("./assets/hearts.png");
+        if (heartAsset) {
+            const heartWidth = 200;  // 600px total / 3 frames
+            const heartHeight = 200;
+            const scale = 0.40;      // scales it down
+            const drawW = heartWidth * scale;
+            const drawH = heartHeight * scale;
+            const startX = 20;       // top left X position
+            const startY = 30;       // pushed down slightly
+            const spacing = 0;      // if you want spacing
 
+            // Find the rat to check its recovery status and timer
+            let rat = this.game.entities.find(e => e.constructor.name === "Rat");
+            let isRecovering = rat && rat.isRecovering;
+            let recoveryTimer = rat ? rat.recoveryTimer : 0;
+
+            for (let i = 0; i < 3; i++) {
+                let sourceX = 0; // default-> pink (Frame 0)
+
+                if (i < this.ratLives) {
+                    // if we are currently recovering AND this is the heart about to be lost
+                    if (isRecovering && i === this.ratLives - 1) {
+                        // flash red every 0.1 seconds
+                        // Math.floor(timer / 0.1) % 2 toggles rapidly between true/false
+                        let flashRed = Math.floor(recoveryTimer / 0.1) % 2 === 0;
+                        sourceX = flashRed ? 200 : 0; // 200 is Red, 0 is Pink
+                    } else {
+                        // normal alive heart
+                        sourceX = 0; // pink
+                    }
+                } else {
+                    // life already lost
+                    sourceX = 400; // gray (Frame 2)
+                }
+
+                ctx.drawImage(
+                    heartAsset,
+                    sourceX, 0, heartWidth, heartHeight, // source rectangle (clipping sprite)
+                    startX + i * (drawW + spacing), startY, drawW, drawH // destination rectangle (on screen)
+                );
+            }
+            // This is for the rat coordinate (bottom left) -> to help jayda w/ finding where computer is located
+            if (this.game.options && this.game.options.debugging) {
+                let rat = this.game.entities.find(e => e.constructor.name === "Rat");
+                if (rat) {
+                    ctx.save();
+                    ctx.fillStyle = "red";
+                    ctx.font = "bold 40px 'Courier New', Courier, monospace";
+                    ctx.textAlign = "left";
+                    // Draws text 20px from the left, 20px from the bottom
+                    ctx.fillText(`X: ${Math.floor(rat.x)} | Y: ${Math.floor(rat.y)}`, 40, ctx.canvas.height - 40);
+                    ctx.restore();
+                }
+            }
+        }
+        this.drawMinimap(ctx);
         const aspect = this.worldHeight / this.worldWidth;
         const mapH = this.minimapWidth * aspect;
         const x = ctx.canvas.width - this.minimapMargin - 60;
@@ -436,6 +526,10 @@ class SceneManager {
         ctx.textAlign = "center";
         ctx.fillText("MUSIC", x + 30, y + 45);
         ctx.restore();
+
+        // now pause menu overlay will draw ON TOP of the music button, we want to gray them out
+        if (this.dialogueActive) this.dialogue.draw(ctx);
+        if (this.paused) this.pauseMenu.draw(ctx);
 
         if (this.isFading) {
             ctx.fillStyle = `rgba(0, 0, 0, ${this.fadeAlpha})`;
@@ -623,36 +717,56 @@ class SceneManager {
                     }
                 });
             }
-        });        this.mapCached = true;
+        });
+        this.mapCached = true;
         console.log("Map cached successfully at scale " + this.scale);
     }
 
-    skipToLevel2() {
-        console.log("DEBUG: Instant Warp to Level 2 Gameplay...");
+    skipToLevel2Alive() {
+        console.log("DEBUG: Instant Warp to Level 2 (Snake Alive)...");
 
-        // et story flags 
+        // Force the snake to be alive and at full health in the persistence map
+        this.snakeStates.set("level2_snake_main", {dead: false, health: 3, x: 707, y: 130});
+
         this.levelNumber = 2;
         this.storyState = "LEVEL2";
         this.yorkieDefeated = true;
         this.stuartIntroPlayed = true;
         this.hasGoldenKey = true;
 
-        //  Turn off all menus and dialogue
         this.menuActive = false;
         this.dialogueActive = false;
         this.game.paused = false;
 
-        //  Clear entities safely 
         this.game.entities.forEach(entity => {
-            if (entity !== this) {
-                entity.removeFromWorld = true;
-            }
+            if (entity !== this) entity.removeFromWorld = true;
         });
 
-        // Load the level (This should spawn the Rat and the Snake)
         this.loadLevelTwo(1);
+        this.mapCached = false;
+    }
 
-        // 5. Force the map to redraw
+    skipToLevel3Dead() {
+        console.log("DEBUG: Instant Warp to Level 3 (Snake Dead)...");
+
+        // Force the snake to be dead in the persistence map so returning to Level 2 is a clear campus
+        this.snakeStates.set("level2_snake_main", {dead: true, health: 0, x: 707, y: 130});
+
+        this.levelNumber = 3;
+        this.storyState = "LEVEL3";
+        this.yorkieDefeated = true;
+        this.stuartIntroPlayed = true;
+        this.hasGoldenKey = true;
+
+        this.menuActive = false;
+        this.dialogueActive = false;
+        this.game.paused = false;
+
+        this.game.entities.forEach(entity => {
+            if (entity !== this) entity.removeFromWorld = true;
+        });
+
+        this.loadLevelThree();
         this.mapCached = false;
     }
 }
