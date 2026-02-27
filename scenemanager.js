@@ -64,6 +64,7 @@ class SceneManager {
 
         // global rat health tracker
         this.ratHealth = 10;
+        this.ratLives = 3;
         this.snakeEatAnim = new Animator(ASSET_MANAGER.getAsset("./assets/snake-eat-rat.png"), 0, 0, 728, 720, 2, 0.5, 0, false, true);
 
         this.isReloading = false;
@@ -197,9 +198,8 @@ class SceneManager {
                 }
             });
         }
-
         // lose scenario trigger for level 2 if rat dies (no more E key debug box)
-        if (!this.loseState && rat && rat.health <= 0) {
+        if (!this.loseState && rat && rat.health <= 0 && this.ratLives === 0) {
             this.loseState = true;
             this.loseTimer = 0;
             this.game.click = null;
@@ -408,6 +408,49 @@ class SceneManager {
 
     drawOverlays(ctx) {
         ctx.restore();
+        // updated lives hud - flashing red mechanism
+        let heartAsset = ASSET_MANAGER.getAsset("./assets/hearts.png");
+        if (heartAsset) {
+            const heartWidth = 200;  // 600px total / 3 frames
+            const heartHeight = 200;
+            const scale = 0.40;      // scales it down
+            const drawW = heartWidth * scale;
+            const drawH = heartHeight * scale;
+            const startX = 20;       // top left X position
+            const startY = 30;       // pushed down slightly
+            const spacing = 0;      // if you want spacing
+
+            // Find the rat to check its recovery status and timer
+            let rat = this.game.entities.find(e => e.constructor.name === "Rat");
+            let isRecovering = rat && rat.isRecovering;
+            let recoveryTimer = rat ? rat.recoveryTimer : 0;
+
+            for (let i = 0; i < 3; i++) {
+                let sourceX = 0; // default-> pink (Frame 0)
+
+                if (i < this.ratLives) {
+                    // if we are currently recovering AND this is the heart about to be lost
+                    if (isRecovering && i === this.ratLives - 1) {
+                        // flash red every 0.1 seconds
+                        // Math.floor(timer / 0.1) % 2 toggles rapidly between true/false
+                        let flashRed = Math.floor(recoveryTimer / 0.1) % 2 === 0;
+                        sourceX = flashRed ? 200 : 0; // 200 is Red, 0 is Pink
+                    } else {
+                        // normal alive heart
+                        sourceX = 0; // pink
+                    }
+                } else {
+                    // life already lost
+                    sourceX = 400; // gray (Frame 2)
+                }
+
+                ctx.drawImage(
+                    heartAsset,
+                    sourceX, 0, heartWidth, heartHeight, // source rectangle (clipping sprite)
+                    startX + i * (drawW + spacing), startY, drawW, drawH // destination rectangle (on screen)
+                );
+            }
+        }
         this.drawMinimap(ctx);
         if (this.dialogueActive) this.dialogue.draw(ctx);
         if (this.paused) this.pauseMenu.draw(ctx);
