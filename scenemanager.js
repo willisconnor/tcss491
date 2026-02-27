@@ -94,15 +94,33 @@ class SceneManager {
                 this.game.click = null;
                 return;
             }
-            // Check if click is inside the Checkbox
+            // Check if click is inside the Debug Checkbox
             if (mouseX >= this.cbX && mouseX <= this.cbX + this.cbSize &&
                 mouseY >= this.cbY && mouseY <= this.cbY + this.cbSize) {
 
-                this.skipToLevel2();
+                // ONLY toggle debug mode (removed the instant warp from here)
                 this.game.options.debugging = !this.game.options.debugging;
                 this.game.click = null; // Consume the click
+                return;
+            }
+
+            // check for Warp Button clicks if debugging is ON
+            if (this.game.options && this.game.options.debugging) {
+                // warp level 2 Button bounds [x: 20, y: 130, w: 220, h: 30]
+                if (mouseX >= 20 && mouseX <= 320 && mouseY >= 130 && mouseY <= 160) {
+                    this.skipToLevel2Alive();
+                    this.game.click = null;
+                    return;
+                }
+                // warp level 3 Button bounds [x: 20, y: 170, w: 220, h: 30]
+                if (mouseX >= 20 && mouseX <= 320 && mouseY >= 170 && mouseY <= 200) {
+                    this.skipToLevel3Dead();
+                    this.game.click = null;
+                    return;
+                }
             }
         }
+
 
         if (this.game.keys["Escape"]) {
             if (!this.menuActive) {
@@ -381,10 +399,29 @@ class SceneManager {
         ctx.font = "12px 'Press Start 2P'";
         ctx.textAlign = "left";
         ctx.fillText("DEBUG MODE", x + size + 10, y + size - 6);
-        // draw 'X' if debugging is on
+        // draw 'X' & Warp Buttons if debugging is on
         if (this.game.options && this.game.options.debugging) {
             ctx.fillStyle = "#39FF14";
-            ctx.fillText("X", x+5, y+size-5);
+            ctx.fillText("X", x + 5, y + size - 5);
+
+            // draw warp buttons
+            ctx.font = "10px 'Press Start 2P'"; // slightly smaller font for buttons
+
+            // button 1: level 2 Alive -> Spawned below the hearts
+            ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
+            ctx.fillRect(20, 130, 310, 30);
+            ctx.strokeStyle = "#ffcc00";
+            ctx.strokeRect(20, 130, 310, 30);
+            ctx.fillStyle = "white";
+            ctx.fillText("WARP Level 2 (SNAKE IS ALIVE)", 35, 151);
+
+            // button 2: Level 3 Dead
+            ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
+            ctx.fillRect(20, 170, 310, 30);
+            ctx.strokeStyle = "#ffcc00";
+            ctx.strokeRect(20, 170, 310, 30);
+            ctx.fillStyle = "white";
+            ctx.fillText("WARP Level 3 (SNAKE IS DEAD)", 35, 191);
         }
         ctx.restore();
     }
@@ -449,6 +486,19 @@ class SceneManager {
                     sourceX, 0, heartWidth, heartHeight, // source rectangle (clipping sprite)
                     startX + i * (drawW + spacing), startY, drawW, drawH // destination rectangle (on screen)
                 );
+            }
+            // This is for the rat coordinate (bottom left) -> to help jayda w/ finding where computer is located
+            if (this.game.options && this.game.options.debugging) {
+                let rat = this.game.entities.find(e => e.constructor.name === "Rat");
+                if (rat) {
+                    ctx.save();
+                    ctx.fillStyle = "red";
+                    ctx.font = "bold 40px 'Courier New', Courier, monospace";
+                    ctx.textAlign = "left";
+                    // Draws text 20px from the left, 20px from the bottom
+                    ctx.fillText(`X: ${Math.floor(rat.x)} | Y: ${Math.floor(rat.y)}`, 40, ctx.canvas.height - 40);
+                    ctx.restore();
+                }
             }
         }
         this.drawMinimap(ctx);
@@ -666,36 +716,56 @@ class SceneManager {
                     }
                 });
             }
-        });        this.mapCached = true;
+        });
+        this.mapCached = true;
         console.log("Map cached successfully at scale " + this.scale);
     }
 
-    skipToLevel2() {
-        console.log("DEBUG: Instant Warp to Level 2 Gameplay...");
+    skipToLevel2Alive() {
+        console.log("DEBUG: Instant Warp to Level 2 (Snake Alive)...");
 
-        // et story flags 
+        // Force the snake to be alive and at full health in the persistence map
+        this.snakeStates.set("level2_snake_main", {dead: false, health: 3, x: 707, y: 130});
+
         this.levelNumber = 2;
         this.storyState = "LEVEL2";
         this.yorkieDefeated = true;
         this.stuartIntroPlayed = true;
         this.hasGoldenKey = true;
 
-        //  Turn off all menus and dialogue
         this.menuActive = false;
         this.dialogueActive = false;
         this.game.paused = false;
 
-        //  Clear entities safely 
         this.game.entities.forEach(entity => {
-            if (entity !== this) {
-                entity.removeFromWorld = true;
-            }
+            if (entity !== this) entity.removeFromWorld = true;
         });
 
-        // Load the level (This should spawn the Rat and the Snake)
         this.loadLevelTwo(1);
+        this.mapCached = false;
+    }
 
-        // 5. Force the map to redraw
+    skipToLevel3Dead() {
+        console.log("DEBUG: Instant Warp to Level 3 (Snake Dead)...");
+
+        // Force the snake to be dead in the persistence map so returning to Level 2 is a clear campus
+        this.snakeStates.set("level2_snake_main", {dead: true, health: 0, x: 707, y: 130});
+
+        this.levelNumber = 3;
+        this.storyState = "LEVEL3";
+        this.yorkieDefeated = true;
+        this.stuartIntroPlayed = true;
+        this.hasGoldenKey = true;
+
+        this.menuActive = false;
+        this.dialogueActive = false;
+        this.game.paused = false;
+
+        this.game.entities.forEach(entity => {
+            if (entity !== this) entity.removeFromWorld = true;
+        });
+
+        this.loadLevelThree();
         this.mapCached = false;
     }
 }
