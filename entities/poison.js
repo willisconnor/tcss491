@@ -49,12 +49,20 @@ class PoisonProjectile {
             this.y += this.velocity.y * tick;
             this.updateBB();
 
+            // check collisions with environment/walls
+            if (this.game.collisionManager && this.game.collisionManager.checkCollision(this.BB.x, this.BB.y, this.BB.width, this.BB.height)) {
+                this.state = "fadeout";
+            }
             // Check collisions with Enemies (Snakes, Yorkies, etc)
             this.game.entities.forEach(entity => {
                 const isEnemy = ["Yorkie", "Enemy", "Snake"].includes(entity.constructor.name);
                 if (isEnemy && entity.BB && this.BB.collide(entity.BB)) {
                     this.applyPoison(entity);
                     this.state = "fadeout";
+                    // Remove poison immediately if Yorkie is defeated to prevent lingering poison after death
+                    if (entity.constructor.name === "Yorkie" && entity.health <= 0) {
+                        this.removeFromWorld = true;
+                    }
                 }
                 // Handle Snake specifically if it uses boundingBox instead of BB
                 else if (isEnemy && entity.boundingBox && this.BB.collide(entity.boundingBox)) {
@@ -77,8 +85,13 @@ class PoisonProjectile {
                 return; // Do nothing if we aren't in combat!
             }
         }
+        // properly trigger enemy/snake death logic
+        if (typeof target.takeDamage === "function") {
+            target.takeDamage(0.2);
+        } else {
+            target.health -= 0.2;
+        }
 
-        target.health -= 0.2; 
         target.isPoisoned = true;
         target.poisonTimer = 2; 
         

@@ -42,7 +42,7 @@ ASSET_MANAGER.queueDownload("./assets/keyboard-click.mp3");
 ASSET_MANAGER.queueDownload("./assets/poison_fadein.png");
 ASSET_MANAGER.queueDownload("./assets/poison_idle.png");
 ASSET_MANAGER.queueDownload("./assets/poison_fadeout.png");
-
+ASSET_MANAGER.queueDownload("./assets/ding.mp3");
 ASSET_MANAGER.downloadAll(() => {
     const canvas = document.getElementById("gameWorld");
     const ctx = canvas.getContext("2d");
