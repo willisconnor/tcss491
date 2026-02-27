@@ -32,6 +32,7 @@ class Menu {
     playTypingSound() {
         // play sound using AssetManager
         let snd = ASSET_MANAGER.playAsset("./assets/keyboard-click.mp3");
+        snd.currentTime = 0.60; // skips the first 60 milliseconds to bypass the delay
         if (snd) {
             this.activeSounds.push(snd);
             // auto remove from list when done to save memory

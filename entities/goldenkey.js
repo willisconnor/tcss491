@@ -60,7 +60,7 @@ class GoldenKey {
                         // fixing sound effect volume too loud! & delayed
                         dingSound.volume = 0.15;        // lowers volume scale of [0.0 to 1.0]
                         dingSound.playbackRate = 1.5;   // speeds up sound by 50% so "ding" hits faster
-                        dingSound.currentTime = 0.20;   // skips first 0.10 seconds to bypass MP3 silence
+                        dingSound.currentTime = 0.50;   // skips first 0.50 seconds to bypass MP3 silence
                         dingSound.play().catch(e => console.error(e));
                     }
                 }
