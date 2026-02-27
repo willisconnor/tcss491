@@ -565,18 +565,57 @@ class SceneManager {
         this.level.layers.forEach(layer => {
             if (layer.type === "tilelayer") {
                 layer.data.forEach((gid, i) => {
-                    if (gid > 0) {
+                    // check for tiled hidden rotation/flip flags using bitwise math
+                    let hFlipped = (gid & 0x80000000) !== 0; // Horizontal flip
+                    let vFlipped = (gid & 0x40000000) !== 0; // Vertical flip
+                    let dFlipped = (gid & 0x20000000) !== 0; // Diagonal flip; 90 deg rotation
+
+                    // clear flags from GID to get actual sprite number
+                    let cleanGid = gid & 0x0FFFFFFF;
+
+                    if (cleanGid > 0) {
                         const mapX = (i % layer.width) * destSize;
                         const mapY = Math.floor(i / layer.width) * destSize;
-                        const spriteId = gid - 1;
+                        const spriteId = cleanGid - 1;
                         const sourceX = (spriteId % columns) * sourceSize;
                         const sourceY = Math.floor(spriteId / columns) * sourceSize;
-                        this.mapCtx.drawImage(this.spritesheet, sourceX, sourceY, sourceSize, sourceSize, mapX, mapY, destSize, destSize);
+
+                        // if it has rotation or flip transform canvas before drawing
+                        if (hFlipped || vFlipped || dFlipped) {
+                            this.mapCtx.save();
+
+                            // move canvas 'pen' to exact center of where tile goes
+                            this.mapCtx.translate(mapX + destSize / 2, mapY + destSize / 2);
+
+                            // apply tiled specific diagonal flip logic; rotate 90 CW + flip X
+                            if (dFlipped) {
+                                this.mapCtx.rotate(Math.PI / 2);
+                                this.mapCtx.scale(-1, 1);
+                            }
+                            // apply horizontal or vertical flips
+                            if (hFlipped) this.mapCtx.scale(-1, 1);
+                            if (vFlipped) this.mapCtx.scale(1, -1);
+
+                            // draw image centered around translated point
+                            this.mapCtx.drawImage(
+                                this.spritesheet,
+                                sourceX, sourceY, sourceSize, sourceSize,
+                                -destSize / 2, -destSize / 2, destSize, destSize
+                            );
+
+                            this.mapCtx.restore();
+                        } else {
+                            // standard unrotated draw; for 99% of tiles, keeps performance fast (no lag)
+                            this.mapCtx.drawImage(
+                                this.spritesheet,
+                                sourceX, sourceY, sourceSize, sourceSize,
+                                mapX, mapY, destSize, destSize
+                            );
+                        }
                     }
                 });
             }
-        });
-        this.mapCached = true;
+        });        this.mapCached = true;
         console.log("Map cached successfully at scale " + this.scale);
     }
 
