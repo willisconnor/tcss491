@@ -56,15 +56,60 @@ class Dialogue {
             { speaker: "Stuart Big", text: "", type: "end_of_intro", nextIndex: -1 } // -1 means go to Phase 2
         ];
 
-        // Phase 2: Deep Inquiry - Question Menu
-        this.deepQuestions = [
+        // Phase 2: Deep Inquiry - Question Menu for Stuart
+        this.stuartQuestions = [
             { text: "The Golden Wheel... tell me the full legend.", response: "It is more than just a meal, {NAME}. The elders say it was carved from the first harvest of the Great Meadow before the Giants ever built these walls. It never spoils, and a single bite can sustain a rat for a month. To our colony, it is the difference between a winter of starvation and a golden age of plenty. I saw it once—sitting atop the Hearth like a fallen sun." },
             { text: "How exactly did you... pass away?", response: "A tragic slip from the rafters, a 40-foot tumble, and a very unfortunate encounter with the Giants' vacuum cleaner. Let's just say I'm much more aerodynamic now than I was then.", followUp: { text: "Wait... tell me the rest of that story.", response: "I was inches away, {NAME}. I could smell the sharp tang of the Wheel. I heard the 'Beasts' shout below, and I panicked. I jumped for a curtain rod that wasn't there. As I fell, I saw the Giant's youngest pet—the cat—watching me with those cold, green eyes. I didn't even hit the floor before the the vacuum was switched on. It was... efficient. Don't let your greed outpace your grip." } },
             { text: "Why are the Giant's pets called 'Beasts'?", response: "Because to a rat, a 'pet' is just a monster with a collar. The Giants pamper them with soft beds and silver bowls, while we dodge their claws in the dark. They've grown territorial and mean. They aren't just animals anymore; they are the house's standing army." },
             { text: "Why do we call it the Great Below?", response: "It is our kingdom—the pipes, the insulation, the dark corners. To us, it is a palace. To the Giants, it's just 'the basement.' Perspective is everything, {NAME}." },
             { text: "I'm ready. I'll go find Edgar.", response: "Good luck, {NAME}. Show him the 'tooth and claw' tactics of the Great Below, and don't let your tail drag!", exit: true }
         ];
+
+        // Inquiry questions for Edgar the Yorkie
+        this.yorkieQuestions = [
+            { text: "What was the computer password again?", response: "Seriously? It's 'LoveEdgar123'. Hard to forget the name of the favorite child, isn't it?" },
+            { text: "Who's a good boy?", response: "I am! I—wait, no! I'm a fierce guardian of the hall! Stop patronizing me with Giant-talk!" },
+            { text: "I'll leave you to your jerky.", response: "Mmph... *chomp*... yeah, beat it. Let me eat in peace.", exit: true }
+        ];
+
+        // Active deep questions array
+        this.deepQuestions = this.stuartQuestions;
     }
+
+    // --- NEW METHODS FOR YORKIE REWARDS ---
+    startJerkyRewardDialogue() {
+        this.lines = [
+            "Sniff... sniff... is that...",
+            "PREMIUM BEEF JERKY?! Finally! Service around here is terrible.",
+            "Hand it over, pipsqueak! ... *chomp chomp chomp*",
+            "Ahhh, that hits the spot. A deal is a deal.",
+            "To get the Golden Wheel, you need to unlock the Giants' Safe via the computer in the bedroom.",
+            "The password is 'LoveEdgar123'. Obviously. It's a tribute to perfection. Memorize it.",
+            "Now leave me be, I have a food coma to catch and your scent is ruining the ambiance."
+        ];
+        this.speaker = "Edgar Barkley (Yorkie)";
+        this.portrait = ASSET_MANAGER.getAsset("./assets/EdgarDialogue.png");
+        this.currentLine = 0;
+        this.displayText = "";
+        this.charIndex = 0;
+        this.typeTimer = 0;
+        this.sceneManager.dialogueActive = true;
+    }
+
+    startYorkieOptionsDialogue() {
+        this.deepQuestions = this.yorkieQuestions;
+        this.speaker = "Edgar Barkley (Yorkie)";
+        this.portrait = ASSET_MANAGER.getAsset("./assets/EdgarDialogue.png");
+        this.phase = "INQUIRY";
+        this.currentQuestionIndex = null;
+        this.displayText = "";
+        this.charIndex = 0;
+        this.selectedQuestions.clear();
+        this.askingFollowUp = false;
+        this.exitingAfterResponse = false;
+        this.sceneManager.dialogueActive = true;
+    }
+    // ----------------------------------------
 
     update() {
         // OLD LINE-BASED SYSTEM (for Yorkie and other NPCs)
@@ -328,14 +373,11 @@ class Dialogue {
         const boxX = (w - boxW) / 2;
         const boxY = h - boxH - 40;
 
-        // Position buttons INSIDE the dialogue box, well to the right of portrait
         const btnHeight = 45;
         const btnPadding = 10;
         const btnWidth = 550;
-        const btnX = boxX + 280; // Start after portrait area
-        
-        // Buttons positioned in the bottom area of the dialogue box
-        const startY = boxY + 110; // Leave room for dialogue text above
+        const btnX = boxX + 280;
+        const startY = boxY + 110;
 
         return choices.map((_, i) => ({
             x: btnX,
@@ -353,13 +395,11 @@ class Dialogue {
         const boxX = (w - boxW) / 2;
         const boxY = h - boxH - 40;
 
-        // Position buttons INSIDE the dialogue box, well to the right of portrait
         const btnHeight = 32;
         const btnPadding = 5;
         const btnWidth = 550;
-        const btnX = boxX + 280; // Start after portrait area
-        
-        const startY = boxY + 85; // Leave room for dialogue text above
+        const btnX = boxX + 280;
+        const startY = boxY + 85;
 
         return this.deepQuestions.map((_, i) => ({
             x: btnX,
@@ -373,15 +413,13 @@ class Dialogue {
         const w = ctx.canvas.width;
         const h = ctx.canvas.height;
 
-        // Track mouse position for hover effects
         if (this.game.mouse) {
             this.mouseX = this.game.mouse.x;
             this.mouseY = this.game.mouse.y;
         }
 
-        // OLD LINE-BASED SYSTEM (for Yorkie and other NPCs)
+        // OLD LINE-BASED SYSTEM
         if (this.lines && this.lines.length > 0) {
-            // Draw main dialogue box
             const boxW = 1200;
             const boxH = 280;
             const boxX = (w - boxW) / 2;
@@ -393,7 +431,6 @@ class Dialogue {
             ctx.fillRect(boxX, boxY, boxW, boxH);
             ctx.strokeRect(boxX, boxY, boxW, boxH);
 
-            // Draw portrait
             const framePadding = 15;
             const frameSize = boxH - (framePadding * 2);
             const frameX = boxX + framePadding;
@@ -403,20 +440,13 @@ class Dialogue {
             ctx.fillRect(frameX, frameY, frameSize, frameSize);
 
             if (this.portrait) {
-                ctx.drawImage(
-                    this.portrait,
-                    Math.floor(frameX + 5),
-                    Math.floor(frameY + 5),
-                    Math.floor(frameSize - 10),
-                    Math.floor(frameSize - 10)
-                );
+                ctx.drawImage(this.portrait, Math.floor(frameX + 5), Math.floor(frameY + 5), Math.floor(frameSize - 10), Math.floor(frameSize - 10));
             }
 
             ctx.strokeStyle = "#ffcc00";
             ctx.lineWidth = 3;
             ctx.strokeRect(frameX, frameY, frameSize, frameSize);
 
-            // Draw text
             const textX = frameX + frameSize + 30;
             const textY = boxY + 50;
             const maxTextWidth = boxW - frameSize - 80;
@@ -429,26 +459,23 @@ class Dialogue {
             ctx.fillStyle = "white";
             ctx.font = "22px 'Courier New'";
 
-            // Display text with typewriter effect
             const textToShow = this.displayText.substring(0, this.charIndex);
             this.wrapText(ctx, textToShow, textX, textY + 30, maxTextWidth, 32);
 
-            // Show continue prompt when text is done
             if (this.charIndex >= this.displayText.length) {
                 ctx.font = "16px Arial";
                 ctx.fillStyle = "#888";
                 ctx.textAlign = "right";
                 ctx.fillText("Press SPACE to continue...", boxX + boxW - 20, boxY + boxH - 20);
             }
-            return; // Don't process phase-based drawing
+            return;
         }
 
-        // PHASE 1: Introduction with dialogue box
+        // PHASE 1: Introduction
         if (this.phase === "INTRO") {
             const current = this.dialogues[this.currentIndex];
             if (!current) return;
 
-            // Draw main dialogue box
             const boxW = 1200;
             const boxH = 280;
             const boxX = (w - boxW) / 2;
@@ -460,7 +487,6 @@ class Dialogue {
             ctx.fillRect(boxX, boxY, boxW, boxH);
             ctx.strokeRect(boxX, boxY, boxW, boxH);
 
-            // Draw portrait
             const framePadding = 15;
             const frameSize = boxH - (framePadding * 2);
             const frameX = boxX + framePadding;
@@ -470,20 +496,13 @@ class Dialogue {
             ctx.fillRect(frameX, frameY, frameSize, frameSize);
 
             if (this.portrait) {
-                ctx.drawImage(
-                    this.portrait,
-                    Math.floor(frameX + 5),
-                    Math.floor(frameY + 5),
-                    Math.floor(frameSize - 10),
-                    Math.floor(frameSize - 10)
-                );
+                ctx.drawImage(this.portrait, Math.floor(frameX + 5), Math.floor(frameY + 5), Math.floor(frameSize - 10), Math.floor(frameSize - 10));
             }
 
             ctx.strokeStyle = "#ffcc00";
             ctx.lineWidth = 3;
             ctx.strokeRect(frameX, frameY, frameSize, frameSize);
 
-            // Draw text
             const textX = frameX + frameSize + 30;
             const textY = boxY + 50;
             const maxTextWidth = boxW - frameSize - 80;
@@ -496,7 +515,6 @@ class Dialogue {
             ctx.fillStyle = "white";
             ctx.font = "22px 'Courier New'";
 
-            // If showing a choice response, display it and don't show the choice buttons
             if (this.displayingChoiceResponse) {
                 const textToShow = this.displayText.substring(0, this.charIndex);
                 this.wrapText(ctx, textToShow, textX, textY + 30, maxTextWidth, 32);
@@ -506,17 +524,14 @@ class Dialogue {
                 ctx.textAlign = "right";
                 ctx.fillText("Click or press SPACE to continue...", boxX + boxW - 20, boxY + boxH - 20);
             }
-            // Handle INPUT_NAME display
             else if (current.type === "input_name") {
                 ctx.fillText("Type your name and press Enter:", textX, textY + 40);
                 ctx.fillStyle = "#ffcc00";
                 ctx.fillText("> " + this.playerName + "_", textX, textY + 80);
             } else {
-                // Display text with typewriter effect
                 const textToShow = this.displayText.substring(0, this.charIndex);
                 this.wrapText(ctx, textToShow, textX, textY + 30, maxTextWidth, 32);
 
-                // Show continue prompt when text is done
                 if (this.charIndex >= this.displayText.length && current.type === "dialogue") {
                     ctx.font = "16px Arial";
                     ctx.fillStyle = "#888";
@@ -525,64 +540,44 @@ class Dialogue {
                 }
             }
 
-            // Draw choice buttons ONLY if this is a choice node AND we're not showing a response
             if (current.type === "choice" && this.selectedChoiceIndex === null && !this.displayingChoiceResponse) {
                 const choiceButtons = this.getChoiceButtonBounds(current.choices);
 
                 current.choices.forEach((choice, i) => {
                     const btn = choiceButtons[i];
-                    
-                    // Check if this choice is hovered
-                    const isHovered = this.mouseX >= btn.x && this.mouseX <= btn.x + btn.w &&
-                                      this.mouseY >= btn.y && this.mouseY <= btn.y + btn.h;
-
+                    const isHovered = this.mouseX >= btn.x && this.mouseX <= btn.x + btn.w && this.mouseY >= btn.y && this.mouseY <= btn.y + btn.h;
                     ctx.save();
-
-                    // Draw hover background if hovered
                     if (isHovered) {
                         ctx.fillStyle = "rgba(200, 160, 60, 0.3)";
                         ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
                     }
-
-                    // Choice text - styled like Stuart's dialogue
                     ctx.fillStyle = isHovered ? "#FFE080" : "#FFD700";
                     ctx.font = "22px 'Courier New'";
                     ctx.textAlign = "left";
                     ctx.textBaseline = "middle";
                     ctx.fillText("• " + choice.text, btn.x + 10, btn.y + btn.h / 2);
-
                     ctx.restore();
                 });
             }
 
-            // Show questions menu for end of intro (immediate transition)
             if (current.type === "end_of_intro") {
-                // Display the questions menu right here without a blank screen
                 const boxW = 1200;
                 const boxH = 280;
                 const boxX = (w - boxW) / 2;
                 const boxY = h - boxH - 40;
-
-                // Draw question buttons
                 const questionBounds = this.getQuestionButtonBounds();
 
                 this.deepQuestions.forEach((question, i) => {
                     const btn = questionBounds[i];
-                    
-                    // Check if this question is hovered
-                    const isHovered = this.mouseX >= btn.x && this.mouseX <= btn.x + btn.w &&
-                                      this.mouseY >= btn.y && this.mouseY <= btn.y + btn.h;
+                    const isHovered = this.mouseX >= btn.x && this.mouseX <= btn.x + btn.w && this.mouseY >= btn.y && this.mouseY <= btn.y + btn.h;
                     const isAnswered = this.selectedQuestions.has(i);
 
                     ctx.save();
-
-                    // Draw hover background if hovered
                     if (isHovered) {
                         ctx.fillStyle = "rgba(200, 160, 60, 0.3)";
                         ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
                     }
 
-                    // Question text
                     let textColor = "#FFD700";
                     if (isHovered) textColor = "#FFE080";
                     if (isAnswered) textColor = "#C0A830";
@@ -593,7 +588,6 @@ class Dialogue {
                     ctx.textBaseline = "middle";
                     const displayText = (isAnswered ? "✓ " : "• ") + question.text;
                     ctx.fillText(displayText, btn.x + 10, btn.y + btn.h / 2);
-
                     ctx.restore();
                 });
             }
@@ -602,7 +596,6 @@ class Dialogue {
         // PHASE 2: Deep Inquiry Menu
         else if (this.phase === "INQUIRY") {
             if (this.currentQuestionIndex === null) {
-                // Display questions in dialogue box like Phase 1
                 const boxW = 1200;
                 const boxH = 280;
                 const boxX = (w - boxW) / 2;
@@ -614,7 +607,6 @@ class Dialogue {
                 ctx.fillRect(boxX, boxY, boxW, boxH);
                 ctx.strokeRect(boxX, boxY, boxW, boxH);
 
-                // Draw portrait
                 const framePadding = 15;
                 const frameSize = boxH - (framePadding * 2);
                 const frameX = boxX + framePadding;
@@ -624,20 +616,13 @@ class Dialogue {
                 ctx.fillRect(frameX, frameY, frameSize, frameSize);
 
                 if (this.portrait) {
-                    ctx.drawImage(
-                        this.portrait,
-                        Math.floor(frameX + 5),
-                        Math.floor(frameY + 5),
-                        Math.floor(frameSize - 10),
-                        Math.floor(frameSize - 10)
-                    );
+                    ctx.drawImage(this.portrait, Math.floor(frameX + 5), Math.floor(frameY + 5), Math.floor(frameSize - 10), Math.floor(frameSize - 10));
                 }
 
                 ctx.strokeStyle = "#ffcc00";
                 ctx.lineWidth = 3;
                 ctx.strokeRect(frameX, frameY, frameSize, frameSize);
 
-                // Draw text
                 const textX = frameX + frameSize + 30;
                 const textY = boxY + 50;
                 const maxTextWidth = boxW - frameSize - 80;
@@ -645,28 +630,22 @@ class Dialogue {
                 ctx.fillStyle = "#aaaaff";
                 ctx.font = "bold 24px Arial";
                 ctx.textAlign = "left";
-                ctx.fillText("Stuart Big", textX, textY - 10);
+                // Fixed hardcoded name to dynamic speaker
+                ctx.fillText(this.speaker, textX, textY - 10); 
 
-                // Draw question buttons INSIDE the box
                 const questionBounds = this.getQuestionButtonBounds();
 
                 this.deepQuestions.forEach((question, i) => {
                     const btn = questionBounds[i];
-                    
-                    // Check if this question is hovered
-                    const isHovered = this.mouseX >= btn.x && this.mouseX <= btn.x + btn.w &&
-                                      this.mouseY >= btn.y && this.mouseY <= btn.y + btn.h;
+                    const isHovered = this.mouseX >= btn.x && this.mouseX <= btn.x + btn.w && this.mouseY >= btn.y && this.mouseY <= btn.y + btn.h;
                     const isAnswered = this.selectedQuestions.has(i);
 
                     ctx.save();
-
-                    // Draw hover background if hovered
                     if (isHovered) {
                         ctx.fillStyle = "rgba(200, 160, 60, 0.3)";
                         ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
                     }
 
-                    // Question text - styled like dialogue options
                     let textColor = "#FFD700";
                     if (isHovered) textColor = "#FFE080";
                     if (isAnswered) textColor = "#C0A830";
@@ -681,7 +660,6 @@ class Dialogue {
                     ctx.restore();
                 });
             } else {
-                // Viewing a question's response
                 const question = this.deepQuestions[this.currentQuestionIndex];
                 const boxW = 1200;
                 const boxH = 280;
@@ -694,7 +672,6 @@ class Dialogue {
                 ctx.fillRect(boxX, boxY, boxW, boxH);
                 ctx.strokeRect(boxX, boxY, boxW, boxH);
 
-                // Draw portrait
                 const framePadding = 15;
                 const frameSize = boxH - (framePadding * 2);
                 const frameX = boxX + framePadding;
@@ -704,20 +681,13 @@ class Dialogue {
                 ctx.fillRect(frameX, frameY, frameSize, frameSize);
 
                 if (this.portrait) {
-                    ctx.drawImage(
-                        this.portrait,
-                        Math.floor(frameX + 5),
-                        Math.floor(frameY + 5),
-                        Math.floor(frameSize - 10),
-                        Math.floor(frameSize - 10)
-                    );
+                    ctx.drawImage(this.portrait, Math.floor(frameX + 5), Math.floor(frameY + 5), Math.floor(frameSize - 10), Math.floor(frameSize - 10));
                 }
 
                 ctx.strokeStyle = "#ffcc00";
                 ctx.lineWidth = 3;
                 ctx.strokeRect(frameX, frameY, frameSize, frameSize);
 
-                // Draw text
                 const textX = frameX + frameSize + 30;
                 const textY = boxY + 50;
                 const maxTextWidth = boxW - frameSize - 80;
@@ -725,16 +695,15 @@ class Dialogue {
                 ctx.fillStyle = "#aaaaff";
                 ctx.font = "bold 24px Arial";
                 ctx.textAlign = "left";
-                ctx.fillText("Stuart Big", textX, textY - 10);
+                // Fixed hardcoded name to dynamic speaker
+                ctx.fillText(this.speaker, textX, textY - 10); 
 
                 ctx.fillStyle = "white";
                 ctx.font = "22px 'Courier New'";
 
-                // Display text with typewriter effect
                 const textToShow = this.displayText.substring(0, this.charIndex);
                 this.wrapText(ctx, textToShow, textX, textY + 20, maxTextWidth, 28);
 
-                // Show continue prompt
                 ctx.font = "14px Arial";
                 ctx.fillStyle = "#888";
                 ctx.textAlign = "right";

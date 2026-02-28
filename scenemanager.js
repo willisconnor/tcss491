@@ -20,6 +20,9 @@ class SceneManager {
         this.stuartIntroPlayed = false;
         this.storyState = "STUART_TALK";
 
+        this.hasBeefJerky = false;
+        this.yorkieGivenJerky = false;
+
         this.preDialogueActive = false;
         this.preDialogueTimer = 0;
         this.preDialogueDuration = 0;
@@ -332,6 +335,10 @@ class SceneManager {
         this.game.entities.forEach(entity => {
             if (!(entity instanceof SceneManager)) entity.removeFromWorld = true;
         });
+
+        if (!this.hasBeefJerky) {
+            this.game.addEntity(new BeefJerky(this.game, 450, 420)); // Use your actual coordinates
+        }
 
         // load new Kitchen Map
         this.level = ASSET_MANAGER.getAsset("./assets/Level3Kitchen.json");
