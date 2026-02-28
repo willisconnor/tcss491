@@ -166,6 +166,7 @@ class GameEngine {
             } else {
                 // Add Yorkie and PoisonParticle to the list of things that NEVER stop
                 let isEssential = entity.constructor.name === "GoldenKey" ||
+                    entity.constructor.name === "BeefJerky" ||
                     entity.constructor.name === "Yorkie" || 
                     entity.constructor.name === "PoisonParticle" ||
                     entity === this.camera;
