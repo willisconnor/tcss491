@@ -32,6 +32,7 @@ class Menu {
     playTypingSound() {
         // play sound using AssetManager
         let snd = ASSET_MANAGER.playAsset("./assets/keyboard-click.mp3");
+        snd.currentTime = 0.60; // skips the first 60 milliseconds to bypass the delay
         if (snd) {
             this.activeSounds.push(snd);
             // auto remove from list when done to save memory
@@ -256,8 +257,9 @@ class Menu {
         ctx.font = "20px Arial";
         ctx.fillText("Movement: WASD or Arrow Keys", w / 2, h / 2 - 100);
         ctx.fillText("Sprint: Hold SHIFT", w / 2, h / 2 - 50);
-        ctx.fillText("Attack: Press SPACE", w / 2, h / 2);
-        ctx.fillText("Death: Press x", w / 2, h / 2 + 50);
+        ctx.fillText("Bite: Press SPACE ", w / 2, h / 2);
+        ctx.fillText("Poison: Press 1", w / 2, h / 2 + 50);
+        ctx.fillText("Death: Press x", w / 2, h / 2 + 100);
 
         this.drawBtn(ctx, w / 2 - this.btnW / 2, h / 2 + 180, "BACK");
     }

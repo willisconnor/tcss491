@@ -74,6 +74,9 @@ class StuartBig {
         const dialogue = this.game.camera.dialogue;
         dialogue.portrait = ASSET_MANAGER.getAsset("./assets/StuartBigDialogue.png");
         dialogue.speaker = "Stuart Big";
+        
+        dialogue.deepQuestions = dialogue.stuartQuestions;
+
         dialogue.phase = "INQUIRY";
         dialogue.currentQuestionIndex = null;
         dialogue.displayText = "";

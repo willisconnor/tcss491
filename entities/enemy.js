@@ -97,6 +97,58 @@ class Enemy{
     }
 
     /**
+     * applies velocity to the enemy's position while checking for collisions
+     * if blocked on one axis, it slides along the unblocked axis
+     */
+    moveWithSliding(clockTick, collisionManager, target, spriteWidth, spriteHeight, colliderRadius) {
+        const colliderWidth = colliderRadius * 2;
+        const colliderHeight = colliderRadius;
+
+        const moveX = this.velocity.x * clockTick;
+        const moveY = this.velocity.y * clockTick;
+
+        let xBlocked = false;
+        let yBlocked = false;
+
+        // Test X movement independently
+        if (Math.abs(moveX) > 0.01) {
+            const testX = this.x + moveX;
+            const testColliderX = testX + (spriteWidth / 2) - colliderRadius;
+            const currentColliderY = this.y + spriteHeight - colliderHeight;
+
+            if (!collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
+                this.x = testX;
+            } else {
+                xBlocked = true;
+                this.velocity.x = 0;
+            }
+        }
+
+        // Test Y movement independently
+        if (Math.abs(moveY) > 0.01) {
+            const testY = this.y + moveY;
+            const currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
+            const testColliderY = testY + spriteHeight - colliderHeight;
+
+            if (!collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
+                this.y = testY;
+            } else {
+                yBlocked = true;
+                this.velocity.y = 0;
+            }
+        }
+
+        // Slide logic to get unstuck around obstacles
+        if (target) {
+            if (xBlocked && !yBlocked) {
+                this.y += (target.y > this.y ? 1 : -1) * (150 * this.speed) * clockTick;
+            } else if (yBlocked && !xBlocked) {
+                this.x += (target.x > this.x ? 1 : -1) * (150 * this.speed) * clockTick;
+            }
+        }
+    }
+
+    /**
      * take damage and handles death
      * @param {Number} damage Amount of damage to take
      */
@@ -270,4 +322,27 @@ class Enemy{
             ctx.restore();
         }
     }
+
+    updatePoison(tick) {
+        if (this.isPoisoned) {
+            this.poisonTimer -= tick;
+
+            // Spawn particles! 
+            // 0.2 means 20% chance per tick to spawn a bubble
+            if (Math.random() < 0.2) {
+                // Spawn inside the enemy's general area
+                const px = this.x + Math.random() * (this.width || 32);
+                const py = this.y + Math.random() * (this.height || 32);
+                this.game.addEntity(new PoisonParticle(this.game, px, py));
+            }
+
+            if (this.poisonTimer <= 0) {
+                this.isPoisoned = false;
+                if (this.originalSpeed) {
+                    this.speed = this.originalSpeed;
+                }
+            }
+        }
+    }
+
 }

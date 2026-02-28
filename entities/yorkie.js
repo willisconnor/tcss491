@@ -23,6 +23,9 @@ class Yorkie {
         this.maxHealth = 5;
         this.lastHealth = 5;
         this.hurtTimer = 0;
+        this.isPoisoned = false;
+        this.poisonTimer = 0;
+        this.speed = 0; // Yorkie doesn't usually move but we need the prop for poison
 
         // state management
         this.actionState = "IDLE";
@@ -69,7 +72,14 @@ class Yorkie {
             this.health = 0;
             this.lastHealth = 0;
             this.dead = true;
-            this.actionState = "SLEEPING";
+            
+            // Check if he already received the beef jerky from a previous visit
+            if (this.game.camera.yorkieGivenJerky) {
+                this.actionState = "JERKY_IDLE";
+            } else {
+                this.actionState = "SLEEPING";
+            }
+
             // needs to be equal to x and y bc the coordinates are passed to loadLevelTwo in SceneManager
             this.x = x;
             this.y = y;
@@ -117,15 +127,33 @@ class Yorkie {
     }
 
     update() {
-        this.updateBB();
+        const tick = this.game.clockTick;
 
-        // damage detection
-        if (this.health < this.lastHealth) {
-            this.hurtTimer = 0.2;
-            this.lastHealth = this.health;
+        //  Poison Logic & Particles
+        if (this.isPoisoned) {
+            this.poisonTimer -= tick;
+            if (Math.random() < 0.2) {
+                const px = this.x + Math.random() * this.width;
+                const py = this.y + Math.random() * this.height;
+                this.game.addEntity(new PoisonParticle(this.game, px, py));
+            }
+
+            if (this.poisonTimer <= 0) {
+                this.isPoisoned = false;
+                // Reset to normal speed or 0 depending on state
+                this.speed = (this.actionState === "LEAVING") ? 2 : 0;
+            }
         }
+
+        //  Hurt Animation Timer Logic
         if (this.hurtTimer > 0) {
-            this.hurtTimer -= this.game.clockTick;
+            this.hurtTimer -= tick;
+        }
+
+        // Check for health changes to trigger the Red Flash/Shake
+        if (this.health < this.lastHealth) {
+            this.hurtTimer = 0.2; // Show red for 0.2s
+            this.lastHealth = this.health;
         }
 
         let rat = this.game.entities.find(e => e.constructor.name === "Rat");
@@ -133,14 +161,12 @@ class Yorkie {
 
         if (rat) {
             const interactBox = new BoundingBox(this.x - 20, this.y - 20, this.width + 40, this.height + 40);
-
             if (rat.BB && interactBox.collide(rat.BB)) {
                 playerInRange = true;
             }
 
             switch (this.actionState) {
                 case "IDLE":
-                    // use sleep animation down row 0
                     this.animator = this.animations.get("sleep")[this.facing];
                     if (playerInRange && this.game.keys["KeyE"]) {
                         this.startDialogue();
@@ -168,10 +194,7 @@ class Yorkie {
                     break;
 
                 case "TRAINING":
-                    // fight mode; using new "Lick" animation
-                    // just use index 0 since Lick is one row
                     this.animator = this.animations.get("lick")[0];
-
                     if (this.health <= 0) {
                         this.game.camera.yorkieDefeated = true;
                         this.actionState = "POST_FIGHT";
@@ -187,44 +210,92 @@ class Yorkie {
                     break;
 
                 case "WAIT_FOR_RAT":
-                    // use IDLE animation so he stands still and doesn't "emote" or walk in place
                     this.animator = this.animations.get("idle")[this.facing];
                     break;
 
                 case "LEAVING":
-                    let speed = 2;
+                    // Set base speed if we just started leaving
+                    if (this.speed === 0) {
+                        this.speed = 2; 
+                        this.originalSpeed = 2;
+                    }
 
-                    // move X -> right
-                    // facing right is index 2
+                    // Move X -> right
                     if (this.leavingPhase === 1) {
                         if (this.x < this.targetX) {
-                            this.x += speed;
-                            this.facing = 2; // right
+                            this.x += this.speed;
+                            this.facing = 2; // Right
                             this.animator = this.animations.get("walk")[2];
                         } else {
                             this.x = this.targetX;
                             this.leavingPhase = 2;
                         }
                     }
-                        // now move y down
-                    // facing down = index 0
+                    // Move Y down
                     else if (this.leavingPhase === 2) {
                         if (this.y < this.targetY) {
-                            this.y += speed;
+                            this.y += this.speed;
                             this.facing = 0; // Down
                             this.animator = this.animations.get("walk")[0];
                         } else {
                             this.y = this.targetY;
                             this.actionState = "SLEEPING";
+                            this.speed = 0;
                         }
                     }
                     break;
 
                 case "SLEEPING":
                     this.animator = this.animations.get("sleep")[this.facing];
+                    
+                    // Interaction for when he's asleep (waiting for jerky)
+                    if (playerInRange && this.game.keys["KeyE"]) {
+                        if (!this.game.camera.hasBeefJerky && !this.game.camera.yorkieGivenJerky) {
+                            // Still sleeping/waiting for jerky
+                            const sceneManager = this.game.camera;
+                            sceneManager.dialogue.lines = ["Zzz... smell no treats... Zzz..."];
+                            sceneManager.dialogue.speaker = "Edgar Barkley (Yorkie)";
+                            sceneManager.dialogue.portrait = ASSET_MANAGER.getAsset("./assets/EdgarDialogue.png"); // Make sure this matches your portrait
+                            sceneManager.dialogue.currentLine = 0;
+                            sceneManager.dialogue.displayText = "";
+                            sceneManager.dialogue.charIndex = 0;
+                            sceneManager.dialogue.typeTimer = 0;
+                            sceneManager.dialogueActive = true;
+                            
+                        } else if (this.game.camera.hasBeefJerky && !this.game.camera.yorkieGivenJerky) {
+                            // Rat has jerky, giving it to Yorkie
+                            this.actionState = "JERKY_IDLE"; // Wake him up into new awake state
+                            this.game.camera.yorkieGivenJerky = true; 
+                            
+                            // Start the password dialogue
+                            if (this.game.camera.dialogue.startJerkyRewardDialogue) {
+                                this.game.camera.dialogue.startJerkyRewardDialogue();
+                            }
+                            
+                        }
+                        
+                        this.game.keys["KeyE"] = false; // consume the key press
+                    }
+                    break;
+
+                  
+                case "JERKY_IDLE":
+                    // Remains in the awake idle animation forever after getting the jerky
+                    this.animator = this.animations.get("lick")[this.facing];
+                    
+                    if (playerInRange && this.game.keys["KeyE"]) {
+                        // Talk to him again for branching choices
+                        if (this.game.camera.dialogue.startYorkieOptionsDialogue) {
+                            this.game.camera.dialogue.startYorkieOptionsDialogue();
+                        }
+                        this.game.keys["KeyE"] = false;
+                    }
                     break;
             }
         }
+
+        //  Update the Bounding Box every frame so it follows the movement
+        this.updateBB();
     }
 
     startDialogue() {
@@ -249,22 +320,24 @@ class Yorkie {
         let drawX = this.x;
         let drawY = this.y;
 
+        ctx.save(); // Save before applying any filters
+
         // shake effect when hurt
         if (this.hurtTimer > 0) {
-            ctx.save();
             ctx.filter = "sepia(1) saturate(5) hue-rotate(-50deg)";
             let shakeX = Math.random() * 4 - 2;
             let shakeY = Math.random() * 4 - 2;
             drawX += shakeX;
             drawY += shakeY;
+        } else if (this.isPoisoned) {
+            // Apply poison filter if poisoned
+            ctx.filter = "sepia(1) hue-rotate(70deg) saturate(5)";
         }
 
         // drawn sprite
         this.animator.drawFrame(this.game.clockTick, ctx, Math.floor(drawX), Math.floor(drawY), this.scale);
-
-        if (this.hurtTimer > 0) {
-            ctx.restore();
-        }
+        
+        ctx.restore(); // Restore to clear the filters
 
         // ui
         let rat = this.game.entities.find(e => e.constructor.name === "Rat");
@@ -272,7 +345,9 @@ class Yorkie {
             let interactBox = new BoundingBox(this.x - 20, this.y - 20, this.width + 40, this.height + 40);
             if (rat.BB && interactBox.collide(rat.BB) && !this.game.camera.dialogueActive) {
                 ctx.font = "14px Arial";
-                if (this.actionState === "IDLE") {
+                
+                // Show the [E] Yorkie prompt on these states
+                if (this.actionState === "IDLE" || this.actionState === "SLEEPING" || this.actionState === "JERKY_IDLE") {
                     ctx.fillStyle = "yellow";
                     ctx.fillText("[E] Yorkie", this.x, this.y - 10);
                 }

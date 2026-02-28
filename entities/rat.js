@@ -23,6 +23,9 @@ class Rat {
         this.y = y;
         this.speed = 0;
 
+        this.poisonCooldown = 0;
+        this.poisonCooldownMax = 3;
+
         this.attackCooldown = 0;
         // initialize Bounding Box
         //health system
@@ -35,6 +38,9 @@ class Rat {
         this.hasHit = false;
 
         this.updateBB();
+        // adding these two lines to track the pause before refilling HP :)
+        this.isRecovering = false;
+        this.recoveryTimer = 0;
     };
 
     loadAnimations() {
@@ -75,19 +81,28 @@ class Rat {
     }
 
     takeDamage(damage) {
-        if (this.invulnerabilityTimer > 0) return; // Can't take damage while invulnerable
-
+        // stop taking damage if invulnerable OR currently showing the empty HP bar
+        if (this.invulnerabilityTimer > 0 || this.isRecovering) return;
         this.health -= damage;
         this.invulnerabilityTimer = this.invulnerabilityDuration;
 
         console.log(`Rat took ${damage} damage! Health: ${this.health}/${this.maxHealth}`);
 
+        // updated lives logic
         if (this.health <= 0) {
-            this.health = 0;
-            this.die();
+            this.health = 0; // lock at 0 so the bar draws as fully red
+
+            if (this.game.camera.ratLives > 0) {
+                // trigger recovery phase instead of instantly refilling
+                this.isRecovering = true;
+                this.recoveryTimer = 0.5; // show the red bar for 0.5 seconds
+            } else {
+                // out of lives; actual death
+                this.game.camera.ratLives = 0;
+                this.die();
+            }
         }
     }
-
     die() {
         console.log("Rat died!");
         // For now, just set the death animation
@@ -96,8 +111,49 @@ class Rat {
     }
 
     update() {
-        // stop all movement and action if the rat is dead
-        if (this.health <=0) {
+        if (this.poisonCooldown > 0) this.poisonCooldown -= this.game.clockTick;
+
+        // 2. Check for the "1" key
+                if (this.game.keys["Digit1"] && this.poisonCooldown <= 0) {
+            const ratCenterX = this.x + (48 * this.scale) / 2;
+            const ratCenterY = this.y + (38 * this.scale) / 2;
+            const projSize = 64 * this.scale;
+            const projX = ratCenterX - projSize / 2;
+            const projY = ratCenterY - projSize / 2;
+            
+            let projectile = new PoisonProjectile(this.game, projX, projY, this.facing, this.scale);
+            this.game.addEntity(projectile);
+            this.poisonCooldown = this.poisonCooldownMax;
+        }
+        // recovery & death logic
+        // if rat lost a life, freeze it for 0.5s to show red HP bar
+        if (this.isRecovering) {
+            this.recoveryTimer -= this.game.clockTick;
+
+            // keep rat in idle animation while recovering; so it doesn't play the death animation
+            this.animator = this.animations.get("idle")[this.facing];
+            this.updateBB();
+
+            // once timer is up, finalize the life loss
+            if (this.recoveryTimer <= 0) {
+                this.game.camera.ratLives -= 1; // officially subtract the life
+                this.isRecovering = false;
+
+                if (this.game.camera.ratLives > 0) {
+                    // if we still have lives left, refill the HP bar
+                    this.health = this.maxHealth;
+                    this.game.camera.ratHealth = this.maxHealth; // sync with SceneManager
+                    this.invulnerabilityTimer = this.invulnerabilityDuration * 3; // extra safety buffer
+                } else {
+                    // Oh no, that was the last life, time to actually die :)
+                    this.die(); // This will set health to 0 and trigger the death animation
+                }
+            }
+            return; // stop update here so player can't move/attack while bar is empty
+        }
+        // stop all movement & action if rat is completely out of lives
+        if (this.health <= 0 && !this.isRecovering) {
+            this.game.camera.ratLives = 0; // ensure UI updates to 3 gray hearts
             this.animator = this.animations.get("dead");
             this.updateBB();
             return;
@@ -120,7 +176,23 @@ class Rat {
         if (yorkie && yorkie.actionState === "WAIT_FOR_RAT") {
             let safeX = yorkie.targetX + 80;
             if (this.x < safeX) {
-                this.x += 100 * this.game.clockTick;
+                let moveAmount = 100 * this.game.clockTick;
+
+                // add collision check for cutscene movement
+                const spriteWidth = this.animator.width * this.scale;
+                const fixedHeight = 38 * this.scale;
+                const colliderRadius = 12 * this.scale;
+                let testColliderX = (this.x + moveAmount) + (spriteWidth / 2) - colliderRadius;
+                let currentColliderY = this.y + fixedHeight - colliderRadius;
+
+                if (!this.game.collisionManager.checkCollision(testColliderX, currentColliderY, colliderRadius * 2, colliderRadius)) {
+                    this.x += moveAmount;
+                } else {
+                    // hit a wall during cutscene, end cutscene movement phase early so we don't get stuck
+                    yorkie.actionState = "LEAVING";
+                    yorkie.leavingPhase = 1;
+                }
+
                 this.facing = 1;
                 this.animator = this.animations.get("walk")[1];
                 this.updateBB();
@@ -131,7 +203,6 @@ class Rat {
                 return;
             }
         }
-
         if (this.game.keys["Space"] && this.attackCooldown <= 0) {
             targetSpeed = 0;
             targetAnim = this.animations.get("attack")[this.facing];
