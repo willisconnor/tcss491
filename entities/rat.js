@@ -10,10 +10,12 @@ class Rat {
         this.animations.set("walk", []);
         this.animations.set("run", []);
         this.animations.set("attack", []);
+        this.animations.set("attack2", [])
+        this.animations.set("slide", [])
         this.animations.set("dead", null);
         this.loadAnimations();
 
-        this.attackCooldownMax = .5
+        this.attackCooldownMax = .75
         // 0 = left, 1 = right, 2 = down, 3 = up
         this.facing = 2;
         this.scale = 1.25;
@@ -37,10 +39,15 @@ class Rat {
 
         this.hasHit = false;
 
+        this.slidePhase = 0; // 0 = not sliding, 1 = slide out, 2 = attack, 3 = slide back
+
         this.updateBB();
         // adding these two lines to track the pause before refilling HP :)
         this.isRecovering = false;
         this.recoveryTimer = 0;
+
+        this.slideStartX = 0;
+        this.slideTimer = 0;
     };
 
     loadAnimations() {
@@ -64,7 +71,13 @@ class Rat {
         this.animations.get("attack")[2] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[2]), 0, 10, 62, 44, 3, 0.2, 0, 0, 0, false);
         this.animations.get("attack")[3] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[2]), 558, 7, 62, 48, 3, 0.2, 0, 0, 0, false);
 
-        this.animations.set("dead", new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[1]), 0, 312, 48, 18, 3, 0.7, 0, 0, 14, false));
+        this.animations.get("attack2")[0] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[3]), 0, 8, 48, 35, 3, 0.1, 0, 0, 0, false);
+        this.animations.get("attack2")[1] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[3]), 144, 8, 48, 35, 3, 0.1, 0, 0, 0, false);
+
+        this.animations.get("slide")[0] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[4]), 0, 8, 48, 35, 4, 0.2, 0, 0, 0, false);
+        this.animations.get("slide")[1] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[4]), 192, 8, 48, 35, 4, 0.2, 0, 0, 0, false);
+
+        this.animations.set("dead", new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[1]), 0, 213, 48, 18, 3, 0.7, 0, 0, 14, false));
     }
 
     updateBB() {
@@ -82,7 +95,8 @@ class Rat {
 
     takeDamage(damage) {
         // stop taking damage if invulnerable OR currently showing the empty HP bar
-        if (this.invulnerabilityTimer > 0 || this.isRecovering) return;
+        if (this.invulnerabilityTimer > 0 || this.isRecovering || this.slidePhase === 1 || this.slidePhase === 3) return;
+
         this.health -= damage;
         this.invulnerabilityTimer = this.invulnerabilityDuration;
 
@@ -114,7 +128,7 @@ class Rat {
         if (this.poisonCooldown > 0) this.poisonCooldown -= this.game.clockTick;
 
         // 2. Check for the "1" key
-                if (this.game.keys["Digit1"] && this.poisonCooldown <= 0) {
+        if (this.game.keys["Digit1"] && this.poisonCooldown <= 0) {
             const ratCenterX = this.x + (48 * this.scale) / 2;
             const ratCenterY = this.y + (38 * this.scale) / 2;
             const projSize = 64 * this.scale;
@@ -203,39 +217,120 @@ class Rat {
                 return;
             }
         }
-        if (this.game.keys["Space"] && this.attackCooldown <= 0) {
-            targetSpeed = 0;
-            targetAnim = this.animations.get("attack")[this.facing];
-            this.performAttack();
-        } else {
-            if (this.game.keys["KeyX"]) {
-                targetAnim = this.animations.get("dead");
-            } else if (this.game.keys["ArrowLeft"] || this.game.keys["KeyA"]) {
-                targetSpeed = 100;
-                this.facing = 0;
-                targetAnim = this.animations.get("walk")[this.facing];
-            } else if (this.game.keys["ArrowRight"] || this.game.keys["KeyD"]) {
-                targetSpeed = 100;
-                this.facing = 1;
-                targetAnim = this.animations.get("walk")[this.facing];
-            } else if (this.game.keys["ArrowDown"] || this.game.keys["KeyS"]) {
-                targetSpeed = 100;
-                this.facing = 2;
-                targetAnim = this.animations.get("walk")[this.facing];
-            } else if (this.game.keys["ArrowUp"] || this.game.keys["KeyW"]) {
-                targetSpeed = 100;
-                this.facing = 3;
-                targetAnim = this.animations.get("walk")[this.facing];
-            }
 
-            if (this.game.keys["ShiftLeft"] && targetSpeed > 0) {
+        if (this.slidePhase > 0) {
+            if (this.slidePhase === 1) {
+                targetAnim = this.animations.get("slide")[this.facing];
                 targetSpeed = 200;
-                targetAnim = this.animations.get("run")[this.facing];
+                this.slideTimer += this.game.clockTick;
+
+                if (this.slideTarget) {
+                    // Homing Dash: Stop when we are close to the enemy
+                    let dx = this.slideTarget.x - this.x;
+                    let dy = this.slideTarget.y - this.y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 30 || this.slideTimer >= 0.3) {
+                        this.slidePhase = 2;
+                    }
+                } else {
+                    // Normal Dash: Stop after 70 pixels
+                    if (Math.abs(this.x - this.slideStartX) >= 70 || this.slideTimer >= 0.3) {
+                        this.slidePhase = 2;
+                    }
+                }
+            }
+            else if (this.slidePhase === 2) {
+                targetAnim = this.animations.get("attack2")[this.facing];
+                targetSpeed = 0;
+                this.performAttack();
+
+                if (this.animator === targetAnim && this.animator.isDone()) {
+                    this.slidePhase = 3;
+                    this.facing = (this.facing === 0) ? 1 : 0;
+                    this.slideTimer = 0;
+                }
+            }
+            else if (this.slidePhase === 3) {
+                targetAnim = this.animations.get("slide")[this.facing];
+                targetSpeed = 200;
+                this.slideTimer += this.game.clockTick;
+
+                if (this.slideTarget) {
+                    let dx = this.slideStartX - this.x;
+                    let dy = this.slideStartY - this.y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 10 || this.slideTimer >= 0.3) {
+                        this.slidePhase = 0;
+                        this.attackCooldown = this.attackCooldownMax;
+                        this.x = this.slideStartX;
+                        this.y = this.slideStartY;
+                    }
+                } else {
+                    let reachedStart = false;
+                    if (this.facing === 0 && this.x <= this.slideStartX) reachedStart = true;
+                    if (this.facing === 1 && this.x >= this.slideStartX) reachedStart = true;
+
+                    if (reachedStart || this.slideTimer >= 0.3) {
+                        this.slidePhase = 0;
+                        this.attackCooldown = this.attackCooldownMax;
+                        if (reachedStart) this.x = this.slideStartX;
+                    }
+                }
+            }
+        } else {
+            if ((this.game.keys["ArrowLeft"] || this.game.keys["ArrowRight"]) && this.game.keys["Space"] && this.attackCooldown <= 0) {
+                this.slidePhase = 1;
+                this.slideStartX = this.x;
+                this.slideStartY = this.y;
+                this.slideTimer = 0;
+
+                this.slideTarget = this.getClosestEnemy(250);
+
+                if (this.slideTarget) {
+                    this.facing = this.slideTarget.x < this.x ? 0 : 1;
+                } else {
+                    this.facing = this.game.keys["ArrowLeft"] ? 0 : 1;
+                }
+
+                targetSpeed = 200;
+                targetAnim = this.animations.get("slide")[this.facing];
+            } else if (this.game.keys["Space"] && this.attackCooldown <= 0) {
+                targetSpeed = 0;
+                targetAnim = this.animations.get("attack")[this.facing];
+                this.performAttack();
+            } else {
+                if (this.game.keys["KeyX"]) {
+                    targetAnim = this.animations.get("dead");
+                } else if (this.game.keys["ArrowLeft"] || this.game.keys["KeyA"]) {
+                    targetSpeed = 100;
+                    this.facing = 0;
+                    targetAnim = this.animations.get("walk")[this.facing];
+                } else if (this.game.keys["ArrowRight"] || this.game.keys["KeyD"]) {
+                    targetSpeed = 100;
+                    this.facing = 1;
+                    targetAnim = this.animations.get("walk")[this.facing];
+                } else if (this.game.keys["ArrowDown"] || this.game.keys["KeyS"]) {
+                    targetSpeed = 100;
+                    this.facing = 2;
+                    targetAnim = this.animations.get("walk")[this.facing];
+                } else if (this.game.keys["ArrowUp"] || this.game.keys["KeyW"]) {
+                    targetSpeed = 100;
+                    this.facing = 3;
+                    targetAnim = this.animations.get("walk")[this.facing];
+                }
+
+                if (this.game.keys["ShiftLeft"] && targetSpeed > 0) {
+                    targetSpeed = 200;
+                    targetAnim = this.animations.get("run")[this.facing];
+                }
             }
         }
 
         const currentAnim = this.animator;
-        const isPriority = (currentAnim === this.animations.get("dead")) || (currentAnim === this.animations.get("attack")[this.facing]);
+        const isPriority = (currentAnim === this.animations.get("dead")
+            || currentAnim === this.animations.get("attack")[this.facing]);
 
         if (isPriority && !currentAnim.isDone()) {
             targetAnim = currentAnim;
@@ -251,14 +346,33 @@ class Rat {
             this.hasHit = false;
         }
 
-        this.speed = targetSpeed;
-        // stored your this.x and this.y into variable references
         let newX = this.x;
         let newY = this.y;
-        if (this.facing === 0) newX -= this.speed * this.game.clockTick;
-        if (this.facing === 1) newX += this.speed * this.game.clockTick;
-        if (this.facing === 2) newY += this.speed * this.game.clockTick;
-        if (this.facing === 3) newY -= this.speed * this.game.clockTick;
+        this.speed = targetSpeed;
+
+        if (this.slidePhase === 1 && this.slideTarget) {
+            let dx = this.slideTarget.x - this.x;
+            let dy = this.slideTarget.y - this.y;
+            let dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > 0) {
+                newX += (dx / dist) * this.speed * this.game.clockTick;
+                newY += (dy / dist) * this.speed * this.game.clockTick;
+            }
+        } else if (this.slidePhase === 3 && this.slideTarget) {
+            let dx = this.slideStartX - this.x;
+            let dy = this.slideStartY - this.y;
+            let dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > 0) {
+                newX += (dx / dist) * this.speed * this.game.clockTick;
+                newY += (dy / dist) * this.speed * this.game.clockTick;
+            }
+        }
+        else {
+            if (this.facing === 0) newX -= this.speed * this.game.clockTick;
+            if (this.facing === 1) newX += this.speed * this.game.clockTick;
+            if (this.facing === 2) newY += this.speed * this.game.clockTick;
+            if (this.facing === 3) newY -= this.speed * this.game.clockTick;
+        }
 
         // using small circle collider at feet instead of full sprite box
         const spriteWidth = this.animator.width * this.scale;
@@ -288,10 +402,25 @@ class Rat {
         }
 
         this.updateBB();
+    }
 
-        if (this.animator === this.animations.get("attack")[this.facing]) {
-            this.performAttack();
+    getClosestEnemy(radius) {
+        let closest = null;
+        let minDistance = radius;
+
+        for (let entity of this.game.entities) {
+            if (entity instanceof Enemy && !entity.dead) {
+                let dx = entity.x - this.x;
+                let dy = entity.y - this.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closest = entity;
+                }
+            }
         }
+        return closest;
     }
 
     performAttack() {
@@ -323,7 +452,11 @@ class Rat {
             //check enemies
             if (entity.constructor.name === "Snake" && !entity.dead && entity.boundingBox){
                 if (attackBox.collide(entity.boundingBox)) {
-                    entity.takeDamage(1);
+                    if (this.slidePhase === 2) {
+                        entity.takeDamage(0.5);
+                    } else {
+                        entity.takeDamage(1);
+                    }
                     this.hasHit = true;
                     this.attackCooldown = this.attackCooldownMax; // ✓ Start cooldown!
                     console.log(`Hit ${entity.constructor.name}! Health: ${entity.health}`);
@@ -379,7 +512,7 @@ class Rat {
 
         // Glow Outline
         ctx.save();
-        ctx.globalAlpha = 0.5;
+        ctx.globalAlpha = 0.75;
         ctx.filter = "brightness(1) drop-shadow(0 0 4px gold)";
         [[-2, 0], [2, 0], [0, -2], [0, 2]].forEach(([ox, oy]) => {
             this.animator.drawFrame(0, ctx, drawX + ox, drawY + oy, this.scale);
