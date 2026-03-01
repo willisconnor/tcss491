@@ -48,6 +48,8 @@ ASSET_MANAGER.queueDownload("./assets/beefjerky.png");
 ASSET_MANAGER.queueDownload("./assets/cat-defeat-rat.png");
 ASSET_MANAGER.queueDownload("./assets/sad-meow-song.mp3");
 ASSET_MANAGER.queueDownload("./assets/punch.mp3");
+ASSET_MANAGER.queueDownload("./assets/snake-portrait.png");
+ASSET_MANAGER.queueDownload("./assets/text-box.png");
 ASSET_MANAGER.downloadAll(() => {
     const canvas = document.getElementById("gameWorld");
     const ctx = canvas.getContext("2d");
