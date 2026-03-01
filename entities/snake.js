@@ -228,11 +228,11 @@ class Snake extends Enemy{
         this.currentAnimation = this.animations.get("attack")[this.facing];
         this.currentAnimation.elapsedTime = 0;
 
-        // FIXED: Actually damage the rat!
-        const player = this.findPlayer();
-        if (player && player.takeDamage) {
-            player.takeDamage(this.attackDamage); // 0.1 damage per attack
-            console.log(`Snake hit rat for ${this.attackDamage} damage!`);
+        const rat = this.game.entities.find(e => e.constructor.name === "Rat");
+        if (rat && rat.takeDamage) {
+            let dmg = this.damage !== undefined ? this.damage : 1;
+            rat.takeDamage(dmg);
+            console.log(`Snake hit rat for ${dmg} damage!`);
         }
     }
 
@@ -268,6 +268,25 @@ class Snake extends Enemy{
         this.currentAnimation = anim;
         this.velocity.x = 0;
         this.velocity.y = 0;
+        // pop up victory dialogue
+        if (this.game.camera && !this.game.camera.snakeDefeatTextPlayed) {
+            this.game.camera.snakeDefeatTextPlayed = true;
+
+            const victoryQuotes = [
+                "Sss-see ya later, loser!",
+                "Good riddance, snake.",
+                "SSSS-sucks to suck"
+            ];
+            const randomQuote = victoryQuotes[Math.floor(Math.random() * victoryQuotes.length)];
+
+            this.game.camera.dialogue.lines = [randomQuote];
+            this.game.camera.dialogue.speaker = "System";
+            this.game.camera.dialogue.portrait = null; // placeholder -> no portrait for system yet (will add one later tonight)
+            this.game.camera.dialogue.currentLine = 0;
+            this.game.camera.dialogue.displayText = "";
+            this.game.camera.dialogue.charIndex = 0;
+            this.game.camera.dialogueActive = true;
+        }
     }
 
     update() {

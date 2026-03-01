@@ -5,7 +5,11 @@ class Dialogue {
         this.portrait = ASSET_MANAGER.getAsset("./assets/StuartBigDialogue.png");
         this.speaker = "Stuart Big";
         this.playerName = "";
-        
+
+        this.portraitFrame = 0;
+        this.portraitTimer = 0;
+        this.currentIndex = 0;
+        this.displayText = "";
         this.currentIndex = 0;
         this.displayText = "";
         this.charIndex = 0;
@@ -112,6 +116,14 @@ class Dialogue {
     // ----------------------------------------
 
     update() {
+        // animate snake's portrait
+        if (this.speaker === "Silent Slitherer" && this.portrait) {
+            this.portraitTimer += this.game.clockTick;
+            if (this.portraitTimer > 0.30) { // flips frame every 0.15 seconds
+                this.portraitFrame = (this.portraitFrame + 1) % 4; // cycles 0, 1, 2, 3
+                this.portraitTimer = 0;
+            }
+        }
         // OLD LINE-BASED SYSTEM (for Yorkie and other NPCs)
         if (this.lines && this.lines.length > 0) {
             const rawLine = this.lines[this.currentLine];
@@ -196,9 +208,24 @@ class Dialogue {
                 if (this.game.click || this.game.keys["Space"]) {
                     this.game.click = null;
                     this.game.keys["Space"] = false;
+
+                    // allow user to skip typing effect without exiting prematurely
+                    if (this.charIndex < fullResponse.length) {
+                        this.charIndex = fullResponse.length;
+                        return;
+                    }
+
                     this.displayingChoiceResponse = false;
                     const current = this.dialogues[this.currentIndex];
                     this.currentIndex = current.nextIndex;
+
+                    // exit cleanly if out of bounds -> used for cutscenes
+                    if (this.currentIndex >= this.dialogues.length) {
+                        this.sceneManager.dialogueActive = false;
+                        this.game.paused = false;
+                        return;
+                    }
+
                     this.displayText = "";
                     this.charIndex = 0;
                     this.selectedChoiceIndex = null;
@@ -368,16 +395,33 @@ class Dialogue {
     getChoiceButtonBounds(choices) {
         const w = this.game.ctx.canvas.width;
         const h = this.game.ctx.canvas.height;
-        const boxW = 1200;
-        const boxH = 280;
-        const boxX = (w - boxW) / 2;
-        const boxY = h - boxH - 40;
+        let boxW = 1200;
+        let boxH = 280;
+        let boxX = (w - boxW) / 2;
+        let boxY = h - boxH - 40;
+        let btnHeight = 45;
+        let btnPadding = 10;
+        let btnWidth = 550;
+        let btnX = boxX + 280;
+        let startY = boxY + 110;
 
-        const btnHeight = 45;
-        const btnPadding = 10;
-        const btnWidth = 550;
-        const btnX = boxX + 280;
-        const startY = boxY + 110;
+        // shrink bounds and push options up for Level 2 Snake
+        if (this.speaker === "Silent Slitherer") {
+            boxW = 700;
+            boxH = 200;
+            boxX = (w - boxW) / 2;
+            boxY = h - boxH - 20;
+
+            btnHeight = 28;
+            btnPadding = 5;
+            // push buttons right to clear the portrait
+            // framePadding (15) + frameSize (170) + text spacing (30) = 215
+            btnX = boxX + 215;
+
+            // shrink width so it stays inside the 700px box
+            btnWidth = 450;
+
+            startY = boxY + 65;        }
 
         return choices.map((_, i) => ({
             x: btnX,
@@ -420,6 +464,45 @@ class Dialogue {
 
         // OLD LINE-BASED SYSTEM
         if (this.lines && this.lines.length > 0) {
+            // custom victory screen for system message
+            if (this.speaker === "System") {
+                let customBox = ASSET_MANAGER.getAsset("./assets/text-box.png");
+
+                // scale multiplier: 0.30
+                // can increase or decrease decimal
+                let scale = 0.30;
+                let drawW = 1744 * scale;
+                let drawH = 988 * scale;
+
+                let drawX = (w - drawW) / 2;
+                let drawY = h - drawH - 20; // pushed against the bottom of the screen
+
+                if (customBox) {
+                    ctx.drawImage(customBox, drawX, drawY, drawW, drawH);
+                }
+
+                // setup the black, centered Press Start 2P font
+                ctx.fillStyle = "black";
+                ctx.font = "18px 'Press Start 2P', Courier";
+                ctx.textAlign = "center"; // forces wrapText to center everything
+
+                // calculate vertical center
+                let textY = drawY + (drawH / 2) - 10;
+                const textToShow = this.displayText.substring(0, this.charIndex);
+
+                // because textAlign is 'center', passing (w / 2) flawlessly centers the text!
+                this.wrapText(ctx, textToShow, w / 2, textY, drawW - 100, 35);
+
+                // flashing continue prompt
+                if (this.charIndex >= this.displayText.length) {
+                    ctx.font = "12px 'Press Start 2P', Courier";
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+                    ctx.fillText("Press SPACE to continue...", w / 2, drawY + drawH - 40);
+                }
+
+                return;
+            }
+            // -------------------------------------------------
             const boxW = 1200;
             const boxH = 280;
             const boxX = (w - boxW) / 2;
@@ -476,10 +559,18 @@ class Dialogue {
             const current = this.dialogues[this.currentIndex];
             if (!current) return;
 
-            const boxW = 1200;
-            const boxH = 280;
-            const boxX = (w - boxW) / 2;
-            const boxY = h - boxH - 40;
+            let boxW = 1200;
+            let boxH = 280;
+            let boxX = (w - boxW) / 2;
+            let boxY = h - boxH - 40;
+
+            // shrink dialogue box if Snake is speaking
+            if (this.speaker === "Silent Slitherer") {
+                boxW = 700;
+                boxH = 200;
+                boxX = (w - boxW) / 2;
+                boxY = h - boxH - 20;
+            }
 
             ctx.fillStyle = "rgba(20, 20, 20, 0.9)";
             ctx.strokeStyle = "#ffffff";
@@ -492,26 +583,40 @@ class Dialogue {
             const frameX = boxX + framePadding;
             const frameY = boxY + framePadding;
 
-            ctx.fillStyle = "#3a3a3a";
-            ctx.fillRect(frameX, frameY, frameSize, frameSize);
+            // only draw gray square if portrait exists
+            let textX = boxX + 30;
+            let maxTextWidth = boxW - 60;
 
             if (this.portrait) {
-                ctx.drawImage(this.portrait, Math.floor(frameX + 5), Math.floor(frameY + 5), Math.floor(frameSize - 10), Math.floor(frameSize - 10));
+                ctx.fillStyle = "#3a3a3a";
+                ctx.fillRect(frameX, frameY, frameSize, frameSize);
+
+                // crop sprite sheet if it's the Snake
+                if (this.speaker === "Silent Slitherer") {
+                    ctx.drawImage(
+                        this.portrait,
+                        this.portraitFrame * 736, 0, 736, 736, // Source: X, Y, Width, Height
+                        Math.floor(frameX + 5), Math.floor(frameY + 5), Math.floor(frameSize - 10), Math.floor(frameSize - 10) // destination
+                    );
+                } else {
+                    // normal drawing for Stuart Big and Yorkie
+                    ctx.drawImage(this.portrait, Math.floor(frameX + 5), Math.floor(frameY + 5), Math.floor(frameSize - 10), Math.floor(frameSize - 10));
+                }
+                // --------------------------------------------------
+
+                ctx.strokeStyle = "#ffcc00";
+                ctx.lineWidth = 3;
+                ctx.strokeRect(frameX, frameY, frameSize, frameSize);
+
+                textX = frameX + frameSize + 30;
+                maxTextWidth = boxW - frameSize - 80;
             }
-
-            ctx.strokeStyle = "#ffcc00";
-            ctx.lineWidth = 3;
-            ctx.strokeRect(frameX, frameY, frameSize, frameSize);
-
-            const textX = frameX + frameSize + 30;
             const textY = boxY + 50;
-            const maxTextWidth = boxW - frameSize - 80;
 
             ctx.fillStyle = "#aaaaff";
             ctx.font = "bold 24px Arial";
             ctx.textAlign = "left";
             ctx.fillText(this.speaker, textX, textY - 10);
-
             ctx.fillStyle = "white";
             ctx.font = "22px 'Courier New'";
 

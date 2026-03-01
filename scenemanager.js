@@ -20,6 +20,8 @@ class SceneManager {
         this.stuartIntroPlayed = false;
         this.storyState = "STUART_TALK";
 
+        this.snakeIntroPlayed = false;
+        this.cameraState = "FOLLOW_RAT"; // "FOLLOW_RAT", "PAN_TO_SNAKE", "PAN_TO_RAT"
         this.hasBeefJerky = false;
         this.yorkieGivenJerky = false;
 
@@ -217,19 +219,119 @@ class SceneManager {
 
         let rat = this.game.entities.find(e => e.constructor.name === "Rat");
         if (rat) {
-            // constantly backup the rats health to the SceneManager
-            if (rat.health > 0) {
-                this.ratHealth = rat.health;
-            }
+            if (rat.health > 0) this.ratHealth = rat.health;
+
             let viewW = this.game.ctx.canvas.width / this.zoom;
             let viewH = this.game.ctx.canvas.height / this.zoom;
-            this.x = rat.x - (viewW / 2);
-            this.y = rat.y - (viewH / 2);
+
+            // trigger cutscene when entering Level 2
+            if (this.levelNumber === 2 && !this.snakeIntroPlayed) {
+                let snake = this.game.entities.find(e => e.constructor.name === "Snake" && e.id === "level2_snake_main");
+                if (snake && rat.x > 300 && this.cameraState === "FOLLOW_RAT") {
+                    this.cameraState = "PAN_TO_SNAKE";
+                    this.game.paused = true; // pause gameplay entities
+                    snake.facing = 0; // force snake to look left at the door
+                }
+            }
+
+            // handle camera states
+            if (this.cameraState === "PAN_TO_SNAKE") {
+                this.game.paused = true; // FORCE PAUSE during pan
+
+                let snake = this.game.entities.find(e => e.constructor.name === "Snake" && e.id === "level2_snake_main");
+
+                // ZOOM IN -> 3.0 scale
+                let targetZoom = 3.0;
+                this.zoom += (targetZoom - this.zoom) * 0.05;
+
+                // recalculate view window since the zoom level changed
+                viewW = this.game.ctx.canvas.width / this.zoom;
+                viewH = this.game.ctx.canvas.height / this.zoom;
+
+                let targetX = snake.x - (viewW / 2);
+                let targetY = snake.y - (viewH / 2);
+
+                // clamp target to world bounds BEFORE checking distance
+                targetX = Math.max(0, Math.min(targetX, this.worldWidth - viewW));
+                targetY = Math.max(0, Math.min(targetY, this.worldHeight - viewH));
+
+                // smoothly move camera to snake
+                this.x += (targetX - this.x) * 0.05;
+                this.y += (targetY - this.y) * 0.05;
+
+                // if close enough in BOTH position and zoom, start dialogue
+                if (Math.abs(this.x - targetX) < 5 && Math.abs(this.y - targetY) < 5 && Math.abs(this.zoom - targetZoom) < 0.05) {
+                    this.cameraState = "DIALOGUE";
+
+                    // setup custom choice dialogue
+                    this.dialogue.phase = "INTRO";
+                    this.dialogue.currentIndex = 0;
+
+                    this.dialogue.charIndex = 0;
+                    this.dialogue.displayText = "";
+                    this.game.click = null;
+                    this.game.keys["Space"] = false;
+
+                    // assign new sprite sheet instead of null
+                    this.dialogue.portrait = ASSET_MANAGER.getAsset("./assets/snake-portrait.png"); // Make sure this path matches your file!
+                    this.dialogue.speaker = "Silent Slitherer";
+                    this.dialogue.dialogues = [
+                        {speaker: "Snake", text: "Isss-sss that a sss-nack I ssssmell?", type: "dialogue"},
+                        {
+                            speaker: "Snake", text: "", type: "choice", choices: [
+                                {text: "I'm no food", response: "You are to me"},
+                                {text: "I'm not afraid of you.", response: "Fear changes nothing."},
+                                {text: "You're in my way", response: "Then come closer"},
+                                {text: "Please let me pass.", response: "Begging only makes you softer."}
+                            ], nextIndex: 2
+                        } // points to index 2 which is out of bounds to naturally exit
+                    ];
+                    this.dialogueActive = true;
+                }
+            } else if (this.cameraState === "DIALOGUE") {
+                this.game.paused = true; // FORCE PAUSE during dialogue
+
+                // wait for dialogue to finish
+                if (!this.dialogueActive) {
+                    this.cameraState = "PAN_TO_RAT";
+                    this.snakeIntroPlayed = true;
+                }
+            } else if (this.cameraState === "PAN_TO_RAT") {
+                this.game.paused = true; // FORCE PAUSE during pan
+
+                // zoom back out default 1.75 scale
+                let targetZoom = 1.75;
+                this.zoom += (targetZoom - this.zoom) * 0.05;
+
+                viewW = this.game.ctx.canvas.width / this.zoom;
+                viewH = this.game.ctx.canvas.height / this.zoom;
+
+                let targetX = rat.x - (viewW / 2);
+                let targetY = rat.y - (viewH / 2);
+
+                targetX = Math.max(0, Math.min(targetX, this.worldWidth - viewW));
+                targetY = Math.max(0, Math.min(targetY, this.worldHeight - viewH));
+
+                // back to rat
+                this.x += (targetX - this.x) * 0.05;
+                this.y += (targetY - this.y) * 0.05;
+
+                // if close enough; resume game
+                if (Math.abs(this.x - targetX) < 5 && Math.abs(this.y - targetY) < 5 && Math.abs(this.zoom - targetZoom) < 0.05) {
+                    this.cameraState = "FOLLOW_RAT";
+                    this.game.paused = false;
+                    this.zoom = 1.75; // lock it exactly back to normal to prevent jitter
+                }
+            } else {
+                // FOLLOW_RAT -> Normal gameplay
+                this.x = rat.x - (viewW / 2);
+                this.y = rat.y - (viewH / 2);
+            }
+
+            // keep camera within world bounds
             this.x = Math.max(0, Math.min(this.x, this.worldWidth - viewW));
             this.y = Math.max(0, Math.min(this.y, this.worldHeight - viewH));
-        }
-
-        //snake state saving for level 2
+        }        //snake state saving for level 2
         if (this.levelNumber === 2) {
             this.game.entities.forEach(entity => {
                 // check for static id so movement doesn't break save state
@@ -317,7 +419,9 @@ class SceneManager {
                     location.reload();
                 }
             }
-        }}
+        }
+    }
+
     loadLevelOne() {
         this.gameplayStarted = true;
         this.game.entities.forEach(entity => {
@@ -532,7 +636,8 @@ class SceneManager {
             // Drawing the text slightly above the box so it isn't too cluttered
             ctx.textAlign = "left";
             ctx.fillText("Press E for lvl 3 lose", 138, 245);
-        }}
+        }
+    }
 
     drawOverlays(ctx) {
         ctx.restore();
@@ -793,6 +898,9 @@ class SceneManager {
                 ctx.arc(entX, entY, 3, 0, Math.PI * 2);
                 ctx.fillStyle = "gold";
                 ctx.fill();
+            } else if (entity.constructor.name === "Computer") {
+                ctx.fillStyle = "blue";
+                ctx.fillRect(entX - 3, entY - 3, 6, 6);
             }
         });
 
