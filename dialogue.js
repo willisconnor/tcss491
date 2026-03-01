@@ -59,7 +59,7 @@ class Dialogue {
         // Phase 2: Deep Inquiry - Question Menu for Stuart
         this.stuartQuestions = [
             { text: "The Golden Wheel... tell me the full legend.", response: "It is more than just a meal, {NAME}. The elders say it was carved from the first harvest of the Great Meadow before the Giants ever built these walls. It never spoils, and a single bite can sustain a rat for a month. To our colony, it is the difference between a winter of starvation and a golden age of plenty. I saw it once—sitting atop the Hearth like a fallen sun." },
-            { text: "How exactly did you... pass away?", response: "A tragic slip from the rafters, a 40-foot tumble, and a very unfortunate encounter with the Giants' vacuum cleaner. Let's just say I'm much more aerodynamic now than I was then.", followUp: { text: "Wait... tell me the rest of that story.", response: "I was inches away, {NAME}. I could smell the sharp tang of the Wheel. I heard the 'Beasts' shout below, and I panicked. I jumped for a curtain rod that wasn't there. As I fell, I saw the Giant's youngest pet—the cat—watching me with those cold, green eyes. I didn't even hit the floor before the the vacuum was switched on. It was... efficient. Don't let your greed outpace your grip." } },
+            { text: "How exactly did you... pass away?", response: "A tragic slip from the rafters, a 40-foot tumble, and a very unfortunate encounter with the Giants' vacuum cleaner. Let's just say I'm much more aerodynamic now than I was then.", followUp: { text: "Wait... tell me the rest of that story.", response: "I was inches away, {NAME}. I could smell the sharp tang of the Wheel. I heard the 'Beasts' shout below, and I panicked. I jumped for a curtain rod that wasn't there. As I fell, I saw the Giant's youngest pet—the cat—watching me with those cold, green eyes. I didn't even hit the floor before the vacuum was switched on. It was... efficient. Don't let your greed outpace your grip." } },
             { text: "Why are the Giant's pets called 'Beasts'?", response: "Because to a rat, a 'pet' is just a monster with a collar. The Giants pamper them with soft beds and silver bowls, while we dodge their claws in the dark. They've grown territorial and mean. They aren't just animals anymore; they are the house's standing army." },
             { text: "Why do we call it the Great Below?", response: "It is our kingdom—the pipes, the insulation, the dark corners. To us, it is a palace. To the Giants, it's just 'the basement.' Perspective is everything, {NAME}." },
             { text: "I'm ready. I'll go find Edgar.", response: "Good luck, {NAME}. Show him the 'tooth and claw' tactics of the Great Below, and don't let your tail drag!", exit: true }
@@ -561,10 +561,6 @@ class Dialogue {
             }
 
             if (current.type === "end_of_intro") {
-                const boxW = 1200;
-                const boxH = 280;
-                const boxX = (w - boxW) / 2;
-                const boxY = h - boxH - 40;
                 const questionBounds = this.getQuestionButtonBounds();
 
                 this.deepQuestions.forEach((question, i) => {
@@ -625,7 +621,6 @@ class Dialogue {
 
                 const textX = frameX + frameSize + 30;
                 const textY = boxY + 50;
-                const maxTextWidth = boxW - frameSize - 80;
 
                 ctx.fillStyle = "#aaaaff";
                 ctx.font = "bold 24px Arial";
@@ -660,7 +655,6 @@ class Dialogue {
                     ctx.restore();
                 });
             } else {
-                const question = this.deepQuestions[this.currentQuestionIndex];
                 const boxW = 1200;
                 const boxH = 280;
                 const boxX = (w - boxW) / 2;
