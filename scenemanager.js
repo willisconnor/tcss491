@@ -79,6 +79,21 @@ class SceneManager {
             this.crunchSound.playbackRate = 3.1; // crunch speed
             this.crunchSound.volume = 0.2;
         }
+        // cat lose scenario variables
+        this.catLoseState = false;
+        this.catEatAnim = new Animator(ASSET_MANAGER.getAsset("./assets/cat-defeat-rat.png"), 0, 0, 533.33, 529, 3, 0.3, 0, false, true);
+        // looping punch sound for cat lose scenario
+        let punchRaw = ASSET_MANAGER.getAsset("./assets/punch.mp3");
+        this.punchSound = punchRaw ? punchRaw.cloneNode() : null;
+        if (this.punchSound) {
+            this.punchSound.loop = true;
+
+            // 1.0 -> normal speed; ++ it -> 1.5, 2.0 makes punches faster
+            //  -- it -> 0.8, 0.5 slows them down
+            this.punchSound.playbackRate = 0.55; // #'s to adjust syncing w/ animation
+
+            this.punchSound.volume = 0.05;
+        }
     }
 
     update() {
@@ -109,7 +124,7 @@ class SceneManager {
             // --- FIX: check for Warp Button clicks ONLY if debugging is ON AND computer UI is NOT active ---
             if (this.game.options && this.game.options.debugging) {
                 let computer = this.game.entities.find(e => e instanceof Computer);
-                
+
                 // If computer exists and is active, let it handle clicks instead of the debug buttons
                 if (!computer || !computer.active) {
                     // warp level 2 Button bounds [x: 20, y: 130, w: 220, h: 30]
@@ -224,7 +239,7 @@ class SceneManager {
             });
         }
         // lose scenario trigger for level 2 if rat dies (no more E key debug box)
-        if (!this.loseState && rat && rat.health <= 0 && this.ratLives === 0) {
+        if (!this.loseState && !this.catLoseState && rat && rat.health <= 0 && this.ratLives === 0) {
             this.loseState = true;
             this.loseTimer = 0;
             this.game.click = null;
@@ -255,7 +270,54 @@ class SceneManager {
                 }
             }
         }
-    }
+        // level 3 cat lose scenario debug trigger
+        if (this.levelNumber === 3) {
+            let rat = this.game.entities.find(e => e.constructor.name === "Rat");
+            let boxX = 138, boxY = 261, boxW = 50, boxH = 50;
+
+            if (!this.catLoseState && rat &&
+                rat.x < boxX + boxW && rat.x + (48 * rat.scale) > boxX &&
+                rat.y < boxY + boxH && rat.y + (38 * rat.scale) > boxY) {
+
+                if (this.game.keys["KeyE"]) {
+                    this.catLoseState = true;
+                    this.loseTimer = 0;
+                    rat.health = 0;
+                    this.ratLives = 0;
+
+                    this.game.click = null;
+                    Object.keys(this.game.keys).forEach(k => this.game.keys[k] = false);
+                    this.game.keys["KeyE"] = false;
+                    this.game.audio.playMusic("./assets/sad-meow-song.mp3", true);
+                    // lower volume for this specific song
+                    // default is 0.15, so 0.05 or 0.08 to make it quieter
+                    this.game.audio.setVolume(0.05);
+                }
+            }
+        }
+
+        // timer logic for cat lose state
+        if (this.catLoseState) {
+            this.loseTimer += this.game.clockTick;
+
+            // start punch sound exactly when the 5 second fade finishes
+            if (this.loseTimer >= 5 && this.loseTimer - this.game.clockTick < 5) {
+                if (this.punchSound) {
+                    this.punchSound.currentTime = 0;
+                    this.punchSound.play().catch(e => console.error(e));
+                }
+            }
+
+            // wait 10 seconds->5 for fade 5 for scene before allowing restart
+            if (this.loseTimer > 10) {
+                let anyKeyPressed = Object.values(this.game.keys).some(k => k === true);
+                if (!this.isReloading && (this.game.click || anyKeyPressed)) {
+                    this.isReloading = true;
+                    if (this.punchSound) this.punchSound.pause(); // stop punch sound on restart
+                    location.reload();
+                }
+            }
+        }}
     loadLevelOne() {
         this.gameplayStarted = true;
         this.game.entities.forEach(entity => {
@@ -312,10 +374,10 @@ class SceneManager {
 
         this.game.addEntity(new Door(this.game, 220, 90, "Level1", false));
         this.game.addEntity(new Door(this.game, 707, 32, "Level3", false));
-        
+
         // Adjust the X (500) and Y (100) to fit your dining room map!
         this.game.addEntity(new Computer(this.game, 1280, 490));
-        
+
         //ADD SNAKES TO LEVEL 2: restoring the state
         const stationarySnake = new Snake(this.game, 707, 130, null);
 
@@ -456,7 +518,21 @@ class SceneManager {
                 this.game.collisionManager.draw(ctx);
             }
         }
-    }
+        // draw the red trigger box in Level 3 for all players
+        if (this.levelNumber === 3) {
+            ctx.strokeStyle = "red";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(138, 261, 50, 50);
+
+            ctx.fillStyle = "rgba(255, 0, 0, 0.3)";
+            ctx.fillRect(138, 261, 50, 50);
+
+            ctx.fillStyle = "white";
+            ctx.font = "10px 'Press Start 2P', Courier"; // slightly smaller font to fit
+            // Drawing the text slightly above the box so it isn't too cluttered
+            ctx.textAlign = "left";
+            ctx.fillText("Press E for lvl 3 lose", 138, 245);
+        }}
 
     drawOverlays(ctx) {
         ctx.restore();
@@ -607,9 +683,65 @@ class SceneManager {
                 ctx.fillText("PRESS ANY KEY TO RESTART", ctx.canvas.width / 2, ctx.canvas.height - 20);
             }
         }
-            let computer = this.game.entities.find(e => e instanceof Computer);
-            if (computer) {
-                computer.drawUI(ctx);
+        // draw cat lose screen
+        if (this.catLoseState) {
+            // slow fade to black
+            if (this.loseTimer < 5) {
+                ctx.save();
+                ctx.fillStyle = "black";
+                ctx.globalAlpha = Math.min(1, this.loseTimer / 5);
+                ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.restore();
+                return; // wait 5 seconds before showing animation
+            }
+
+            ctx.save();
+            ctx.fillStyle = "black";
+            ctx.globalAlpha = 1;
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.restore();
+
+            // scaled up image
+            const scale = 1.5; // 1.0 is normal; 2.0 is double size, settled for 1.5
+
+            const frameWidth = 533.33 * scale;
+            const frameHeight = 529 * scale;
+            const xPos = (ctx.canvas.width - frameWidth) / 2;
+            const yPos = (ctx.canvas.height - frameHeight) / 2;
+
+            // pass the new scale variable as the last argument
+            this.catEatAnim.drawFrame(this.game.clockTick, ctx, xPos, yPos, scale);
+
+            ctx.fillStyle = "white";
+            ctx.font = "20px 'Press Start 2P', 'Courier New'";
+            ctx.textAlign = "center";
+
+            let boxWidth = 950;
+            let boxHeight = 150;
+            let boxX = (ctx.canvas.width - boxWidth) / 2;
+            let boxY = 30;
+
+            ctx.save();
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+            ctx.restore();
+
+            ctx.fillText("A valiant effort, but you're out of luck.", ctx.canvas.width / 2, 70);
+            ctx.fillText("Cats have nine lives. Rats? Not so much.", ctx.canvas.width / 2, 105);
+            ctx.fillText("Enjoy your new life as a hairball.", ctx.canvas.width / 2, 140);
+
+            if (this.loseTimer > 10) {
+                ctx.font = "30px 'Press Start 2P', 'Courier New'";
+                ctx.fillStyle = "white";
+                ctx.fillText("PRESS ANY KEY TO RESTART", ctx.canvas.width / 2, ctx.canvas.height - 40);
+            }
+        }
+        let computer = this.game.entities.find(e => e instanceof Computer);
+        if (computer) {
+            computer.drawUI(ctx);
         }
     }
 
