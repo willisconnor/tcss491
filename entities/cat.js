@@ -34,12 +34,12 @@ class Cat extends Enemy{
         this.hurtAnimationTimer = 0;
         this.stateBeforeHurt = null;
 
-        // Single spritesheet
+        // Single spritesheet — 896x4608, cells are 64x64 (14 cols x 72 rows)
         this.sprite = ASSET_MANAGER.getAsset("./assets/OrangeCat.png");
 
         // Dimensions for bounding box
-        this.width = 48 * this.scale;
-        this.height = 48 * this.scale;
+        this.width = 64 * this.scale;
+        this.height = 64 * this.scale;
 
         // Load animations
         this.loadAnimations();
@@ -51,6 +51,7 @@ class Cat extends Enemy{
 
     /**
      * Helper: create an Animator from a row on OrangeCat.png
+     * Sheet is 896x4608 with 64x64 cells (14 cols, 72 rows)
      * @param {number} row        - Row index (0-based)
      * @param {number} frameCount - Number of frames in the row
      * @param {number} frameTime  - Seconds per frame
@@ -59,12 +60,12 @@ class Cat extends Enemy{
     makeAnim(row, frameCount, frameTime = 0.12, loop = true) {
         return new Animator(
             this.sprite,
-            0,           // startX
-            row * 48,    // startY  (each cell is 48px tall)
-            48, 48,      // frameWidth, frameHeight
+            0,          // startX
+            row * 64,   // startY — each cell is 64px tall
+            64, 64,     // frameWidth, frameHeight
             frameCount,
             frameTime,
-            0,           // padding
+            0,          // padding
             0, 0,
             loop
         );
@@ -82,19 +83,15 @@ class Cat extends Enemy{
 
         this.horizontalFacing = 1; // default right
 
-        const sheet = this.sprite;
-
         // --- IDLE: tail wag (rows 23-26: front, back, left, right) ---
-        // row 23 = front (facing down), row 24 = back (facing up),
-        // row 25 = left,                row 26 = right
         const idleDown  = this.makeAnim(23, 5);
         const idleUp    = this.makeAnim(24, 5);
         const idleLeft  = this.makeAnim(25, 5);
         const idleRight = this.makeAnim(26, 5);
-        this.animations.get("idle")[0] = idleLeft;   // facing left
-        this.animations.get("idle")[1] = idleRight;  // facing right
-        this.animations.get("idle")[2] = idleDown;   // facing down
-        this.animations.get("idle")[3] = idleUp;     // facing up
+        this.animations.get("idle")[0] = idleLeft;
+        this.animations.get("idle")[1] = idleRight;
+        this.animations.get("idle")[2] = idleDown;
+        this.animations.get("idle")[3] = idleUp;
 
         // --- WALK (rows 2-5: down, up, right, left) ---
         const walkDown  = this.makeAnim(2, 6);
@@ -118,10 +115,10 @@ class Cat extends Enemy{
         this.animations.get("run")[3] = runUp;
 
         // --- ATTACK ---
-        // down  (front): row 29, right paw, 11 frames (non-looping)
-        // up    (back):  row 31, paw swipe back, 5 frames (non-looping)
-        // left:          row 32, left paw swipe standing left, 11 frames (non-looping)
-        // right:         row 35, right paw swipe standing right, 11 frames (non-looping)
+        // down (front): row 29, right paw, 11 frames
+        // up   (back):  row 31, paw swipe back, 5 frames
+        // left:         row 32, left paw swipe standing left, 11 frames
+        // right:        row 35, right paw swipe standing right, 11 frames
         const attackDown  = this.makeAnim(29, 11, 0.05, false);
         const attackUp    = this.makeAnim(31, 5,  0.05, false);
         const attackLeft  = this.makeAnim(32, 11, 0.05, false);
@@ -142,7 +139,9 @@ class Cat extends Enemy{
     moveToward(targetX, targetY){
         const dx = targetX - this.x;
         const dy = targetY - this.y;
-        const pixelsPerSecond = 75;
+
+        // 150 * this.speed so poison slowdown (0.4x modifier) works correctly
+        const pixelsPerSecond = 150 * this.speed;
 
         if (Math.abs(dx) > Math.abs(dy)) {
             this.velocity.x = dx > 0 ? pixelsPerSecond : -pixelsPerSecond;
@@ -156,7 +155,13 @@ class Cat extends Enemy{
     updateFacing() {
         const rat = this.game.entities.find(e => e instanceof Rat);
         if (rat) {
-            this.horizontalFacing = rat.x > this.x ? 1 : 0;
+            // Dead zone prevents rapid flickering when vertically aligned
+            const dx = rat.x - this.x;
+            if (dx > 2) {
+                this.horizontalFacing = 1;
+            } else if (dx < -2) {
+                this.horizontalFacing = 0;
+            }
         }
 
         if (Math.abs(this.velocity.x) > 0.1) {
@@ -164,6 +169,7 @@ class Cat extends Enemy{
             this.horizontalFacing = this.facing;
         } else if (Math.abs(this.velocity.y) > 0.1) {
             this.facing = this.velocity.y > 0 ? 2 : 3;
+            // No vertical animation remapping needed — cat has dedicated directional rows
         }
     }
 
@@ -239,14 +245,23 @@ class Cat extends Enemy{
 
     onDeath() {
         this.state = "DEAD";
-        this.currentAnimation = this.animations.get("death")[this.facing];
-        this.currentAnimation.elapsedTime = 0;
+        let anim = this.animations.get("death")[this.facing];
+        if (anim) {
+            anim.elapsedTime = 0;
+        }
+        this.currentAnimation = anim;
         this.velocity.x = 0;
         this.velocity.y = 0;
     }
 
     update() {
+        // Poison tick
+        this.updatePoison(this.game.clockTick);
+
+        // 1. Death logic — force death animation every frame
         if (this.dead) {
+            this.currentAnimation = this.animations.get("death")[this.facing];
+
             if (this.currentAnimation && this.currentAnimation.isDone()) {
                 this.removeFromWorld = true;
             }
@@ -309,58 +324,47 @@ class Cat extends Enemy{
             }
         }
 
-        // Apply velocity with collision detection
-        const spriteWidth = 48 * this.scale;
-        const spriteHeight = 48 * this.scale;
+        // Use parent class moveWithSliding
+        const spriteWidth = 64 * this.scale;
+        const spriteHeight = 64 * this.scale;
         const colliderRadius = 10 * this.scale;
-        const colliderWidth = colliderRadius * 2;
-        const colliderHeight = colliderRadius;
+        const ratTarget = this.state === "CHASE" ? this.game.entities.find(e => e.constructor.name === "Rat") : null;
 
-        const moveX = this.velocity.x * this.game.clockTick;
-        const moveY = this.velocity.y * this.game.clockTick;
-
-        if (Math.abs(moveX) > 0.01) {
-            const testX = this.x + moveX;
-            const testColliderX = testX + (spriteWidth / 2) - colliderRadius;
-            const currentColliderY = this.y + spriteHeight - colliderHeight;
-
-            if (!this.game.collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
-                this.x = testX;
-            } else {
-                this.velocity.x = 0;
-            }
-        }
-
-        if (Math.abs(moveY) > 0.01) {
-            const testY = this.y + moveY;
-            const currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
-            const testColliderY = testY + spriteHeight - colliderHeight;
-
-            if (!this.game.collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
-                this.y = testY;
-            } else {
-                this.velocity.y = 0;
-            }
-        }
+        this.moveWithSliding(this.game.clockTick, this.game.collisionManager, ratTarget, spriteWidth, spriteHeight, colliderRadius);
 
         this.updateBoundingBox();
     }
 
     draw(ctx, game) {
-        if (this.currentAnimation) {
-            const drawX = this.x;
-            const drawY = this.y;
-
-            // No flipping needed — the cat sheet has explicit left/right rows
-            this.currentAnimation.drawFrame(
-                game.clockTick,
-                ctx,
-                drawX,
-                drawY,
-                this.scale
-            );
+        // Early exit if dead and animation is done
+        if (this.dead && this.currentAnimation && this.currentAnimation.isDone()) {
+            return;
         }
 
+        if (this.currentAnimation) {
+            ctx.save();
+
+            // Poison tint
+            if (this.isPoisoned) {
+                ctx.filter = "sepia(1) hue-rotate(70deg) saturate(5)";
+            }
+
+            let tick = game.clockTick;
+
+            // Clamp tick on death to prevent animator overflow
+            if (this.dead && this.currentAnimation.elapsedTime + tick >= this.currentAnimation.totalTime) {
+                this.removeFromWorld = true;
+                tick = this.currentAnimation.totalTime - this.currentAnimation.elapsedTime - 0.001;
+                if (tick < 0) tick = 0;
+            }
+
+            // No flipping needed — cat sheet has explicit directional rows
+            this.currentAnimation.drawFrame(tick, ctx, this.x, this.y, this.scale);
+
+            ctx.restore();
+        }
+
+        // Inherited from Enemy — hides automatically when dead
         this.drawHealthBar(ctx);
 
         if (game.options.debugging) {

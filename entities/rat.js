@@ -321,7 +321,7 @@ class Rat {
                 }
             }
             //check enemies
-            if (entity.constructor.name === "Snake" && !entity.dead && entity.boundingBox){
+            if ((entity.constructor.name === "Snake" || entity.constructor.name === "Cat") && !entity.dead && entity.boundingBox){
                 if (attackBox.collide(entity.boundingBox)) {
                     entity.takeDamage(1);
                     this.hasHit = true;

@@ -55,7 +55,7 @@ class PoisonProjectile {
             }
             // Check collisions with Enemies (Snakes, Yorkies, etc)
             this.game.entities.forEach(entity => {
-                const isEnemy = ["Yorkie", "Enemy", "Snake"].includes(entity.constructor.name);
+                const isEnemy = ["Yorkie", "Enemy", "Snake", "Cat"].includes(entity.constructor.name);
                 if (isEnemy && entity.BB && this.BB.collide(entity.BB)) {
                     this.applyPoison(entity);
                     this.state = "fadeout";

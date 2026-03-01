@@ -45,6 +45,7 @@ ASSET_MANAGER.queueDownload("./assets/poison_fadeout.png");
 ASSET_MANAGER.queueDownload("./assets/ding.mp3");
 ASSET_MANAGER.queueDownload("./assets/hearts.png");
 ASSET_MANAGER.queueDownload("./assets/beefjerky.png");
+ASSET_MANAGER.queueDownload("./assets/OrangeCat.png")
 ASSET_MANAGER.downloadAll(() => {
     const canvas = document.getElementById("gameWorld");
     const ctx = canvas.getContext("2d");
