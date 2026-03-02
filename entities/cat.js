@@ -33,7 +33,7 @@ class Cat extends Enemy{
         this.hurtAnimationTimer = 0;
         this.stateBeforeHurt = null;
 
-        // Single spritesheet — 896x4608, cells are 64x64 (14 cols x 72 rows)
+        // Single spritesheet — 896x4608, cells are 64x64 (14 cols x 72 rows) <- this is not true its 66 rows not 72
         this.sprite = ASSET_MANAGER.getAsset("./assets/OrangeCat.png");
 
         this.scale = 1.75; // scaled down
@@ -114,62 +114,58 @@ class Cat extends Enemy{
         this.animations.set("walk",   []);
         this.animations.set("run",    []);
         this.animations.set("attack", []);
-        this.animations.set("hurt",   []);
         this.animations.set("death",  []);
+        this.animations.set("hiss",   []);
 
         this.horizontalFacing = 1; // default right
 
-        // --- IDLE: tail wag (rows 23-26: front, back, left, right) ---
-        const idleDown  = this.makeAnim(23, 5);
-        const idleUp    = this.makeAnim(24, 5);
-        const idleLeft  = this.makeAnim(25, 5);
-        const idleRight = this.makeAnim(26, 5);
-        this.animations.get("idle")[0] = idleLeft;
-        this.animations.get("idle")[1] = idleRight;
-        this.animations.get("idle")[2] = idleDown;
-        this.animations.get("idle")[3] = idleUp;
+        // --- IDLE: tail wag ---
+        // Piskel Rows 23, 24, 25, 26 -> JS Indices 22, 23, 24, 25
+        this.animations.get("idle")[0] = this.makeAnim(25, 5); // Left
+        this.animations.get("idle")[1] = this.makeAnim(22, 5); // Right
+        this.animations.get("idle")[2] = this.makeAnim(23, 5); // Down
+        this.animations.get("idle")[3] = this.makeAnim(24, 5); // Up
 
-        // --- WALK (rows 2-5: down, up, right, left) ---
-        const walkDown  = this.makeAnim(2, 6);
-        const walkUp    = this.makeAnim(3, 6);
-        const walkRight = this.makeAnim(4, 6);
-        this.animations.get("walk")[0] = this.makeAnim(5, 6);
-        this.animations.get("walk")[1] = walkRight;
-        this.animations.get("walk")[2] = walkDown;
-        this.animations.get("walk")[3] = walkUp;
+        // --- WALK ---
+        // Piskel Rows 3, 4, 5, 6 -> JS Indices 2, 3, 4, 5
+        this.animations.get("walk")[0] = this.makeAnim(5, 6); // Left
+        this.animations.get("walk")[1] = this.makeAnim(4, 6); // Right
+        this.animations.get("walk")[2] = this.makeAnim(2, 6); // Down
+        this.animations.get("walk")[3] = this.makeAnim(3, 6); // Up
 
-        // --- RUN (rows 8-11: down, up, right, left) ---
-        // rows 8/9 have 4 frames, rows 10/11 have 5 frames
-        const runDown  = this.makeAnim(8,  4, 0.1);
-        const runUp    = this.makeAnim(9,  4, 0.1);
-        const runRight = this.makeAnim(10, 5, 0.1);
-        this.animations.get("run")[0] = this.makeAnim(11, 5, 0.1);
-        this.animations.get("run")[1] = runRight;
-        this.animations.get("run")[2] = runDown;
-        this.animations.get("run")[3] = runUp;
+        // --- RUN ---
+        // Piskel Rows 9, 10, 11, 12 -> JS Indices 8, 9, 10, 11
+        this.animations.get("run")[0] = this.makeAnim(11, 5, 0.1); // Left
+        this.animations.get("run")[1] = this.makeAnim(10, 5, 0.1); // Right
+        this.animations.get("run")[2] = this.makeAnim(8, 4, 0.1);  // Down
+        this.animations.get("run")[3] = this.makeAnim(9, 4, 0.1);  // Up
 
         // --- ATTACK ---
-        // down (front): row 29, right paw, 11 frames
-        // up   (back):  row 31, paw swipe back, 5 frames
-        // left:         row 32, left paw swipe standing left, 11 frames
-        // right:        row 35, right paw swipe standing right, 11 frames
-        const attackDown  = this.makeAnim(29, 11, 0.05, false);
-        const attackUp    = this.makeAnim(31, 5,  0.05, false);
-        const attackLeft  = this.makeAnim(32, 11, 0.05, false);
-        const attackRight = this.makeAnim(35, 11, 0.05, false);
-        this.animations.get("attack")[0] = attackLeft;
-        this.animations.get("attack")[1] = attackRight;
-        this.animations.get("attack")[2] = attackDown;
-        this.animations.get("attack")[3] = attackUp;
+        // Piskel Rows 30, 32, 34, 36 -> JS Indices 29, 31, 33, 35
+        this.animations.get("attack")[0] = this.makeAnim(33, 11, 0.05, false); // Left
+        this.animations.get("attack")[1] = this.makeAnim(35, 11, 0.05, false); // Right
+        this.animations.get("attack")[2] = this.makeAnim(29, 11, 0.05, false); // Down
+        this.animations.get("attack")[3] = this.makeAnim(31, 5, 0.05, false);  // Up
 
-        // --- HURT & DEATH: sleep (row 44, front-facing, 2 frames, non-looping) ---
-        const sleepAnim = this.makeAnim(44, 2, 0.2, false);
+        // --- HISS ---
+        // Piskel Rows 61, 62 -> JS Indices 60, 61
+        const hissLeftDown = this.makeAnim(60, 2, 0.2, true);
+        const hissRightUp  = this.makeAnim(61, 2, 0.2, true);
+
+        this.animations.get("hiss")[0] = hissLeftDown; // Left
+        this.animations.get("hiss")[1] = hissRightUp;  // Right
+        this.animations.get("hiss")[2] = hissLeftDown; // Down
+        this.animations.get("hiss")[3] = hissRightUp;  // Up
+
+        // --- DEATH: sleep ---
+        // Piskel Row 45 -> JS Index 44
+        const sleepAnim = this.makeAnim(44, 2, 0.2, true);
+
+        // Assigning sleep animation to all 4 facing directions
         for (let i = 0; i < 4; i++) {
-            this.animations.get("hurt")[i]  = sleepAnim;
             this.animations.get("death")[i] = sleepAnim;
         }
     }
-
     moveToward(targetX, targetY){
         const dx = targetX - this.x;
         const dy = targetY - this.y;
