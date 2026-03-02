@@ -88,6 +88,14 @@ class GameEngine {
         this.ctx.canvas.addEventListener("click", e => {
             if (this.options.debugging) console.log("CLICK", getXandY(e));
             this.click = getXandY(e);
+
+            // force Chrome to recognize the interaction immediately
+            // if SceneAudio uses a Web Audio API context; resumes it directly inside trusted user event
+            if (this.audio && this.audio.ctx && this.audio.ctx.state === 'suspended') {
+                this.audio.ctx.resume().catch(err => console.log(err));
+            } else if (this.audio && this.audio.audioContext && this.audio.audioContext.state === 'suspended') {
+                this.audio.audioContext.resume().catch(err => console.log(err));
+            }
         });
 
         this.ctx.canvas.addEventListener("wheel", e => {
