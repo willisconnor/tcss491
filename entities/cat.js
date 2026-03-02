@@ -270,8 +270,7 @@ class Cat extends Enemy{
     onHurt() {
         this.stateBeforeHurt = this.state;
         this.state = "HURT";
-        this.currentAnimation = this.animations.get("hurt")[this.facing];
-        this.currentAnimation.elapsedTime = 0;
+        // don't change animation to sleep pause movement to allow red flash in draw()
         this.velocity.x = 0;
         this.velocity.y = 0;
         this.hurtAnimationTimer = 0.3;
@@ -279,6 +278,9 @@ class Cat extends Enemy{
 
     onDeath() {
         this.state = "DEAD";
+        // move to specific coordinates to sleep permanently
+        this.x = 1181;
+        this.y = 503;
         let anim = this.animations.get("death")[this.facing];
         if (anim) {
             anim.elapsedTime = 0;
@@ -378,9 +380,13 @@ class Cat extends Enemy{
         if (this.currentAnimation) {
             ctx.save();
 
-            // Poison tint
-            if (this.isPoisoned) {
-                ctx.filter = "sepia(1) hue-rotate(70deg) saturate(5)";
+            // poison tint & red flash for damage
+            if (this.state === "HURT") {
+                ctx.filter = "brightness(50%) sepia(1) hue-rotate(-50deg) saturate(5)"; // flash red
+            } else if (this.isPoisoned) {
+                ctx.filter = "sepia(1) hue-rotate(70deg) saturate(5)"; //green for poison
+            } else {
+                ctx.filter = "none";
             }
 
             let tick = game.clockTick;
