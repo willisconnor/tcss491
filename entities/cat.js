@@ -13,7 +13,6 @@ class Cat extends Enemy{
             30,
             0.5
         );
-        this.scale = 2.5;
         this.facing = 1; // 0=left, 1=right, 2=down, 3=up
 
         this.attackCooldownMax = 1.5;
@@ -37,6 +36,12 @@ class Cat extends Enemy{
         // Single spritesheet — 896x4608, cells are 64x64 (14 cols x 72 rows)
         this.sprite = ASSET_MANAGER.getAsset("./assets/OrangeCat.png");
 
+        this.scale = 1.75; // scaled down
+
+        // increase detection range for better intelligence
+        this.detectionRange = 300;
+        this.attackRange = 40;
+
         // Dimensions for bounding box
         this.width = 64 * this.scale;
         this.height = 64 * this.scale;
@@ -45,9 +50,12 @@ class Cat extends Enemy{
         this.loadAnimations();
         this.currentAnimation = this.animations.get("idle")[this.facing];
 
-        // Initialize bounding box
-        this.boundingBox = new BoundingBox(this.x, this.y, this.width, this.height);
-    }
+        // center bounding box around torso, not the tail
+        let bbWidth = 35 * this.scale;
+        let bbHeight = 35 * this.scale;
+        let offsetX = (this.width - bbWidth) / 3;
+        let offsetY = (this.height - bbHeight) / 3;
+        this.boundingBox = new BoundingBox(this.x + offsetX, this.y + offsetY, bbWidth, bbHeight);    }
 
     /**
      * Helper: create an Animator from a row on OrangeCat.png
@@ -69,6 +77,34 @@ class Cat extends Enemy{
             0, 0,
             loop
         );
+    }
+    updateBoundingBox() {
+        // size of the torso box
+        let bbWidth = 35 * this.scale;
+        let bbHeight = 35 * this.scale;
+
+        // base centered offsets
+        let offsetX = (this.width - bbWidth) / 2;
+        let offsetY = (this.height - bbHeight) / 2;
+
+        // dynamically shift box based on where the cat is looking
+        // 0=left, 1=right, 2=down, 3=up
+        if (this.facing === 0) {
+            // facing left-> tail is on the right; torso is on the left
+            offsetX -= 0;
+        } else if (this.facing === 1) {
+            // facing right -> the tail is on the left; torso is on the right
+            offsetX += 0;
+        } else if (this.facing === 2) {
+            // facing down -> torso is centered; shift slightly down
+            offsetY += 5 * this.scale;
+        } else if (this.facing === 3) {
+            // facing up -> torso is centered
+            offsetY += 5 * this.scale;
+        }
+
+        // apply newly calculated box
+        this.boundingBox = new BoundingBox(this.x + offsetX, this.y + offsetY, bbWidth, bbHeight);
     }
 
     // facing: 0=left, 1=right, 2=down, 3=up
@@ -97,8 +133,7 @@ class Cat extends Enemy{
         const walkDown  = this.makeAnim(2, 6);
         const walkUp    = this.makeAnim(3, 6);
         const walkRight = this.makeAnim(4, 6);
-        const walkLeft  = this.makeAnim(5, 6);
-        this.animations.get("walk")[0] = walkLeft;
+        this.animations.get("walk")[0] = this.makeAnim(5, 6);
         this.animations.get("walk")[1] = walkRight;
         this.animations.get("walk")[2] = walkDown;
         this.animations.get("walk")[3] = walkUp;
@@ -108,8 +143,7 @@ class Cat extends Enemy{
         const runDown  = this.makeAnim(8,  4, 0.1);
         const runUp    = this.makeAnim(9,  4, 0.1);
         const runRight = this.makeAnim(10, 5, 0.1);
-        const runLeft  = this.makeAnim(11, 5, 0.1);
-        this.animations.get("run")[0] = runLeft;
+        this.animations.get("run")[0] = this.makeAnim(11, 5, 0.1);
         this.animations.get("run")[1] = runRight;
         this.animations.get("run")[2] = runDown;
         this.animations.get("run")[3] = runUp;
