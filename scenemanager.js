@@ -324,8 +324,10 @@ class SceneManager {
                 }
             } else {
                 // FOLLOW_RAT -> Normal gameplay
-                this.x = rat.x - (viewW / 2);
-                this.y = rat.y - (viewH / 2);
+                if (this.game.entities.find(e => e.constructor.name === "Rat").slidePhase === 0) {
+                    this.x = rat.x - (viewW / 2);
+                    this.y = rat.y - (viewH / 2);
+                }
             }
 
             // keep camera within world bounds

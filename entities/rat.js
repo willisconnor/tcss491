@@ -1,7 +1,6 @@
 // Author: Christina Blackwell
 
 class Rat {
-
     constructor(game, x, y) {
         this.game = game;
         this.canvas = document.getElementById("gameWorld");
@@ -15,7 +14,7 @@ class Rat {
         this.animations.set("dead", null);
         this.loadAnimations();
 
-        this.attackCooldownMax = .75
+        this.attackCooldownMax = .5
         // 0 = left, 1 = right, 2 = down, 3 = up
         this.facing = 2;
         this.scale = 1.25;
@@ -35,8 +34,6 @@ class Rat {
         this.maxHealth = 10;
         this.invulnerabilityTimer = 0; //prevent spam damage
         this.invulnerabilityDuration = 0.5; //0.5 seconds of invuln after damaged
-
-
         this.hasHit = false;
 
         this.slidePhase = 0; // 0 = not sliding, 1 = slide out, 2 = attack, 3 = slide back
@@ -48,6 +45,14 @@ class Rat {
 
         this.slideStartX = 0;
         this.slideTimer = 0;
+        this.basicAttackRange = 60;         // Reach of the normal space bar attack
+        this.basicAttackDamage = 1;         // Damage of the normal attack
+        this.slideSpeed = 800;              // How fast the rat moves during the slide
+        this.slideTargetRadius = 250;       // Maximum distance to detect an enemy
+        this.slideAttackRange = 40;         // How far the attack reaches (Rat stops dashing when this close)
+        this.slideAttackDamage = 0.5;       // Damage of the dash attack
+        this.slideReturnRange = 20;          // Snaps back to start when within this many pixels
+        this.dashSafetyBuffer = 0.15;       // Extra seconds added to the timeout calculation
     };
 
     loadAnimations() {
@@ -187,23 +192,35 @@ class Rat {
         let yorkie = this.game.entities.find(e => e.constructor.name === "Yorkie");
 
         if (yorkie && yorkie.actionState === "WAIT_FOR_RAT") {
-            let safeX = yorkie.targetX + 80;
-            if (this.x < safeX) {
-                let moveAmount = 100 * this.game.clockTick;
+            if (!this.cutsceneTargetX) {
+                //this.cutsceneTargetX = Math.max(this.x + 100, yorkie.x + 80);
+                /* I changed this to a hard-coded value because if you attack from beneath the yorkie
+                 * instead of facing him, the rat doesn't move far enough
+                 */
+                this.cutsceneTargetX = 500;
+            }
 
-                // add collision check for cutscene movement
+            if (this.x < this.cutsceneTargetX) {
+                let moveAmount = 120 * this.game.clockTick;
+
                 const spriteWidth = this.animator.width * this.scale;
                 const fixedHeight = 38 * this.scale;
                 const colliderRadius = 12 * this.scale;
-                let testColliderX = (this.x + moveAmount) + (spriteWidth / 2) - colliderRadius;
-                let currentColliderY = this.y + fixedHeight - colliderRadius;
+                const cutsceneRadius = colliderRadius - 1; // Shaved to prevent friction
 
-                if (!this.game.collisionManager.checkCollision(testColliderX, currentColliderY, colliderRadius * 2, colliderRadius)) {
+                let testColliderX = (this.x + moveAmount) + (spriteWidth / 2) - cutsceneRadius;
+                let currentColliderY = this.y + fixedHeight - cutsceneRadius;
+
+                if (!this.game.collisionManager.checkCollision(testColliderX, currentColliderY, cutsceneRadius * 2, cutsceneRadius)) {
                     this.x += moveAmount;
                 } else {
-                    // hit a wall during cutscene, end cutscene movement phase early so we don't get stuck
-                    yorkie.actionState = "LEAVING";
-                    yorkie.leavingPhase = 1;
+                    // Sometimes the rat would get stuck in that corner where the door's BB slightly extends past the wall collision area
+                    let currentColliderX = this.x + (spriteWidth / 2) - cutsceneRadius;
+                    let testColliderY = (this.y + moveAmount) + fixedHeight - cutsceneRadius;
+
+                    if (!this.game.collisionManager.checkCollision(currentColliderX, testColliderY, cutsceneRadius * 2, cutsceneRadius)) {
+                        this.y += moveAmount; // Step down
+                    }
                 }
 
                 this.facing = 1;
@@ -213,6 +230,7 @@ class Rat {
             } else {
                 yorkie.actionState = "LEAVING";
                 yorkie.leavingPhase = 1;
+                this.cutsceneTargetX = null;
                 return;
             }
         }
@@ -220,89 +238,67 @@ class Rat {
         if (this.slidePhase > 0) {
             if (this.slidePhase === 1) {
                 targetAnim = this.animations.get("slide")[this.facing];
-                targetSpeed = 200;
+                targetSpeed = this.slideSpeed; // Configurable speed
                 this.slideTimer += this.game.clockTick;
-
-                if (this.slideTarget) {
-                    // Homing Dash: Stop when we are close to the enemy
-                    let dx = this.slideTarget.x - this.x;
-                    let dy = this.slideTarget.y - this.y;
-                    let dist = Math.sqrt(dx * dx + dy * dy);
-
-                    if (dist < 30 || this.slideTimer >= 0.3) {
-                        this.slidePhase = 2;
-                    }
-                } else {
-                    // Normal Dash: Stop after 70 pixels
-                    if (Math.abs(this.x - this.slideStartX) >= 70 || this.slideTimer >= 0.3) {
-                        this.slidePhase = 2;
-                    }
+                let dx = this.slideTarget.x - this.x;
+                let dy = this.slideTarget.y - this.y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < this.slideAttackRange || this.slideTimer >= this.slideTimeoutLimit) {
+                    this.slidePhase = 2;
                 }
             }
             else if (this.slidePhase === 2) {
                 targetAnim = this.animations.get("attack2")[this.facing];
                 targetSpeed = 0;
-                this.performAttack();
-
                 if (this.animator === targetAnim && this.animator.isDone()) {
-                    this.slidePhase = 3;
-                    this.facing = (this.facing === 0) ? 1 : 0;
-                    this.slideTimer = 0;
+                    this.performAttack();
+                    // checks if the yorkie is "dead" so the rat doesn't slide back and interfere with the cutscene logic
+                    if (this.slideTarget.health <= 0) {
+                        this.slidePhase = 0;
+                        this.attackCooldown = this.attackCooldownMax;
+                    } else {
+                        this.slidePhase = 3;
+                        this.facing = (this.facing === 0) ? 1 : 0;
+                        this.slideTimer = 0;
+                    }
                 }
             }
             else if (this.slidePhase === 3) {
                 targetAnim = this.animations.get("slide")[this.facing];
-                targetSpeed = 200;
+                targetSpeed = this.slideSpeed;
                 this.slideTimer += this.game.clockTick;
-
-                if (this.slideTarget) {
-                    let dx = this.slideStartX - this.x;
-                    let dy = this.slideStartY - this.y;
-                    let dist = Math.sqrt(dx * dx + dy * dy);
-
-                    if (dist < 10 || this.slideTimer >= 0.3) {
-                        this.slidePhase = 0;
-                        this.attackCooldown = this.attackCooldownMax;
-                        this.x = this.slideStartX;
-                        this.y = this.slideStartY;
-                    }
-                } else {
-                    let reachedStart = false;
-                    if (this.facing === 0 && this.x <= this.slideStartX) reachedStart = true;
-                    if (this.facing === 1 && this.x >= this.slideStartX) reachedStart = true;
-
-                    if (reachedStart || this.slideTimer >= 0.3) {
-                        this.slidePhase = 0;
-                        this.attackCooldown = this.attackCooldownMax;
-                        if (reachedStart) this.x = this.slideStartX;
-                    }
+                let dx = this.slideStartX - this.x;
+                let dy = this.slideStartY - this.y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < this.slideReturnRange || this.slideTimer >= this.slideTimeoutLimit) {
+                    this.slidePhase = 0;
+                    this.attackCooldown = this.attackCooldownMax;
+                    this.x = this.slideStartX;
+                    this.y = this.slideStartY;
+                    targetSpeed = 0;
                 }
             }
         } else {
-            if ((this.game.keys["ArrowLeft"] || this.game.keys["ArrowRight"]) && this.game.keys["Space"] && this.attackCooldown <= 0) {
+            this.currentTarget = this.getClosestEnemy(this.slideTargetRadius);
+            if (this.game.keys["Digit2"] && this.attackCooldown <= 0 && this.currentTarget) {
                 this.slidePhase = 1;
                 this.slideStartX = this.x;
                 this.slideStartY = this.y;
                 this.slideTimer = 0;
-
-                this.slideTarget = this.getClosestEnemy(250);
-
-                if (this.slideTarget) {
-                    this.facing = this.slideTarget.x < this.x ? 0 : 1;
-                } else {
-                    this.facing = this.game.keys["ArrowLeft"] ? 0 : 1;
-                }
-
-                targetSpeed = 200;
+                this.slideTarget = this.currentTarget;
+                this.facing = this.slideTarget.x < this.x ? 0 : 1;
+                targetSpeed = this.slideSpeed;
                 targetAnim = this.animations.get("slide")[this.facing];
+                let dx = this.slideTarget.x - this.x;
+                let dy = this.slideTarget.y - this.y;
+                let totalDistance = Math.sqrt(dx * dx + dy * dy);
+                this.slideTimeoutLimit = (totalDistance / targetSpeed) + this.dashSafetyBuffer;
             } else if (this.game.keys["Space"] && this.attackCooldown <= 0) {
                 targetSpeed = 0;
                 targetAnim = this.animations.get("attack")[this.facing];
                 this.performAttack();
             } else {
-                if (this.game.keys["KeyX"]) {
-                    targetAnim = this.animations.get("dead");
-                } else if (this.game.keys["ArrowLeft"] || this.game.keys["KeyA"]) {
+                if (this.game.keys["ArrowLeft"] || this.game.keys["KeyA"]) {
                     targetSpeed = 100;
                     this.facing = 0;
                     targetAnim = this.animations.get("walk")[this.facing];
@@ -320,7 +316,7 @@ class Rat {
                     targetAnim = this.animations.get("walk")[this.facing];
                 }
 
-                if (this.game.keys["ShiftLeft"] && targetSpeed > 0) {
+                if (this.game.keys["ShiftLeft"] && targetSpeed > 0 && !this.isRecovering) {
                     targetSpeed = 200;
                     targetAnim = this.animations.get("run")[this.facing];
                 }
@@ -328,8 +324,8 @@ class Rat {
         }
 
         const currentAnim = this.animator;
-        const isPriority = (currentAnim === this.animations.get("dead")
-            || currentAnim === this.animations.get("attack")[this.facing]);
+        const isPriority = currentAnim === this.animations.get("attack")[this.facing];
+
 
         if (isPriority && !currentAnim.isDone()) {
             targetAnim = currentAnim;
@@ -408,7 +404,8 @@ class Rat {
         let minDistance = radius;
 
         for (let entity of this.game.entities) {
-            if (entity instanceof Enemy && !entity.dead) {
+            if (entity instanceof Enemy && !entity.dead
+                || entity.constructor.name === "Yorkie" && entity.actionState === "TRAINING" && entity.BB) {
                 let dx = entity.x - this.x;
                 let dy = entity.y - this.y;
                 let distance = Math.sqrt(dx * dx + dy * dy);
@@ -424,13 +421,16 @@ class Rat {
 
     performAttack() {
         if (this.hasHit) return;
-        let range = 60;
+        let isDashAttack = (this.slidePhase === 2);
+        let currentRange = isDashAttack ? this.slideAttackRange : this.basicAttackRange;
+        let currentDamage = isDashAttack ? this.slideAttackDamage : this.basicAttackDamage;
         let hitX = this.x;
         let hitY = this.y;
-        if (this.facing === 0) hitX -= range;
-        else if (this.facing === 1) hitX += range;
-        else if (this.facing === 2) hitY += range;
-        else if (this.facing === 3) hitY -= range;
+        if (this.facing === 0) hitX -= currentRange;
+        else if (this.facing === 1) hitX += currentRange;
+        else if (this.facing === 2) hitY += currentRange;
+        else if (this.facing === 3) hitY -= currentRange;
+
         if (this.attackCooldown > 0 || this.hasHit) return;
 
         let attackBox = new BoundingBox(hitX, hitY, 50, 50);
@@ -441,8 +441,8 @@ class Rat {
         for (let entity of this.game.entities) {
             //check yorkie
             if (entity.constructor.name === "Yorkie" && entity.actionState === "TRAINING" && entity.BB) {
-                if (attackBox.collide(entity.BB)) {
-                    entity.health -= 1;
+                if ((entity.health > 0 && attackBox.collide(entity.BB))) {
+                    entity.health -= currentDamage;
                     this.hasHit = true;
                     this.attackCooldown = this.attackCooldownMax;
                     break;
@@ -451,15 +451,11 @@ class Rat {
             //check enemies
             if (entity.constructor.name === "Snake" && !entity.dead && entity.boundingBox){
                 if (attackBox.collide(entity.boundingBox)) {
-                    if (this.slidePhase === 2) {
-                        entity.takeDamage(0.5);
-                    } else {
-                        entity.takeDamage(1);
-                    }
+                    entity.takeDamage(currentDamage);
                     this.hasHit = true;
-                    this.attackCooldown = this.attackCooldownMax; // ✓ Start cooldown!
-                    console.log(`Hit ${entity.constructor.name}! Health: ${entity.health}`);
-                    break; // ✓ Only hit one entity
+                    this.attackCooldown = this.attackCooldownMax;
+                    console.log(`Hit ${entity.constructor.name} for ${currentDamage}! Health: ${entity.health}`);
+                    break;
                 }
             }
         }
@@ -549,9 +545,36 @@ class Rat {
             ctx.restore();
         }
 
+        // Attack indicator around enemy, appears with the rat is within range to do the tail whip attack
+        if (this.currentTarget && this.slidePhase === 0 && this.attackCooldown <= 0) {
+            ctx.save();
+            let targetX = this.currentTarget.x;
+            let targetY = this.currentTarget.y;
+            if (this.currentTarget.boundingBox) {
+                targetX = this.currentTarget.boundingBox.x + (this.currentTarget.boundingBox.width / 2);
+                targetY = this.currentTarget.boundingBox.y + (this.currentTarget.boundingBox.height / 2);
+            // Yorkie's bounding box field is called BB
+            } else if (this.currentTarget.BB) {
+                targetX = this.currentTarget.BB.x + (this.currentTarget.BB.width / 2);
+                targetY = this.currentTarget.BB.y + (this.currentTarget.BB.height / 2);
+            } else {
+                targetX += 20;
+                targetY += 20;
+            }
+            ctx.beginPath();
+            ctx.arc(targetX, targetY, 25, 0, Math.PI * 2); // 25 pixel radius
+            ctx.strokeStyle = "rgba(255, 50, 50, 0.8)"; // Bright red
+            ctx.lineWidth = 3;
+            ctx.setLineDash([10, 10]);
+            ctx.lineDashOffset = -(Date.now() / 20) % 20;
+            ctx.stroke();
+            ctx.restore();
+        }
+
         // Debug Hitboxes
         if (this.game.options.debugging) {
-            const isAttacking = (this.animator === this.animations.get("attack")[this.facing]);
+            const isAttacking = (this.animator === this.animations.get("attack")[this.facing]
+                || this.animator === this.animations.get("attack2")[this.facing]);
             if (isAttacking) {
                 ctx.strokeStyle = "red";
                 let range = 60;
