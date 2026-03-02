@@ -47,7 +47,7 @@ class Rat {
         this.slideTimer = 0;
         this.basicAttackRange = 60;         // Reach of the normal space bar attack
         this.basicAttackDamage = 1;         // Damage of the normal attack
-        this.slideSpeed = 800;              // How fast the rat moves during the slide
+        this.slideSpeed = 300;              // How fast the rat moves during the slide
         this.slideTargetRadius = 250;       // Maximum distance to detect an enemy
         this.slideAttackRange = 40;         // How far the attack reaches (Rat stops dashing when this close)
         this.slideAttackDamage = 0.5;       // Damage of the dash attack
