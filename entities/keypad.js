@@ -125,19 +125,22 @@ class Keypad {
     }
 
     draw(ctx) {
-        if (this.linkedSafe.isOpen) return; // Hide or disable visually when done
-
-        // Draw a small physical keypad mounted on the wall
+        // Draw the physical keypad mounted on the wall
         ctx.fillStyle = "#222";
         ctx.fillRect(this.x, this.y, this.width, this.height);
         
         // Small glowing screen light
-        ctx.fillStyle = this.active ? "#0F0" : "red";
+        // If the safe is open, keep the light yellow/green to show it's unlocked.
+        if (this.linkedSafe.isOpen) {
+            ctx.fillStyle = "yellow"; 
+        } else {
+            ctx.fillStyle = this.active ? "#0F0" : "red";
+        }
         ctx.fillRect(this.x + 5, this.y + 5, this.width - 10, 8);
 
-        // Interaction prompt
+        // Interaction prompt (Only show if the safe is NOT already open)
         const rat = this.game.entities.find(e => e.constructor.name === "Rat");
-        if (!this.active && rat && this.interactBox.collide(rat.BB)) {
+        if (!this.active && !this.linkedSafe.isOpen && rat && this.interactBox.collide(rat.BB)) {
             ctx.fillStyle = "white";
             ctx.font = "bold 12px 'Press Start 2P', Courier";
             ctx.textAlign = "center";
