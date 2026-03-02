@@ -523,6 +523,7 @@ class SceneManager {
         rat.health = this.ratHealth; // restore health
         this.game.addEntity(rat);
 
+        this.game.addEntity(new BabyGate(this.game, 200, 470));
         // add door to return to Level 2
         this.game.addEntity(new Door(this.game, 80, 95, "Level2", false));
 

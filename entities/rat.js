@@ -114,13 +114,13 @@ class Rat {
         if (this.poisonCooldown > 0) this.poisonCooldown -= this.game.clockTick;
 
         // 2. Check for the "1" key
-                if (this.game.keys["Digit1"] && this.poisonCooldown <= 0) {
+        if (this.game.keys["Digit1"] && this.poisonCooldown <= 0) {
             const ratCenterX = this.x + (48 * this.scale) / 2;
             const ratCenterY = this.y + (38 * this.scale) / 2;
             const projSize = 64 * this.scale;
             const projX = ratCenterX - projSize / 2;
             const projY = ratCenterY - projSize / 2;
-            
+
             let projectile = new PoisonProjectile(this.game, projX, projY, this.facing, this.scale);
             this.game.addEntity(projectile);
             this.poisonCooldown = this.poisonCooldownMax;
@@ -265,8 +265,10 @@ class Rat {
         let testColliderX = newX + (spriteWidth / 2) - colliderRadius;
         let currentColliderY = this.y + fixedHeight - colliderHeight;
 
+        // Gate Collision Check here x- axis
         if (!this.game.collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight) &&
-            !this.checkYorkieCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
+            !this.checkYorkieCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight) &&
+            !this.checkGateCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
             this.x = newX;
         }
         // checking Y-axis movement only, using potentially UPDATED X we re-calculate X because if we moved left/right
@@ -274,8 +276,10 @@ class Rat {
         let currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
         let testColliderY = newY + fixedHeight - colliderHeight;
 
+        // Gate collision check here Y-Axis
         if (!this.game.collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight) &&
-            !this.checkYorkieCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
+            !this.checkYorkieCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight) &&
+            !this.checkGateCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
             this.y = newY; // safe to move Y
         }
 
@@ -313,7 +317,7 @@ class Rat {
                 }
             }
             //check enemies
-            if (entity.constructor.name === "Snake" && !entity.dead && entity.boundingBox){
+            if (entity.constructor.name === "Snake" && !entity.dead && entity.boundingBox) {
                 if (attackBox.collide(entity.boundingBox)) {
                     entity.takeDamage(1);
                     this.hasHit = true;
@@ -325,16 +329,16 @@ class Rat {
         }
 
         /**
-        // validate Yorkie exists, is in training state,  initialized its own BoundingBox
-        let yorkie = this.game.entities.find(e => e.constructor.name === "Yorkie");
+         // validate Yorkie exists, is in training state,  initialized its own BoundingBox
+         let yorkie = this.game.entities.find(e => e.constructor.name === "Yorkie");
 
-        if (yorkie && yorkie.actionState === "TRAINING" && yorkie.BB) {
-            if (attackBox.collide(yorkie.BB)) {
-                yorkie.health -= 0.5;
-                this.hasHit = true;
-            }
-        }
-        */
+         if (yorkie && yorkie.actionState === "TRAINING" && yorkie.BB) {
+         if (attackBox.collide(yorkie.BB)) {
+         yorkie.health -= 0.5;
+         this.hasHit = true;
+         }
+         }
+         */
     }
 
     checkYorkieCollision(newX, newY, colliderW, colliderH) {
@@ -342,6 +346,15 @@ class Rat {
         if (yorkie && yorkie.BB) {
             let potentialRatBox = new BoundingBox(newX, newY, colliderW, colliderH);
             return potentialRatBox.collide(yorkie.BB);
+        }
+        return false;
+    }
+
+    checkGateCollision(newX, newY, colliderW, colliderH) {
+        let gate = this.game.entities.find(e => e.constructor.name === "BabyGate");
+        if (gate && gate.BB) {
+            let potentialRatBox = new BoundingBox(newX, newY, colliderW, colliderH);
+            return potentialRatBox.collide(gate.BB);
         }
         return false;
     }
@@ -399,7 +412,7 @@ class Rat {
             const barHeight = 5;
             const healthPercent = Math.max(0, this.health / this.maxHealth);
 
-            let barX = drawX + (width/2) - (barWidth/2);
+            let barX = drawX + (width / 2) - (barWidth / 2);
             let barY = drawY - 20;
 
             ctx.fillStyle = "red";
