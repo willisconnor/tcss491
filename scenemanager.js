@@ -438,14 +438,14 @@ class SceneManager {
 
         this.level = ASSET_MANAGER.getAsset("./assets/Level1LivingRoom.json");
         this.levelNumber = 1;
-        this.mapCached = false; // Important: This triggers the map to redraw at the correct scale
+        this.mapCached = false; //triggers the map to redraw at the correct scale
 
         if (this.game.collisionManager) {
             this.game.collisionManager.loadFromTiledJSON(this.level);
         }
 
         let rat = new Rat(this.game, 448, 196);
-        rat.health = this.ratHealth; // restore health
+        rat.health = this.ratHealth; //restore health
         this.game.addEntity(rat);
         this.game.addEntity(new StuartBig(this.game, 200, 215, 2));
         this.game.addEntity(new Yorkie(this.game, 420, 420));
@@ -511,7 +511,7 @@ class SceneManager {
         });
 
         if (!this.hasBeefJerky) {
-            this.game.addEntity(new BeefJerky(this.game, 450, 420)); // Use your actual coordinates
+            this.game.addEntity(new BeefJerky(this.game, 450, 420)); 
         }
 
         // load new Kitchen Map
@@ -525,8 +525,8 @@ class SceneManager {
         }
         this.currentMusicPath = "./assets/MiiParade.mp3";
         this.game.audio.playMusic(this.currentMusicPath);
-        // Add these to loadLevelThree() using coordinates that fit your kitchen layout
-        let safeX = 1075; // Adjust these X and Y coordinates
+        
+        let safeX = 1075; 
         let safeY = 90;
 
         // Create the Safe first
