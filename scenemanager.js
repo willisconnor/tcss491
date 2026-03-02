@@ -525,6 +525,18 @@ class SceneManager {
         }
         this.currentMusicPath = "./assets/MiiParade.mp3";
         this.game.audio.playMusic(this.currentMusicPath);
+        // Add these to loadLevelThree() using coordinates that fit your kitchen layout
+        let safeX = 800; // Adjust these X and Y coordinates
+        let safeY = 200;
+
+        // Create the Safe first
+        let mySafe = new Safe(this.game, safeX, safeY);
+        this.game.addEntity(mySafe);
+
+        // Create the Keypad and pass the mySafe reference into it
+        // Place the keypad near the safe on the wall
+        let myKeypad = new Keypad(this.game, safeX - 60, safeY + 30, mySafe); 
+        this.game.addEntity(myKeypad);
 
         // place Rat at entrance to kitchen door
         let rat = new Rat(this.game, 80, 190);
@@ -891,6 +903,10 @@ class SceneManager {
         let computer = this.game.entities.find(e => e instanceof Computer);
         if (computer) {
             computer.drawUI(ctx);
+        }
+        let keypad = this.game.entities.find(e => e instanceof Keypad);
+        if (keypad) {
+            keypad.drawUI(ctx);
         }
     }
 
