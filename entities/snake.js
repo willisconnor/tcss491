@@ -275,7 +275,8 @@ class Snake extends Enemy{
             const victoryQuotes = [
                 "Sss-see ya later, loser!",
                 "Good riddance, snake.",
-                "SSSS-sucks to suck"
+                "SSSS-sucks to suck",
+                "Imma make a belt outta you"
             ];
             const randomQuote = victoryQuotes[Math.floor(Math.random() * victoryQuotes.length)];
 
