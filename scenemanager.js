@@ -2,7 +2,8 @@ class SceneManager {
     constructor(game) {
         this.game = game;
         this.game.camera = this;
-
+        this.itemPopupActive = false;
+        this.itemPopupText = [];
         this.x = 0;
         this.y = 0;
 
@@ -154,7 +155,7 @@ class SceneManager {
             }
         }
 
-        if (this.paused || this.dialogueActive) {
+        if (this.paused || this.dialogueActive || this.itemPopupActive) {
             this.game.paused = true;
         }
 
@@ -188,7 +189,14 @@ class SceneManager {
             if (!this.paused) this.game.paused = false; else return;
         }
         if (this.dialogueActive) this.dialogue.update();
-
+        if (this.itemPopupActive) {
+            if (this.game.keys["Space"]) {
+                this.itemPopupActive = false;
+                this.game.paused = false;
+                this.game.keys["Space"] = false; // consume key press
+            }
+            return; // pause all other update logic while reading
+        }
         if (this.preDialogueActive) {
             this.preDialogueTimer -= this.game.clockTick;
             if (this.preDialogueTimer <= 0) {
@@ -727,7 +735,42 @@ class SceneManager {
         // now pause menu overlay will draw ON TOP of the music button, we want to gray them out
         if (this.dialogueActive) this.dialogue.draw(ctx);
         if (this.paused) this.pauseMenu.draw(ctx);
+        if (this.itemPopupActive) {
+            let textBox = ASSET_MANAGER.getAsset("./assets/text-box.png");
+            if (textBox) {
+                // made box wider (1100px) to accommodate longer sentences
+                let boxW = 1200;
 
+                // dynamically scale height based on how many lines of text there are
+                // 100 base padding + 40 pixels for each line of text
+                let boxH = 100 + (this.itemPopupText.length * 40);
+
+                let boxX = (ctx.canvas.width - boxW) / 2;
+
+                // anchor it to the bottom of screen -> 40px margin instead of the center
+                let boxY = ctx.canvas.height - boxH - 40;
+
+                // draw custom text-box.png
+                ctx.drawImage(textBox, boxX, boxY, boxW, boxH);
+
+                // set up Google API Font and make it black
+                ctx.fillStyle = "black";
+                ctx.font = "20px 'Press Start 2P', Courier";
+                ctx.textAlign = "center";
+
+                // draw each line of text stacked on top of each other
+                for (let i = 0; i < this.itemPopupText.length; i++) {
+                    ctx.fillText(this.itemPopupText[i], ctx.canvas.width / 2, boxY + 70 + (i * 40));
+                }
+
+                // blinking prompt to continue
+                if (Math.floor(Date.now() / 500) % 2 === 0) {
+                    ctx.font = "12px 'Press Start 2P', Courier";
+                    ctx.fillStyle = "#333333";
+                    ctx.fillText("Press SPACE to continue", ctx.canvas.width / 2, boxY + boxH - 25);
+                }
+            }
+        }
         if (this.isFading) {
             ctx.fillStyle = `rgba(0, 0, 0, ${this.fadeAlpha})`;
             ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);

@@ -32,15 +32,37 @@ class BabyGate {
     }
 
     update() {
-        // if gate is closed and camera has golden key
+        // If the gate is closed and the camera (inventory) has the golden key
         if (!this.isOpen && this.game.camera.hasGoldenKey) {
             const rat = this.game.entities.find(e => e.constructor.name === "Rat");
             if (rat) {
-                // check distance to see if rat is close enough to unlock it
+                // Check distance to see if the rat is close enough to unlock it
                 const dist = Math.sqrt(Math.pow((rat.x - this.x), 2) + Math.pow((rat.y - this.y), 2));
                 if (dist < 100) {
-                    this.isOpen = true; // unlock gate
+                    this.isOpen = true; // Unlock the gate
                     this.updateBB();
+
+                    let dingSound = ASSET_MANAGER.getAsset("./assets/ding.mp3");
+                    if (dingSound) {
+                        let soundClone = dingSound.cloneNode();
+                        soundClone.volume = 0.15;
+                        soundClone.playbackRate = 1.5;
+                        soundClone.currentTime = 0.50;
+                        soundClone.play().catch(e => console.error(e));
+                    }
+
+                    let sm = this.game.camera;
+                    sm.itemPopupText = [
+                        "Access granted! Time to haul your furry",
+                        "butt to the finish line."
+                    ];
+                    sm.itemPopupActive = true;
+                    this.game.click = null;
+                    this.game.keys["Space"] = false;
+                    this.game.paused = true; // pauses game while reading
+
+                    rat.speed = 0;
+                    rat.animator = rat.animations.get("idle")[rat.facing];
                 }
             }
         }
