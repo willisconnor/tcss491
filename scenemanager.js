@@ -526,8 +526,8 @@ class SceneManager {
         this.currentMusicPath = "./assets/MiiParade.mp3";
         this.game.audio.playMusic(this.currentMusicPath);
         // Add these to loadLevelThree() using coordinates that fit your kitchen layout
-        let safeX = 800; // Adjust these X and Y coordinates
-        let safeY = 200;
+        let safeX = 1075; // Adjust these X and Y coordinates
+        let safeY = 90;
 
         // Create the Safe first
         let mySafe = new Safe(this.game, safeX, safeY);
