@@ -87,6 +87,7 @@ class Computer {
                 this.transitionTimer = 0;
                 this.uiScale = 0;
                 this.game.keys["KeyE"] = false;
+                this.game.click = null // prevent accidental clicks from carrying over into UI
                 this.game.typing = true;
                 rat.frozenForDialogue = true;
             }
@@ -121,7 +122,14 @@ class Computer {
             return;
         }
 
-        if (this.game.keys["Escape"]) { this.exit(); return; }
+        if (this.game.keys["Escape"]) {
+            // block escape key cheat during penalty
+            if (this.state === "ANSWER_REVEAL" || this.state === "ERROR_WAIT") {
+                this.game.keys["Escape"] = false;
+            } else {
+                this.exit();
+            }
+            return; }
 
         if (this.game.click) {
             let mx = this.game.click.x;
@@ -132,6 +140,11 @@ class Computer {
             if (this.game.audio) this.game.audio.playSound("./assets/mouse-click.wav");
 
             if (mx > w - 60 && mx < w && my < 60) {
+                // block exit button cheat during penalty
+                if (this.state === "ANSWER_REVEAL" || this.state === "ERROR_WAIT") {
+                    this.game.click = null;
+                    return;
+                }
                 this.exit();
                 this.game.click = null;
                 return;
