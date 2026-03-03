@@ -114,29 +114,24 @@ class SceneManager {
                 this.game.click = null;
                 return;
             }
-            // Check if click is inside the Debug Checkbox
-            if (mouseX >= this.cbX && mouseX <= this.cbX + this.cbSize &&
-                mouseY >= this.cbY && mouseY <= this.cbY + this.cbSize) {
 
-                // ONLY toggle debug mode (removed the instant warp from here)
-                this.game.options.debugging = !this.game.options.debugging;
-                this.game.click = null; // Consume the click
-                return;
-            }
+            // restrict all debug clicks to main menu only
+            if (this.menuActive) {
+                // toggle Debug Mode
+                if (mouseX >= this.cbX && mouseX <= this.cbX + this.cbSize &&
+                    mouseY >= this.cbY && mouseY <= this.cbY + this.cbSize) {
+                    this.game.options.debugging = !this.game.options.debugging;
+                    this.game.click = null;
+                    return;
+                }
 
-            // --- FIX: check for Warp Button clicks ONLY if debugging is ON AND computer UI is NOT active ---
-            if (this.game.options && this.game.options.debugging) {
-                let computer = this.game.entities.find(e => e instanceof Computer);
-
-                // If computer exists and is active, let it handle clicks instead of the debug buttons
-                if (!computer || !computer.active) {
-                    // warp level 2 Button bounds [x: 20, y: 130, w: 220, h: 30]
+                // warp Buttons
+                if (this.game.options && this.game.options.debugging) {
                     if (mouseX >= 20 && mouseX <= 320 && mouseY >= 130 && mouseY <= 160) {
                         this.skipToLevel2Alive();
                         this.game.click = null;
                         return;
                     }
-                    // warp level 3 Button bounds [x: 20, y: 170, w: 220, h: 30]
                     if (mouseX >= 20 && mouseX <= 320 && mouseY >= 170 && mouseY <= 200) {
                         this.skipToLevel3Dead();
                         this.game.click = null;
@@ -499,7 +494,7 @@ class SceneManager {
         });
 
         if (!this.hasBeefJerky) {
-            this.game.addEntity(new BeefJerky(this.game, 450, 420)); 
+            this.game.addEntity(new BeefJerky(this.game, 450, 420));
         }
 
         // load new Kitchen Map
@@ -513,8 +508,8 @@ class SceneManager {
         }
         this.currentMusicPath = "./assets/MiiParade.mp3";
         this.game.audio.playMusic(this.currentMusicPath);
-        
-        let safeX = 1075; 
+
+        let safeX = 1075;
         let safeY = 90;
 
         // Create the Safe first
@@ -523,7 +518,7 @@ class SceneManager {
 
         // Create the Keypad and pass the mySafe reference into it
         // Place the keypad near the safe on the wall
-        let myKeypad = new Keypad(this.game, safeX - 60, safeY + 30, mySafe); 
+        let myKeypad = new Keypad(this.game, safeX - 60, safeY + 30, mySafe);
         this.game.addEntity(myKeypad);
 
         // place Rat at entrance to kitchen door
@@ -574,49 +569,49 @@ class SceneManager {
             this.drawWorld(ctx);
             this.drawOverlays(ctx);
         }
-        // --- NEW DEBUG CHECKBOX ---
-        const x = this.cbX;
-        const y = this.cbY;
-        const size = this.cbSize;
 
-        ctx.save();
+        // ONLY DRAW DEBUG STUFF IF WE ARE ON THE MAIN MENU
+        if (this.menuActive) {
+            const x = this.cbX;
+            const y = this.cbY;
+            const size = this.cbSize;
 
-        ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
-        ctx.fillRect(x, y, size, size);
-
-        ctx.strokeStyle = "#ffcc00";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x, y, size, size);
-
-        ctx.fillStyle = "white";
-        ctx.font = "12px 'Press Start 2P'";
-        ctx.textAlign = "left";
-        ctx.fillText("DEBUG MODE", x + size + 10, y + size - 6);
-        // draw 'X' & Warp Buttons if debugging is on
-        if (this.game.options && this.game.options.debugging) {
-            ctx.fillStyle = "#39FF14";
-            ctx.fillText("X", x + 5, y + size - 5);
-
-            // draw warp buttons
-            ctx.font = "10px 'Press Start 2P'"; // slightly smaller font for buttons
-
-            // button 1: level 2 Alive -> Spawned below the hearts
+            ctx.save();
             ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
-            ctx.fillRect(20, 130, 310, 30);
+            ctx.fillRect(x, y, size, size);
             ctx.strokeStyle = "#ffcc00";
-            ctx.strokeRect(20, 130, 310, 30);
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, size, size);
             ctx.fillStyle = "white";
-            ctx.fillText("WARP Level 2 (SNAKE IS ALIVE)", 35, 151);
+            ctx.font = "12px 'Press Start 2P'";
+            ctx.textAlign = "left";
+            ctx.fillText("DEBUG MODE", x + size + 10, y + size - 6);
 
-            // button 2: Level 3 Dead
-            ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
-            ctx.fillRect(20, 170, 310, 30);
-            ctx.strokeStyle = "#ffcc00";
-            ctx.strokeRect(20, 170, 310, 30);
-            ctx.fillStyle = "white";
-            ctx.fillText("WARP Level 3 (SNAKE IS DEAD)", 35, 191);
+            // draw 'X' & Warp Buttons if debugging is on
+            if (this.game.options && this.game.options.debugging) {
+                ctx.fillStyle = "#39FF14";
+                ctx.fillText("X", x + 5, y + size - 5);
+
+                ctx.font = "10px 'Press Start 2P'";
+
+                // button 1: level 2 Alive
+                ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
+                ctx.fillRect(20, 130, 310, 30);
+                ctx.strokeStyle = "#ffcc00";
+                ctx.strokeRect(20, 130, 310, 30);
+                ctx.fillStyle = "white";
+                ctx.fillText("WARP Level 2 (SNAKE IS ALIVE)", 35, 151);
+
+                // button 2: Level 3 Dead
+                ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
+                ctx.fillRect(20, 170, 310, 30);
+                ctx.strokeStyle = "#ffcc00";
+                ctx.strokeRect(20, 170, 310, 30);
+                ctx.fillStyle = "white";
+                ctx.fillText("WARP Level 3 (SNAKE IS DEAD)", 35, 191);
+            }
+            ctx.restore();
         }
-        ctx.restore();
     }
 
     drawWorld(ctx) {
@@ -937,17 +932,18 @@ class SceneManager {
             } else if (entity.constructor.name === "Computer") {
                 ctx.fillStyle = "blue";
                 ctx.fillRect(entX - 3, entY - 3, 6, 6);
-        } else if (entity.constructor.name === "BeefJerky") {
-            ctx.fillStyle = "brown";
-            ctx.fillRect(entX - 2, entY - 2, 4, 4);
-        } else if (entity.constructor.name === "Cat") {
-            ctx.arc(entX+7, entY+5, 5, 0, Math.PI * 2);
-            ctx.fillStyle = "orange";
-            ctx.fill();
-        } else if (entity.constructor.name === "Safe") {
-            ctx.fillStyle = "#f6ff00";
-            ctx.fillRect(entX-20, entY, 10, 10);
-        }});
+            } else if (entity.constructor.name === "BeefJerky") {
+                ctx.fillStyle = "brown";
+                ctx.fillRect(entX - 2, entY - 2, 4, 4);
+            } else if (entity.constructor.name === "Cat") {
+                ctx.arc(entX + 7, entY + 5, 5, 0, Math.PI * 2);
+                ctx.fillStyle = "orange";
+                ctx.fill();
+            } else if (entity.constructor.name === "Safe") {
+                ctx.fillStyle = "#f6ff00";
+                ctx.fillRect(entX - 20, entY, 10, 10);
+            }
+        });
 
         let viewW = ctx.canvas.width / this.zoom;
         let viewH = ctx.canvas.height / this.zoom;
