@@ -97,6 +97,7 @@ class SceneManager {
 
             this.punchSound.volume = 0.05;
         }
+        this.computerState = null;
     }
 
     update() {
@@ -315,6 +316,9 @@ class SceneManager {
                 if (entity.constructor.name === "Snake" && entity.id) {
                     this.saveSnakeState(entity, entity.id);
                 }
+                if (entity.constructor.name === "Computer") {
+                    this.saveComputerState(entity);
+                }
             });
         }
 
@@ -459,9 +463,19 @@ class SceneManager {
         this.game.addEntity(new Door(this.game, 220, 90, "Level1", false));
         this.game.addEntity(new Door(this.game, 707, 32, "Level3", false));
 
-        // Adjust the X (500) and Y (100) to fit your dining room map!
-        this.game.addEntity(new Computer(this.game, 1280, 490));
+        let myComputer = new Computer(this.game, 1280, 490);
 
+        // restore previous state if returning from level 1 or 3
+        if (this.computerState) {
+            myComputer.resumeState = this.computerState.resumeState;
+            myComputer.isLoggedIn = this.computerState.isLoggedIn;
+            myComputer.isUnlocked = this.computerState.isUnlocked;
+            myComputer.verifyStep = this.computerState.verifyStep;
+            myComputer.progress = this.computerState.progress;
+            myComputer.state = myComputer.resumeState;
+        }
+
+        this.game.addEntity(myComputer);
         //ADD SNAKES TO LEVEL 2: restoring the state
         const stationarySnake = new Snake(this.game, 707, 130, null);
 
@@ -472,6 +486,7 @@ class SceneManager {
         // only add snake to the canvas if its still alive
         if (!stationarySnake.dead) {
             this.game.addEntity(stationarySnake);
+
         }
         console.log("Level 2 Loaded!");
     }
@@ -533,6 +548,15 @@ class SceneManager {
             x: snake.x,
             y: snake.y
         });
+    }
+    saveComputerState(computer) {
+        this.computerState = {
+            resumeState: computer.resumeState,
+            isLoggedIn: computer.isLoggedIn,
+            isUnlocked: computer.isUnlocked,
+            verifyStep: computer.verifyStep,
+            progress: computer.progress
+        };
     }
 
     loadSnakeState(snake, snakeId) {

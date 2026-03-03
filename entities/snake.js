@@ -34,8 +34,8 @@ class Snake extends Enemy{
         this.hurtAnimationTimer = 0;
         this.stateBeforeHurt = null;
 
-        // Load sprite
-        this.sprite = ASSET_MANAGER.getAsset("./assets/Snake.png");
+        // Load sprite (Deleted unused sprite, this code below was for old sprite)
+        //this.sprite = ASSET_MANAGER.getAsset("./assets/Snake.png");
 
         // Dimensions for bounding box
         this.width = 16 * this.scale;

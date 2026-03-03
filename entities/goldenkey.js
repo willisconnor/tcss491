@@ -54,13 +54,10 @@ class GoldenKey {
                     this.showMessage = true;
                     this.game.paused = true; // pauses REST of the world
                     // play ding sound effect
-                    let dingRaw = ASSET_MANAGER.getAsset("./assets/ding.mp3");
+                    let dingRaw = ASSET_MANAGER.getAsset("./assets/ding.wav");
                     if (dingRaw) {
                         let dingSound = dingRaw.cloneNode();
-                        // fixing sound effect volume too loud! & delayed
-                        dingSound.volume = 0.15;        // lowers volume scale of [0.0 to 1.0]
-                        dingSound.playbackRate = 1.5;   // speeds up sound by 50% so "ding" hits faster
-                        dingSound.currentTime = 0.50;   // skips first 0.50 seconds to bypass MP3 silence
+                        dingSound.volume = 0.3;        // lowers volume scale of [0.0 to 1.0]
                         dingSound.play().catch(e => console.error(e));
                     }
                 }
