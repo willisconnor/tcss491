@@ -117,15 +117,12 @@ class SceneManager {
 
             // restrict all debug clicks to main menu only
             if (this.menuActive) {
-                // toggle Debug Mode
                 if (mouseX >= this.cbX && mouseX <= this.cbX + this.cbSize &&
                     mouseY >= this.cbY && mouseY <= this.cbY + this.cbSize) {
                     this.game.options.debugging = !this.game.options.debugging;
                     this.game.click = null;
                     return;
                 }
-
-                // warp Buttons
                 if (this.game.options && this.game.options.debugging) {
                     if (mouseX >= 20 && mouseX <= 320 && mouseY >= 130 && mouseY <= 160) {
                         this.skipToLevel2Alive();
@@ -140,7 +137,6 @@ class SceneManager {
                 }
             }
         }
-
 
         if (this.game.keys["Escape"]) {
             if (!this.menuActive) {
@@ -188,9 +184,9 @@ class SceneManager {
             if (this.game.keys["Space"]) {
                 this.itemPopupActive = false;
                 this.game.paused = false;
-                this.game.keys["Space"] = false; // consume key press
+                this.game.keys["Space"] = false;
             }
-            return; // pause all other update logic while reading
+            return;
         }
         if (this.preDialogueActive) {
             this.preDialogueTimer -= this.game.clockTick;
@@ -227,56 +223,42 @@ class SceneManager {
             let viewW = this.game.ctx.canvas.width / this.zoom;
             let viewH = this.game.ctx.canvas.height / this.zoom;
 
-            // trigger cutscene when entering Level 2
             if (this.levelNumber === 2 && !this.snakeIntroPlayed) {
                 let snake = this.game.entities.find(e => e.constructor.name === "Snake" && e.id === "level2_snake_main");
                 if (snake && rat.x > 300 && this.cameraState === "FOLLOW_RAT") {
                     this.cameraState = "PAN_TO_SNAKE";
-                    this.game.paused = true; // pause gameplay entities
-                    snake.facing = 0; // force snake to look left at the door
+                    this.game.paused = true;
+                    snake.facing = 0;
                 }
             }
 
-            // handle camera states
             if (this.cameraState === "PAN_TO_SNAKE") {
-                this.game.paused = true; // FORCE PAUSE during pan
-
+                this.game.paused = true;
                 let snake = this.game.entities.find(e => e.constructor.name === "Snake" && e.id === "level2_snake_main");
-
-                // ZOOM IN -> 3.0 scale
                 let targetZoom = 3.0;
                 this.zoom += (targetZoom - this.zoom) * 0.05;
 
-                // recalculate view window since the zoom level changed
                 viewW = this.game.ctx.canvas.width / this.zoom;
                 viewH = this.game.ctx.canvas.height / this.zoom;
 
                 let targetX = snake.x - (viewW / 2);
                 let targetY = snake.y - (viewH / 2);
 
-                // clamp target to world bounds BEFORE checking distance
                 targetX = Math.max(0, Math.min(targetX, this.worldWidth - viewW));
                 targetY = Math.max(0, Math.min(targetY, this.worldHeight - viewH));
 
-                // smoothly move camera to snake
                 this.x += (targetX - this.x) * 0.05;
                 this.y += (targetY - this.y) * 0.05;
 
-                // if close enough in BOTH position and zoom, start dialogue
                 if (Math.abs(this.x - targetX) < 5 && Math.abs(this.y - targetY) < 5 && Math.abs(this.zoom - targetZoom) < 0.05) {
                     this.cameraState = "DIALOGUE";
-
-                    // setup custom choice dialogue
                     this.dialogue.phase = "INTRO";
                     this.dialogue.currentIndex = 0;
-
                     this.dialogue.charIndex = 0;
                     this.dialogue.displayText = "";
                     this.game.click = null;
                     this.game.keys["Space"] = false;
-
-                    // assign new sprite sheet instead of null
-                    this.dialogue.portrait = ASSET_MANAGER.getAsset("./assets/snake-portrait.png"); // Make sure this path matches your file!
+                    this.dialogue.portrait = ASSET_MANAGER.getAsset("./assets/snake-portrait.png");
                     this.dialogue.speaker = "Silent Slitherer";
                     this.dialogue.dialogues = [
                         {speaker: "Snake", text: "Isss-sss that a sss-nack I ssssmell?", type: "dialogue"},
@@ -287,22 +269,18 @@ class SceneManager {
                                 {text: "You're in my way", response: "Then come closer"},
                                 {text: "Please let me pass.", response: "Begging only makes you softer."}
                             ], nextIndex: 2
-                        } // points to index 2 which is out of bounds to naturally exit
+                        }
                     ];
                     this.dialogueActive = true;
                 }
             } else if (this.cameraState === "DIALOGUE") {
-                this.game.paused = true; // FORCE PAUSE during dialogue
-
-                // wait for dialogue to finish
+                this.game.paused = true;
                 if (!this.dialogueActive) {
                     this.cameraState = "PAN_TO_RAT";
                     this.snakeIntroPlayed = true;
                 }
             } else if (this.cameraState === "PAN_TO_RAT") {
-                this.game.paused = true; // FORCE PAUSE during pan
-
-                // zoom back out default 1.75 scale
+                this.game.paused = true;
                 let targetZoom = 1.75;
                 this.zoom += (targetZoom - this.zoom) * 0.05;
 
@@ -315,72 +293,75 @@ class SceneManager {
                 targetX = Math.max(0, Math.min(targetX, this.worldWidth - viewW));
                 targetY = Math.max(0, Math.min(targetY, this.worldHeight - viewH));
 
-                // back to rat
                 this.x += (targetX - this.x) * 0.05;
                 this.y += (targetY - this.y) * 0.05;
 
-                // if close enough; resume game
                 if (Math.abs(this.x - targetX) < 5 && Math.abs(this.y - targetY) < 5 && Math.abs(this.zoom - targetZoom) < 0.05) {
                     this.cameraState = "FOLLOW_RAT";
                     this.game.paused = false;
-                    this.zoom = 1.75; // lock it exactly back to normal to prevent jitter
+                    this.zoom = 1.75;
                 }
             } else {
-                // FOLLOW_RAT -> Normal gameplay
                 this.x = rat.x - (viewW / 2);
                 this.y = rat.y - (viewH / 2);
             }
 
-            // keep camera within world bounds
             this.x = Math.max(0, Math.min(this.x, this.worldWidth - viewW));
             this.y = Math.max(0, Math.min(this.y, this.worldHeight - viewH));
-        }        //snake state saving for level 2
+        }
+
         if (this.levelNumber === 2) {
             this.game.entities.forEach(entity => {
-                // check for static id so movement doesn't break save state
                 if (entity.constructor.name === "Snake" && entity.id) {
                     this.saveSnakeState(entity, entity.id);
                 }
             });
         }
-        // lose scenario trigger based on current level if rat dies
-        if (!this.loseState && !this.catLoseState && rat && rat.health <= 0 && this.ratLives === 0) {
-            if (this.levelNumber === 3) {
-                // Cat lose scenario for Level 3
+
+        // Death Trigger Logic
+        if (!this.loseState && !this.catLoseState && !this.computerLoseState && !this.safeLoseState && rat && rat.health <= 0 && this.ratLives === 0) {
+            if (this.deathReason === "COMPUTER") {
+                this.computerLoseState = true;
+                this.loseTimer = 0;
+                this.game.click = null;
+                Object.keys(this.game.keys).forEach(k => this.game.keys[k] = false);
+
+                // music will loop continuously
+                this.game.audio.playMusic("./assets/loseHumanVerification.mp3", true);
+                this.game.audio.setVolume(0.75);
+
+            } else if (this.deathReason === "SAFE") {
+                this.safeLoseState = true;
+                this.loseTimer = 0;
+                this.game.click = null;
+                Object.keys(this.game.keys).forEach(k => this.game.keys[k] = false);
+            } else if (this.levelNumber === 3) {
                 this.catLoseState = true;
                 this.loseTimer = 0;
                 this.game.click = null;
                 Object.keys(this.game.keys).forEach(k => this.game.keys[k] = false);
-
                 this.game.audio.playMusic("./assets/sad-meow-song.mp3", true);
                 this.game.audio.setVolume(0.05);
             } else {
-                // Snake lose scenario for Level 2 (or default)
                 this.loseState = true;
                 this.loseTimer = 0;
                 this.game.click = null;
                 Object.keys(this.game.keys).forEach(k => this.game.keys[k] = false);
-
-                // play music
                 this.game.audio.playMusic("./assets/in-the-arms-of-an-angel.mp3", true);
             }
         }
 
+        // Default / Snake Lose
         if (this.loseState) {
             this.loseTimer += this.game.clockTick;
-
-            // play crunch only after 5 second fade transition
             if (this.loseTimer >= 5 && this.loseTimer - this.game.clockTick < 5) {
                 if (this.crunchSound) {
                     this.crunchSound.currentTime = 0;
                     this.crunchSound.play().catch(e => console.error(e));
                 }
             }
-
-            // restart logic, adjusted to 15 because of the 5 second delay
             if (this.loseTimer > 10) {
                 let anyKeyPressed = Object.values(this.game.keys).some(k => k === true);
-
                 if (!this.isReloading && (this.game.click || anyKeyPressed)) {
                     this.isReloading = true;
                     if (this.crunchSound) this.crunchSound.pause();
@@ -389,24 +370,32 @@ class SceneManager {
             }
         }
 
-        // timer logic for cat lose state
+        // cat Lose
         if (this.catLoseState) {
             this.loseTimer += this.game.clockTick;
-
-            // start punch sound exactly when the 5 second fade finishes
             if (this.loseTimer >= 5 && this.loseTimer - this.game.clockTick < 5) {
                 if (this.punchSound) {
                     this.punchSound.currentTime = 0;
                     this.punchSound.play().catch(e => console.error(e));
                 }
             }
-
-            // wait 10 seconds->5 for fade 5 for scene before allowing restart
             if (this.loseTimer > 10) {
                 let anyKeyPressed = Object.values(this.game.keys).some(k => k === true);
                 if (!this.isReloading && (this.game.click || anyKeyPressed)) {
                     this.isReloading = true;
-                    if (this.punchSound) this.punchSound.pause(); // stop punch sound on restart
+                    if (this.punchSound) this.punchSound.pause();
+                    location.reload();
+                }
+            }
+        }
+
+        // computer / safe Lose
+        if (this.computerLoseState || this.safeLoseState) {
+            this.loseTimer += this.game.clockTick;
+            if (this.loseTimer > 5) {
+                let anyKeyPressed = Object.values(this.game.keys).some(k => k === true);
+                if (!this.isReloading && (this.game.click || anyKeyPressed)) {
+                    this.isReloading = true;
                     location.reload();
                 }
             }
@@ -633,62 +622,52 @@ class SceneManager {
 
     drawOverlays(ctx) {
         ctx.restore();
-        // updated lives hud - flashing red mechanism
         let heartAsset = ASSET_MANAGER.getAsset("./assets/hearts.png");
         if (heartAsset) {
-            const heartWidth = 200;  // 600px total / 3 frames
+            const heartWidth = 200;
             const heartHeight = 200;
-            const scale = 0.40;      // scales it down
+            const scale = 0.40;
             const drawW = heartWidth * scale;
             const drawH = heartHeight * scale;
-            const startX = 20;       // top left X position
-            const startY = 30;       // pushed down slightly
-            const spacing = 0;      // if you want spacing
+            const startX = 20;
+            const startY = 30;
+            const spacing = 0;
 
-            // Find the rat to check its recovery status and timer
             let rat = this.game.entities.find(e => e.constructor.name === "Rat");
             let isRecovering = rat && rat.isRecovering;
             let recoveryTimer = rat ? rat.recoveryTimer : 0;
 
             for (let i = 0; i < 3; i++) {
-                let sourceX = 0; // default-> pink (Frame 0)
-
+                let sourceX = 0;
                 if (i < this.ratLives) {
-                    // if we are currently recovering AND this is the heart about to be lost
                     if (isRecovering && i === this.ratLives - 1) {
-                        // flash red every 0.1 seconds
-                        // Math.floor(timer / 0.1) % 2 toggles rapidly between true/false
                         let flashRed = Math.floor(recoveryTimer / 0.1) % 2 === 0;
-                        sourceX = flashRed ? 200 : 0; // 200 is Red, 0 is Pink
+                        sourceX = flashRed ? 200 : 0;
                     } else {
-                        // normal alive heart
-                        sourceX = 0; // pink
+                        sourceX = 0;
                     }
                 } else {
-                    // life already lost
-                    sourceX = 400; // gray (Frame 2)
+                    sourceX = 400;
                 }
 
                 ctx.drawImage(
                     heartAsset,
-                    sourceX, 0, heartWidth, heartHeight, // source rectangle (clipping sprite)
-                    startX + i * (drawW + spacing), startY, drawW, drawH // destination rectangle (on screen)
+                    sourceX, 0, heartWidth, heartHeight,
+                    startX + i * (drawW + spacing), startY, drawW, drawH
                 );
             }
-            // This is for the rat coordinate (bottom left) -> to help jayda w/ finding where computer is located
             if (this.game.options && this.game.options.debugging) {
-                let rat = this.game.entities.find(e => e.constructor.name === "Rat");
                 if (rat) {
                     ctx.save();
                     ctx.fillStyle = "red";
                     ctx.font = "bold 40px 'Courier New', Courier, monospace";
                     ctx.textAlign = "left";
-                    // Draws text 20px from the left, 20px from the bottom
                     ctx.fillText(`X: ${Math.floor(rat.x)} | Y: ${Math.floor(rat.y)}`, 40, ctx.canvas.height - 40);
                     ctx.restore();
                 }
             }
         }
+
         this.drawMinimap(ctx);
         const aspect = this.worldHeight / this.worldWidth;
         const mapH = this.minimapWidth * aspect;
@@ -715,49 +694,36 @@ class SceneManager {
         ctx.fillText("MUSIC", x + 30, y + 45);
         ctx.restore();
 
-        // now pause menu overlay will draw ON TOP of the music button, we want to gray them out
         if (this.dialogueActive) this.dialogue.draw(ctx);
         if (this.paused) this.pauseMenu.draw(ctx);
         if (this.itemPopupActive) {
             let textBox = ASSET_MANAGER.getAsset("./assets/text-box.png");
             if (textBox) {
                 let boxW = 1200;
-
-                // Increased base padding from 100 to 120 for better breathing room
                 let boxH = 120 + (this.itemPopupText.length * 40);
-
                 let boxX = (ctx.canvas.width - boxW) / 2;
                 let boxY = ctx.canvas.height - boxH - 40;
 
-                // draw custom text-box.png
                 ctx.drawImage(textBox, boxX, boxY, boxW, boxH);
-
                 ctx.fillStyle = "black";
                 ctx.font = "20px 'Press Start 2P', Courier";
                 ctx.textAlign = "center";
-
-                // NEW: Forces the text to render perfectly centered vertically!
                 ctx.textBaseline = "middle";
 
-                // draw each line of text stacked on top of each other
                 for (let i = 0; i < this.itemPopupText.length; i++) {
-                    // Lowered the starting offset so it sits comfortably in the box
                     ctx.fillText(this.itemPopupText[i], ctx.canvas.width / 2, boxY + 80 + (i * 40));
                 }
 
-                // blinking prompt to continue
                 if (Math.floor(Date.now() / 500) % 2 === 0) {
                     ctx.font = "12px 'Press Start 2P', Courier";
                     ctx.fillStyle = "#333333";
-                    // Pushed the prompt slightly lower too
                     ctx.fillText("Press SPACE to continue", ctx.canvas.width / 2, boxY + boxH - 60);
                 }
-
-                // CRITICAL: Reset baseline so it doesn't break other text (like the debug menu)
                 ctx.textBaseline = "alphabetic";
             }
-            return; // pause all other draw overlay logic while reading
+            return;
         }
+
         if (this.isFading) {
             ctx.fillStyle = `rgba(0, 0, 0, ${this.fadeAlpha})`;
             ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -768,16 +734,14 @@ class SceneManager {
             }
         }
 
-        // draw lose screen
         if (this.loseState) {
-            // slow fade to black
             if (this.loseTimer < 5) {
                 ctx.save();
                 ctx.fillStyle = "black";
                 ctx.globalAlpha = Math.min(1, this.loseTimer / 5);
                 ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
                 ctx.restore();
-                return; // wait 5 seconds before showing snake eat animation
+                return;
             }
             ctx.save();
             ctx.fillStyle = "black";
@@ -819,16 +783,15 @@ class SceneManager {
                 ctx.fillText("PRESS ANY KEY TO RESTART", ctx.canvas.width / 2, ctx.canvas.height - 20);
             }
         }
-        // draw cat lose screen
+
         if (this.catLoseState) {
-            // slow fade to black
             if (this.loseTimer < 5) {
                 ctx.save();
                 ctx.fillStyle = "black";
                 ctx.globalAlpha = Math.min(1, this.loseTimer / 5);
                 ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
                 ctx.restore();
-                return; // wait 5 seconds before showing animation
+                return;
             }
 
             ctx.save();
@@ -837,15 +800,12 @@ class SceneManager {
             ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
             ctx.restore();
 
-            // scaled up image
-            const scale = 1.5; // 1.0 is normal; 2.0 is double size, settled for 1.5
-
+            const scale = 1.5;
             const frameWidth = 533.33 * scale;
             const frameHeight = 529 * scale;
             const xPos = (ctx.canvas.width - frameWidth) / 2;
             const yPos = (ctx.canvas.height - frameHeight) / 2;
 
-            // pass the new scale variable as the last argument
             this.catEatAnim.drawFrame(this.game.clockTick, ctx, xPos, yPos, scale);
 
             ctx.fillStyle = "white";
@@ -875,6 +835,59 @@ class SceneManager {
                 ctx.fillText("PRESS ANY KEY TO RESTART", ctx.canvas.width / 2, ctx.canvas.height - 40);
             }
         }
+
+        if (this.computerLoseState || this.safeLoseState) {
+            ctx.save();
+            ctx.fillStyle = "black";
+            ctx.globalAlpha = Math.min(1, this.loseTimer / 2);
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.restore();
+
+            if (this.loseTimer > 2) {
+                let boxWidth = 950;
+                let boxHeight = 300;
+                let boxX = (ctx.canvas.width - boxWidth) / 2;
+                let boxY = ctx.canvas.height / 2 - boxHeight / 2;
+
+                ctx.save();
+                ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+                ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+                ctx.strokeStyle = "white";
+                ctx.lineWidth = 4;
+                ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+                ctx.restore();
+
+                ctx.textAlign = "center";
+
+                if (this.computerLoseState) {
+                    ctx.fillStyle = "red";
+                    // game over text
+                    ctx.font = "bold 48px 'Press Start 2P', Courier";
+                    ctx.fillText("GAME OVER", ctx.canvas.width / 2, boxY + 60);
+
+                    // smaller subtext
+                    ctx.font = "20px 'Press Start 2P', Courier";
+                    ctx.fillText("Security tripped the giants are coming", ctx.canvas.width / 2, boxY + 110);
+                    ctx.fillText("and they brought the big traps.", ctx.canvas.width / 2, boxY + 150);
+                    ctx.font = "bold 100px 'Press Start 2P', Courier";
+                    ctx.fillText("🤡", ctx.canvas.width / 2, boxY + 250);
+                } else if (this.safeLoseState) {
+                    ctx.fillStyle = "white";
+                    ctx.font = "20px 'Press Start 2P', Courier";
+                    ctx.fillText("Game Over: You've been locked out.", ctx.canvas.width / 2, boxY + 60);
+                    ctx.fillText("The colony will starve, but hey,", ctx.canvas.width / 2, boxY + 95);
+                    ctx.fillText("at least you tried... poorly.", ctx.canvas.width / 2, boxY + 130);
+                }
+
+                if (this.loseTimer > 5) {
+                    ctx.font = "30px 'Press Start 2P', Courier";
+                    ctx.fillStyle = "red";
+                    ctx.textAlign = "center";
+                    ctx.fillText("PRESS ANY KEY TO RESTART", ctx.canvas.width / 2, ctx.canvas.height - 40);
+                }
+            }
+        }
+
         let computer = this.game.entities.find(e => e instanceof Computer);
         if (computer) {
             computer.drawUI(ctx);
