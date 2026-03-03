@@ -348,16 +348,29 @@ class SceneManager {
                 }
             });
         }
-        // lose scenario trigger for level 2 if rat dies (no more E key debug box)
+        // lose scenario trigger based on current level if rat dies
         if (!this.loseState && !this.catLoseState && rat && rat.health <= 0 && this.ratLives === 0) {
-            this.loseState = true;
-            this.loseTimer = 0;
-            this.game.click = null;
-            Object.keys(this.game.keys).forEach(k => this.game.keys[k] = false);
+            if (this.levelNumber === 3) {
+                // Cat lose scenario for Level 3
+                this.catLoseState = true;
+                this.loseTimer = 0;
+                this.game.click = null;
+                Object.keys(this.game.keys).forEach(k => this.game.keys[k] = false);
 
-            // play music
-            this.game.audio.playMusic("./assets/in-the-arms-of-an-angel.mp3", true);
+                this.game.audio.playMusic("./assets/sad-meow-song.mp3", true);
+                this.game.audio.setVolume(0.05);
+            } else {
+                // Snake lose scenario for Level 2 (or default)
+                this.loseState = true;
+                this.loseTimer = 0;
+                this.game.click = null;
+                Object.keys(this.game.keys).forEach(k => this.game.keys[k] = false);
+
+                // play music
+                this.game.audio.playMusic("./assets/in-the-arms-of-an-angel.mp3", true);
+            }
         }
+
         if (this.loseState) {
             this.loseTimer += this.game.clockTick;
 
@@ -377,31 +390,6 @@ class SceneManager {
                     this.isReloading = true;
                     if (this.crunchSound) this.crunchSound.pause();
                     location.reload();
-                }
-            }
-        }
-        // level 3 cat lose scenario debug trigger
-        if (this.levelNumber === 3) {
-            let rat = this.game.entities.find(e => e.constructor.name === "Rat");
-            let boxX = 138, boxY = 261, boxW = 50, boxH = 50;
-
-            if (!this.catLoseState && rat &&
-                rat.x < boxX + boxW && rat.x + (48 * rat.scale) > boxX &&
-                rat.y < boxY + boxH && rat.y + (38 * rat.scale) > boxY) {
-
-                if (this.game.keys["KeyE"]) {
-                    this.catLoseState = true;
-                    this.loseTimer = 0;
-                    rat.health = 0;
-                    this.ratLives = 0;
-
-                    this.game.click = null;
-                    Object.keys(this.game.keys).forEach(k => this.game.keys[k] = false);
-                    this.game.keys["KeyE"] = false;
-                    this.game.audio.playMusic("./assets/sad-meow-song.mp3", true);
-                    // lower volume for this specific song
-                    // default is 0.15, so 0.05 or 0.08 to make it quieter
-                    this.game.audio.setVolume(0.05);
                 }
             }
         }
@@ -645,21 +633,6 @@ class SceneManager {
             if (this.game.collisionManager) {
                 this.game.collisionManager.draw(ctx);
             }
-        }
-        // draw the red trigger box in Level 3 for all players
-        if (this.levelNumber === 3) {
-            ctx.strokeStyle = "red";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(138, 261, 50, 50);
-
-            ctx.fillStyle = "rgba(255, 0, 0, 0.3)";
-            ctx.fillRect(138, 261, 50, 50);
-
-            ctx.fillStyle = "white";
-            ctx.font = "10px 'Press Start 2P', Courier"; // slightly smaller font to fit
-            // Drawing the text slightly above the box so it isn't too cluttered
-            ctx.textAlign = "left";
-            ctx.fillText("Press E for lvl 3 lose", 138, 245);
         }
     }
 
