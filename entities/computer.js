@@ -346,6 +346,7 @@ class Computer {
         ctx.fillRect(w - 60, 0, 60, 40);
         ctx.fillStyle = "white";
         ctx.font = "bold 20px Arial";
+        ctx.textAlign = "center"; // centered exit button
         ctx.fillText("EXIT", w - 30, 28);
 
         ctx.restore();
