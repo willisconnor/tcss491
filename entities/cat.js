@@ -11,7 +11,7 @@ class Cat extends Enemy{
             5,
             100,
             30,
-            0.5
+            0.75
         );
         this.facing = 1; // 0=left, 1=right, 2=down, 3=up
 
@@ -78,35 +78,6 @@ class Cat extends Enemy{
             loop
         );
     }
-    updateBoundingBox() {
-        // size of the torso box
-        let bbWidth = 35 * this.scale;
-        let bbHeight = 35 * this.scale;
-
-        // base centered offsets
-        let offsetX = (this.width - bbWidth) / 2;
-        let offsetY = (this.height - bbHeight) / 2;
-
-        // dynamically shift box based on where the cat is looking
-        // 0=left, 1=right, 2=down, 3=up
-        if (this.facing === 0) {
-            // facing left-> tail is on the right; torso is on the left
-            offsetX -= 0;
-        } else if (this.facing === 1) {
-            // facing right -> the tail is on the left; torso is on the right
-            offsetX += 0;
-        } else if (this.facing === 2) {
-            // facing down -> torso is centered; shift slightly down
-            offsetY += 5 * this.scale;
-        } else if (this.facing === 3) {
-            // facing up -> torso is centered
-            offsetY += 5 * this.scale;
-        }
-
-        // apply newly calculated box
-        this.boundingBox = new BoundingBox(this.x + offsetX, this.y + offsetY, bbWidth, bbHeight);
-    }
-
     // facing: 0=left, 1=right, 2=down, 3=up
     loadAnimations() {
         this.animations = new Map();
@@ -126,8 +97,8 @@ class Cat extends Enemy{
         this.animations.get("idle")[3] = this.makeAnim(24, 5); // Up
 
         // --- WALK ---
-        this.animations.get("walk")[0] = this.makeAnim(5, 6); // Left
-        this.animations.get("walk")[1] = this.makeAnim(4, 6); // Right
+        this.animations.get("walk")[0] = this.makeAnim(4, 6); // Left
+        this.animations.get("walk")[1] = this.makeAnim(5, 6); // Right
         this.animations.get("walk")[2] = this.makeAnim(2, 6); // Down
         this.animations.get("walk")[3] = this.makeAnim(3, 6); // Up
 
@@ -160,19 +131,177 @@ class Cat extends Enemy{
             this.animations.get("death")[i] = sleepAnim;
         }
     }
-    moveToward(targetX, targetY){
+    updateBoundingBox() {
+        // size of the torso box
+        let bbWidth = 35 * this.scale;
+        let bbHeight = 35 * this.scale;
+
+        // make BB much wider and taller when sleeping to block the rat from sliding under
+        if (this.state === "SLEEPING") {
+            bbWidth = 55 * this.scale;
+            bbHeight = 45 * this.scale;
+        }
+
+        // base centered offsets
+        let offsetX = (this.width - bbWidth) / 2;
+        let offsetY = (this.height - bbHeight) / 2;
+
+        // dynamically shift box based on where the cat is looking
+        if (this.state === "SLEEPING") {
+            offsetY += 8 * this.scale; // Push bounding box down slightly to cover the bed
+        } else if (this.facing === 0) {
+            offsetX -= 0;
+        } else if (this.facing === 1) {
+            offsetX += 0;
+        } else if (this.facing === 2) {
+            offsetY += 5 * this.scale;
+        } else if (this.facing === 3) {
+            offsetY += 5 * this.scale;
+        }
+
+        // apply newly calculated box
+        this.boundingBox = new BoundingBox(this.x + offsetX, this.y + offsetY, bbWidth, bbHeight);
+    }
+    moveWithSlidingCat(clockTick, collisionManager, target, spriteWidth, spriteHeight, colliderRadius) {
+        const colliderWidth = colliderRadius * 2;
+        const colliderHeight = colliderRadius;
+        const slideAmount = (150 * this.speed) * clockTick;
+
+        // base intended movement (from moveToward)
+        let moveX = this.velocity.x * clockTick;
+        let moveY = this.velocity.y * clockTick;
+
+        if (target) {
+            let targetDirX = target.x > this.x ? 1 : -1;
+            let targetDirY = target.y > this.y ? 1 : -1;
+            // if currently hugging a wall IGNORE standard movement & force slide
+            if (this.isExtricatingX) {
+                // test if original X direction to target is finally free
+                let testFreeX = this.x + (targetDirX * slideAmount);
+                let testColliderX = testFreeX + (spriteWidth / 2) - colliderRadius;
+                let currentColliderY = this.y + spriteHeight - colliderHeight;
+
+                if (!collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
+                    //  X-axis is finally free; break out of wall hugging
+                    this.isExtricatingX = false;
+                } else {
+                    // blocked, ignore moveToward & FORCE slide along Y
+                    moveX = 0;
+                    moveY = this.extricateDirY * slideAmount;
+                }
+            } else if (this.isExtricatingY) {
+                // test if Y direction is finally free
+                let testFreeY = this.y + (targetDirY * slideAmount);
+                let currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
+                let testColliderY = testFreeY + spriteHeight - colliderHeight;
+
+                if (!collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
+                    this.isExtricatingY = false;
+                } else {
+                    moveY = 0;
+                    moveX = this.extricateDirX * slideAmount;
+                }
+            }
+        }
+
+        let xBlocked = false;
+        let yBlocked = false;
+
+        // apply x movement
+        if (Math.abs(moveX) > 0.001) {
+            const testX = this.x + moveX;
+            const testColliderX = testX + (spriteWidth / 2) - colliderRadius;
+            const currentColliderY = this.y + spriteHeight - colliderHeight;
+
+            if (!collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
+                this.x = testX;
+            } else {
+                xBlocked = true;
+                this.velocity.x = 0;
+            }
+        }
+
+        // apply y movement
+        if (Math.abs(moveY) > 0.001) {
+            const testY = this.y + moveY;
+            const currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
+            const testColliderY = testY + spriteHeight - colliderHeight;
+
+            if (!collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
+                this.y = testY;
+            } else {
+                yBlocked = true;
+                this.velocity.y = 0;
+            }
+        }
+
+        // initiate wall hugging
+        if (target && !this.isExtricatingX && !this.isExtricatingY) {
+            if (xBlocked) {
+                this.isExtricatingX = true;
+                this.extricateDirY = target.y >= this.y ? 1 : -1;
+
+                // test first slide step
+                let testY = this.y + (this.extricateDirY * slideAmount);
+                let testColliderY = testY + spriteHeight - colliderHeight;
+                let currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
+
+                if (!collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
+                    this.y = testY;
+                } else {
+                    // corner trap on frame 1: Reverse slide direction forever for wall.
+                    this.extricateDirY *= -1;
+                }
+            } else if (yBlocked) {
+                this.isExtricatingY = true;
+                this.extricateDirX = target.x >= this.x ? 1 : -1;
+
+                let testX = this.x + (this.extricateDirX * slideAmount);
+                let testColliderX = testX + (spriteWidth / 2) - colliderRadius;
+                let currentColliderY = this.y + spriteHeight - colliderHeight;
+
+                if (!collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
+                    this.x = testX;
+                } else {
+                    this.extricateDirX *= -1;
+                }
+            }
+        }
+        // handle inner corners
+        else if (target) {
+            // if cat is sliding along a wall but suddenly hits another wall, inner corner, turn around
+            if (this.isExtricatingX && yBlocked) {
+                this.extricateDirY *= -1;
+            }
+            if (this.isExtricatingY && xBlocked) {
+                this.extricateDirX *= -1;
+            }
+        }
+    }
+    moveToward(targetX, targetY) {
         const dx = targetX - this.x;
         const dy = targetY - this.y;
-
-        // 150 * this.speed so poison slowdown (0.4x modifier) works correctly
         const pixelsPerSecond = 150 * this.speed;
+        const stickiness = 40;
 
-        if (Math.abs(dx) > Math.abs(dy)) {
+        let weightX = Math.abs(dx);
+        let weightY = Math.abs(dy);
+
+        // track stickiness using memory instead of velocity, so wall bumps don't break it
+        if (this.lastAxis === 'X') weightX += stickiness;
+        if (this.lastAxis === 'Y') weightY += stickiness;
+
+        if (Math.abs(dx) < 5) weightX = 0;
+        if (Math.abs(dy) < 5) weightY = 0;
+
+        if (weightX > weightY) {
             this.velocity.x = dx > 0 ? pixelsPerSecond : -pixelsPerSecond;
             this.velocity.y = 0;
+            this.lastAxis = 'X'; // Remember we chose X
         } else {
             this.velocity.x = 0;
             this.velocity.y = dy > 0 ? pixelsPerSecond : -pixelsPerSecond;
+            this.lastAxis = 'Y'; // Remember we chose Y
         }
     }
 
@@ -267,31 +396,94 @@ class Cat extends Enemy{
     }
 
     onDeath() {
-        this.state = "DEAD";
-        // move to specific coordinates to sleep permanently
-        this.x = 1181;
-        this.y = 503;
-        let anim = this.animations.get("death")[this.facing];
-        if (anim) {
-            anim.elapsedTime = 0;
-        }
-        this.currentAnimation = anim;
+        if (this.state === "DEFEATED_WALK" || this.state === "SLEEPING") return;
+
+        this.state = "DEFEATED_WALK";
         this.velocity.x = 0;
         this.velocity.y = 0;
+
+        // generate waypoint path to avoid complex obstacles!
+        this.retreatPath = this.getRetreatPath();
+        this.retreatIndex = 0;
+
+        // PAUSE game engine so text box doesn't vanish
+        this.game.paused = true;
+        this.game.keys["Space"] = false;
+
+        if (this.game.camera) {
+            this.game.camera.itemPopupText = [
+                "Tough luck, furball! Go pop that.",
+                "safe open, and claim your cheese, king."
+            ];
+            this.game.camera.itemPopupActive = true;
+        }
     }
 
     update() {
         // Poison tick
         this.updatePoison(this.game.clockTick);
 
-        // 1. Death logic — force death animation every frame
-        if (this.dead) {
-            this.currentAnimation = this.animations.get("death")[this.facing];
+        // defeated cat logic
+        if (this.state === "DEFEATED_WALK" || this.state === "SLEEPING") {
 
-            if (this.currentAnimation && this.currentAnimation.isDone()) {
-                this.removeFromWorld = true;
+            if (this.state === "DEFEATED_WALK") {
+                // get current waypoint we are walking to
+                let target = this.retreatPath[this.retreatIndex];
+
+                this.moveToward(target.x, target.y);
+                const distance = getDistance({x: this.x, y: this.y}, target);
+
+                if (distance < 20) {
+                    // reached waypoint
+                    // hard reset wall hugging memory, doesn't carry over
+                    this.isExtricatingX = false;
+                    this.isExtricatingY = false;
+
+                    if (this.retreatIndex < this.retreatPath.length - 1) {
+                        // move to next waypoint
+                        this.retreatIndex++;
+                    } else {
+                        // reached the final waypoint; catbed
+                        this.state = "SLEEPING";
+                        this.velocity.x = 0;
+                        this.velocity.y = 0;
+                        this.x = target.x;
+                        this.y = target.y;
+                        this.facing = 2; // face forward/down
+
+                        this.currentAnimation = this.animations.get("death")[this.facing];
+                        if (this.currentAnimation) this.currentAnimation.elapsedTime = 0;
+                    }
+                } else {
+                    // b/c waypoints route AROUND the complex furniture,
+                    // can use standard sliding to handle minor corner bumps smoothly!
+                    const spriteWidth = 64 * this.scale;
+                    const spriteHeight = 64 * this.scale;
+                    const colliderRadius = 10 * this.scale;
+
+                    this.moveWithSlidingCat(this.game.clockTick, this.game.collisionManager, target, spriteWidth, spriteHeight, colliderRadius);
+                    this.updateFacing();
+
+                    const correctAnim = this.animations.get("walk")[this.facing];
+                    if (this.currentAnimation !== correctAnim) {
+                        let oldTime = this.currentAnimation ? this.currentAnimation.elapsedTime : 0;
+                        this.currentAnimation = correctAnim;
+                        this.currentAnimation.elapsedTime = oldTime;
+                    }
+                }
+
+            } else if (this.state === "SLEEPING") {
+                this.velocity.x = 0;
+                this.velocity.y = 0;
+                this.currentAnimation = this.animations.get("death")[this.facing];
             }
+
             this.updateBoundingBox();
+            return;
+        }
+        // ensure standard death triggers our override
+        if (this.health <= 0 && this.state !== "DEFEATED_WALK" && this.state !== "SLEEPING") {
+            this.onDeath();
             return;
         }
 
@@ -360,17 +552,38 @@ class Cat extends Enemy{
 
         this.updateBoundingBox();
     }
+    getRetreatPath() {
+        const bedTarget = { x: 1170, y: 490 };
 
-    draw(ctx, game) {
-        // Early exit if dead and animation is done
-        if (this.dead && this.currentAnimation && this.currentAnimation.isDone()) {
-            return;
+        // defining some "Safe Nodes" in level where there are no obstacles
+        const safeNodes = [
+            { x: 419, y: 160 }, // top left
+            { x: 1284, y: 227 }, // top right
+            { x: 1088, y: 515 }, // bottom right
+            { x: 104, y: 515 }, // bottom hallway
+        ];
+
+        // find the closest safe node to where cat currently 'died'
+        let closestNode = safeNodes[0];
+        let shortestDist = Infinity;
+
+        for (const node of safeNodes) {
+            const dist = getDistance({ x: this.x, y: this.y }, node);
+            if (dist < shortestDist) {
+                shortestDist = dist;
+                closestNode = node;
+            }
         }
 
+        // return a path -> 1st step: go to closest safe space, 2nd step: go to bed
+        return [closestNode, bedTarget];
+    }
+
+    draw(ctx, game) {
         if (this.currentAnimation) {
             ctx.save();
 
-            // poison tint & red flash for damage
+            // Poison tint & red flash for damage
             if (this.state === "HURT") {
                 ctx.filter = "brightness(50%) sepia(1) hue-rotate(-50deg) saturate(5)"; // flash red
             } else if (this.isPoisoned) {
@@ -380,13 +593,6 @@ class Cat extends Enemy{
             }
 
             let tick = game.clockTick;
-
-            // Clamp tick on death to prevent animator overflow
-            if (this.dead && this.currentAnimation.elapsedTime + tick >= this.currentAnimation.totalTime) {
-                this.removeFromWorld = true;
-                tick = this.currentAnimation.totalTime - this.currentAnimation.elapsedTime - 0.001;
-                if (tick < 0) tick = 0;
-            }
 
             // No flipping needed — cat sheet has explicit directional rows
             this.currentAnimation.drawFrame(tick, ctx, this.x, this.y, this.scale);
@@ -399,35 +605,19 @@ class Cat extends Enemy{
 
         if (game.options.debugging) {
             ctx.save();
-
             ctx.strokeStyle = "yellow";
             ctx.beginPath();
-            ctx.arc(
-                this.x + this.width / 2,
-                this.y + this.height / 2,
-                this.detectionRange,
-                0, Math.PI * 2
-            );
+            ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.detectionRange, 0, Math.PI * 2);
             ctx.stroke();
 
             ctx.strokeStyle = "red";
             ctx.beginPath();
-            ctx.arc(
-                this.x + this.width / 2,
-                this.y + this.height / 2,
-                this.attackRange,
-                0, Math.PI * 2
-            );
+            ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.attackRange, 0, Math.PI * 2);
             ctx.stroke();
 
             if (this.boundingBox) {
                 ctx.strokeStyle = "cyan";
-                ctx.strokeRect(
-                    this.boundingBox.x,
-                    this.boundingBox.y,
-                    this.boundingBox.width,
-                    this.boundingBox.height
-                );
+                ctx.strokeRect(this.boundingBox.x, this.boundingBox.y, this.boundingBox.width, this.boundingBox.height);
             }
 
             if (this.patrolPath && this.patrolPath.length > 0) {
@@ -440,12 +630,10 @@ class Cat extends Enemy{
                 }
                 ctx.stroke();
                 ctx.lineWidth = 1;
-
                 ctx.fillStyle = "orange";
                 for (const point of this.patrolPath) {
                     ctx.fillRect(point.x - 3, point.y - 3, 6, 6);
                 }
-
                 ctx.fillStyle = "lime";
                 const currentTarget = this.patrolPath[this.patrolIndex];
                 if (currentTarget) {
@@ -455,13 +643,23 @@ class Cat extends Enemy{
 
             ctx.fillStyle = "white";
             ctx.font = "12px Arial";
-            ctx.fillText(
-                `${this.state} F:${this.facing} HF:${this.horizontalFacing}`,
-                this.x,
-                this.y - 30
-            );
-
+            ctx.fillText(`${this.state} F:${this.facing} HF:${this.horizontalFacing}`, this.x, this.y - 30);
             ctx.restore();
+            // draw defeated retreat path for debugging purposes
+            if (this.state === "DEFEATED_WALK" && this.retreatPath) {
+                ctx.strokeStyle = "magenta";
+                ctx.fillStyle = "magenta";
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(this.x + this.width / 2, this.y + this.height / 2); // start at cat
+
+                for(let i = this.retreatIndex; i < this.retreatPath.length; i++) {
+                    let pt = this.retreatPath[i];
+                    ctx.lineTo(pt.x, pt.y);
+                    ctx.fillRect(pt.x - 5, pt.y - 5, 10, 10);
+                }
+                ctx.stroke();
+                ctx.lineWidth = 1;
+            }
         }
-    }
-}
+    }}
