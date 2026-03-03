@@ -937,8 +937,17 @@ class SceneManager {
             } else if (entity.constructor.name === "Computer") {
                 ctx.fillStyle = "blue";
                 ctx.fillRect(entX - 3, entY - 3, 6, 6);
-            }
-        });
+        } else if (entity.constructor.name === "BeefJerky") {
+            ctx.fillStyle = "brown";
+            ctx.fillRect(entX - 2, entY - 2, 4, 4);
+        } else if (entity.constructor.name === "Cat") {
+            ctx.arc(entX+7, entY+5, 5, 0, Math.PI * 2);
+            ctx.fillStyle = "orange";
+            ctx.fill();
+        } else if (entity.constructor.name === "Safe") {
+            ctx.fillStyle = "#f6ff00";
+            ctx.fillRect(entX-20, entY, 10, 10);
+        }});
 
         let viewW = ctx.canvas.width / this.zoom;
         let viewH = ctx.canvas.height / this.zoom;
