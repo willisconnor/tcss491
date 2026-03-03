@@ -721,38 +721,42 @@ class SceneManager {
         if (this.itemPopupActive) {
             let textBox = ASSET_MANAGER.getAsset("./assets/text-box.png");
             if (textBox) {
-                // made box wider (1100px) to accommodate longer sentences
                 let boxW = 1200;
 
-                // dynamically scale height based on how many lines of text there are
-                // 100 base padding + 40 pixels for each line of text
-                let boxH = 100 + (this.itemPopupText.length * 40);
+                // Increased base padding from 100 to 120 for better breathing room
+                let boxH = 120 + (this.itemPopupText.length * 40);
 
                 let boxX = (ctx.canvas.width - boxW) / 2;
-
-                // anchor it to the bottom of screen -> 40px margin instead of the center
                 let boxY = ctx.canvas.height - boxH - 40;
 
                 // draw custom text-box.png
                 ctx.drawImage(textBox, boxX, boxY, boxW, boxH);
 
-                // set up Google API Font and make it black
                 ctx.fillStyle = "black";
                 ctx.font = "20px 'Press Start 2P', Courier";
                 ctx.textAlign = "center";
 
+                // NEW: Forces the text to render perfectly centered vertically!
+                ctx.textBaseline = "middle";
+
                 // draw each line of text stacked on top of each other
                 for (let i = 0; i < this.itemPopupText.length; i++) {
-                    ctx.fillText(this.itemPopupText[i], ctx.canvas.width / 2, boxY + 70 + (i * 40));
+                    // Lowered the starting offset so it sits comfortably in the box
+                    ctx.fillText(this.itemPopupText[i], ctx.canvas.width / 2, boxY + 80 + (i * 40));
                 }
 
                 // blinking prompt to continue
                 if (Math.floor(Date.now() / 500) % 2 === 0) {
                     ctx.font = "12px 'Press Start 2P', Courier";
                     ctx.fillStyle = "#333333";
-                    ctx.fillText("Press SPACE to continue", ctx.canvas.width / 2, boxY + boxH - 25);
+                    // Pushed the prompt slightly lower too
+                    ctx.fillText("Press SPACE to continue", ctx.canvas.width / 2, boxY + boxH - 60);
                 }
+
+                // CRITICAL: Reset baseline so it doesn't break other text (like the debug menu)
+                ctx.textBaseline = "alphabetic";
             }
+            return; // pause all other draw overlay logic while reading
         }
         if (this.isFading) {
             ctx.fillStyle = `rgba(0, 0, 0, ${this.fadeAlpha})`;

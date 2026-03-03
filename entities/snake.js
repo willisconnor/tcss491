@@ -268,6 +268,7 @@ class Snake extends Enemy{
         this.currentAnimation = anim;
         this.velocity.x = 0;
         this.velocity.y = 0;
+
         // pop up victory dialogue
         if (this.game.camera && !this.game.camera.snakeDefeatTextPlayed) {
             this.game.camera.snakeDefeatTextPlayed = true;
@@ -280,13 +281,13 @@ class Snake extends Enemy{
             ];
             const randomQuote = victoryQuotes[Math.floor(Math.random() * victoryQuotes.length)];
 
-            this.game.camera.dialogue.lines = [randomQuote];
-            this.game.camera.dialogue.speaker = "System";
-            this.game.camera.dialogue.portrait = null; // placeholder -> no portrait for system yet (will add one later tonight)
-            this.game.camera.dialogue.currentLine = 0;
-            this.game.camera.dialogue.displayText = "";
-            this.game.camera.dialogue.charIndex = 0;
-            this.game.camera.dialogueActive = true;
+            // using my perfected item popup system instead of old dialogue sys
+            this.game.camera.itemPopupText = [randomQuote];
+            this.game.camera.itemPopupActive = true;
+
+            // pause game so the text box stays on screen until space is pressed
+            this.game.paused = true;
+            this.game.keys["Space"] = false;
         }
     }
 
