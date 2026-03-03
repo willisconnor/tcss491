@@ -42,12 +42,10 @@ class BabyGate {
                     this.isOpen = true; // Unlock the gate
                     this.updateBB();
 
-                    let dingSound = ASSET_MANAGER.getAsset("./assets/ding.mp3");
+                    let dingSound = ASSET_MANAGER.getAsset("./assets/ding.wav");
                     if (dingSound) {
                         let soundClone = dingSound.cloneNode();
-                        soundClone.volume = 0.15;
-                        soundClone.playbackRate = 1.5;
-                        soundClone.currentTime = 0.50;
+                        soundClone.volume = 0.3;
                         soundClone.play().catch(e => console.error(e));
                     }
 

@@ -37,12 +37,10 @@ class BeefJerky {
             this.removeFromWorld = true;
             this.game.camera.hasBeefJerky = true;
 
-            let dingSound = ASSET_MANAGER.getAsset("./assets/ding.mp3");
+            let dingSound = ASSET_MANAGER.getAsset("./assets/ding.wav");
             if (dingSound) {
                 let soundClone = dingSound.cloneNode(); // Create clone first!
-                soundClone.volume = 0.15;
-                soundClone.playbackRate = 1.5;
-                soundClone.currentTime = 0.50;
+                soundClone.volume = 0.3;
                 soundClone.play().catch(e => console.error(e));
             }
 
