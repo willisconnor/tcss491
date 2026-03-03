@@ -21,6 +21,15 @@ class SceneAudio {
         });
     }
 
+    playSound(path) {
+        let sound = new Audio(path);
+        sound.volume = this.volume;
+        sound.muted = this.muted;
+        sound.play().catch(() => {
+            console.warn("Sound effect waiting for user interaction to start.");
+        });
+    }
+
     stopMusic() {
         if (this.currentMusic) {
             this.currentMusic.pause();

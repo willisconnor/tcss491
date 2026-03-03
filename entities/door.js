@@ -28,6 +28,27 @@ class Door {
                 // check for 'E' key press
                 if (this.game.keys["KeyE"]) {
                     this.game.keys["KeyE"] = false; // prevent double triggering
+
+                    // check if Snake alive before entering level 3
+                    if (this.destination === "Level3") {
+                        let snake = this.game.entities.find(e => e.constructor.name === "Snake" && !e.dead);
+                        if (snake) {
+                            // split into arrays so text box stacks on two lines
+                            const snakeQuotes = [
+                                ["Are you blind? There's a giant danger", "noodle right there!"],
+                                ["The snake is literally staring at you.", "Deal with it first."],
+                                ["You want to get swallowed whole? Kill", "the oversized worm first."],
+                                ["Door's locked. Password is", "'Dead Snake'. Get to work."],
+                                ["Momma didn't raise no coward.", "Go bite that snake's tail off!"],
+                                ["Trying to run away so soon?", "You're a disappointment to the colony."]
+                            ];
+                            this.game.camera.itemPopupText = snakeQuotes[Math.floor(Math.random() * snakeQuotes.length)];
+                            this.game.camera.itemPopupActive = true;
+                            this.game.paused = true;
+                            return; // stop transition!
+                        }
+                    }
+
                     if (this.destination === "Level2") {
                         this.game.camera.loadLevelTwo(this.game.camera.levelNumber);
                     } else if (this.destination === "Level1") {
