@@ -125,7 +125,15 @@ class GameEngine {
         this.ctx.canvas.addEventListener("keyup", event => {
            this.keys[event.code] = false;
         });
+
+        this.ctx.canvas.addEventListener("blur", () => {
+            // clear all key presses when canvas loses focus
+            for (let key in this.keys) {
+                this.keys[key] = false;
+            }
+        });
     };
+
 
     addEntity(entity) {
         this.entities.push(entity);
