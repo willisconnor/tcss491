@@ -738,6 +738,21 @@ class SceneManager {
                     ctx.font = "bold 40px 'Courier New', Courier, monospace";
                     ctx.textAlign = "left";
                     ctx.fillText(`X: ${Math.floor(rat.x)} | Y: ${Math.floor(rat.y)}`, 40, ctx.canvas.height - 40);
+                    // FPS counter
+                    let fps = Math.round(1 / this.game.clockTick);
+
+                    // multi-tier color system for performance tracking
+                    if (fps >= 100) {
+                        ctx.fillStyle = "#00FFFF"; // Cyan: Ultra-smooth (120Hz ProMotion)
+                    } else if (fps >= 55) {
+                        ctx.fillStyle = "#39FF14"; // Neon Green: Standard smooth (60 FPS)
+                    } else if (fps >= 40) {
+                        ctx.fillStyle = "yellow";  // Yellow: Slight frame drops
+                    } else {
+                        ctx.fillStyle = "red";     // Red: Noticeable lag
+                    }
+
+                    ctx.fillText(`FPS: ${fps}`, 40, ctx.canvas.height - 90);
                     ctx.restore();
                 }
             }
