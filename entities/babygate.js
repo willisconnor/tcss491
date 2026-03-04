@@ -6,8 +6,7 @@ class BabyGate {
 
         this.spritesheet = ASSET_MANAGER.getAsset("./assets/BabyGate.png");
 
-        this.isOpen = false;
-
+        this.isOpen = this.game.camera.gateUnlocked;
         // original sprite dimensions per frame
         this.frameWidth = 338;
         this.frameHeight = 369;
@@ -40,14 +39,13 @@ class BabyGate {
                 const dist = Math.sqrt(Math.pow((rat.x - this.x), 2) + Math.pow((rat.y - this.y), 2));
                 if (dist < 100) {
                     this.isOpen = true; // Unlock the gate
+                    this.game.camera.gateUnlocked = true;
                     this.updateBB();
 
-                    let dingSound = ASSET_MANAGER.getAsset("./assets/ding.mp3");
+                    let dingSound = ASSET_MANAGER.getAsset("./assets/ding.wav");
                     if (dingSound) {
                         let soundClone = dingSound.cloneNode();
-                        soundClone.volume = 0.15;
-                        soundClone.playbackRate = 1.5;
-                        soundClone.currentTime = 0.50;
+                        soundClone.volume = 0.3;
                         soundClone.play().catch(e => console.error(e));
                     }
 

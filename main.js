@@ -46,7 +46,7 @@ ASSET_MANAGER.queueDownload("./assets/keyboard-click.mp3");
 ASSET_MANAGER.queueDownload("./assets/poison_fadein.png");
 ASSET_MANAGER.queueDownload("./assets/poison_idle.png");
 ASSET_MANAGER.queueDownload("./assets/poison_fadeout.png");
-ASSET_MANAGER.queueDownload("./assets/ding.mp3");
+ASSET_MANAGER.queueDownload("./assets/ding.wav");
 ASSET_MANAGER.queueDownload("./assets/hearts.png");
 ASSET_MANAGER.queueDownload("./assets/beefjerky.png");
 ASSET_MANAGER.queueDownload("./assets/OrangeCat.png")
@@ -56,6 +56,11 @@ ASSET_MANAGER.queueDownload("./assets/punch.mp3");
 ASSET_MANAGER.queueDownload("./assets/snake-portrait.png");
 ASSET_MANAGER.queueDownload("./assets/text-box.png");
 ASSET_MANAGER.queueDownload("./assets/BabyGate.png");
+ASSET_MANAGER.queueDownload("./assets/mouse-click.wav");
+ASSET_MANAGER.queueDownload("./assets/loseHumanVerification.mp3");
+ASSET_MANAGER.queueDownload("./assets/win-game.mp3");
+ASSET_MANAGER.queueDownload("./assets/button-click.wav");
+ASSET_MANAGER.queueDownload("./assets/heaven-sound-effect.wav");
 ASSET_MANAGER.downloadAll(() => {
     const canvas = document.getElementById("gameWorld");
     const ctx = canvas.getContext("2d");
