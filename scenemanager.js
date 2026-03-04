@@ -147,11 +147,27 @@ class SceneManager {
         }
 
         if (this.game.keys["Escape"]) {
-            if (!this.menuActive) {
+            // Let the player skip the combat tutorial without opening the pause menu
+            if (this.dialogueActive && this.dialogue.phase === "COMBAT_TUTORIAL") {
+                this.game.keys["Escape"] = false;
+                this.dialogueActive = false;
+                this.game.paused = false;
+                this.dialogue.phase = "INTRO";
+            } 
+            // Otherwise, normal pause menu logic
+            else if (!this.menuActive) {
                 this.game.keys["Escape"] = false;
                 this.paused = !this.paused;
                 if (!this.paused) this.game.paused = false;
             }
+        }
+
+        // Only force a game pause if the dialogue is NOT the combat tutorial
+        if (this.paused || (this.dialogueActive && this.dialogue.phase !== "COMBAT_TUTORIAL") || this.itemPopupActive) {
+            this.game.paused = true;
+        } else {
+            // CRUCIAL: Explicitly unpause the game when no menus are active
+            this.game.paused = false; 
         }
 
         if (this.paused || this.dialogueActive || this.itemPopupActive) {

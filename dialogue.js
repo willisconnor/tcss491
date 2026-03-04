@@ -10,54 +10,42 @@ class Dialogue {
         this.portraitTimer = 0;
         this.currentIndex = 0;
         this.displayText = "";
-        this.currentIndex = 0;
-        this.displayText = "";
         this.charIndex = 0;
         this.typeTimer = 0;
         
-        // Old line-based system (for Yorkie and other NPCs)
         this.lines = [];
         this.currentLine = 0;
         
-        this.phase = "INTRO"; // INTRO or INQUIRY
-        this.selectedChoiceIndex = null; // which choice was selected
-        this.displayingChoiceResponse = false; // track if showing a choice response
-        this.selectedQuestions = new Set(); // track which Phase 2 questions were asked
-        this.currentQuestionIndex = null; // for tracking Deep Inquiry state
-        this.askingFollowUp = false; // tracking which question shows a follow-up
-        this.exitingAfterResponse = false; // flag to exit after showing exit response
+        this.phase = "INTRO"; // INTRO, INQUIRY, or COMBAT_TUTORIAL
+        this.selectedChoiceIndex = null;
+        this.displayingChoiceResponse = false; 
+        this.selectedQuestions = new Set(); 
+        this.currentQuestionIndex = null; 
+        this.askingFollowUp = false; 
+        this.exitingAfterResponse = false; 
         this.mouseX = 0;
         this.mouseY = 0;
 
         // Phase 1: Interactive Introduction with choices
         this.dialogues = [
-            // 1. Opening
             { speaker: "Stuart Big", text: "Squeak! A new set of whiskers in the walls? I haven't seen a living soul since... well, since I lost mine.", type: "dialogue" },
             { speaker: "Stuart Big", text: "", type: "choice", choices: [
                 { text: "Wait... you're a ghost?", response: "In the fur. Or lack thereof. I'm a lingering echo of what happens when a rat's ambition exceeds his reach." },
                 { text: "I'm sorry for your loss.", response: "Don't be. It's much quieter this way. No fleas, and I never have to worry about a mousetrap again." }
             ], nextIndex: 2 },
-            // 2. Name asking
             { speaker: "Stuart Big", text: "Tell me, young scout... what do they call you in the Great Below?", type: "dialogue" },
             { speaker: "Stuart Big", text: "", type: "input_name", nextIndex: 4 },
-            // 3. (skipped, input_name uses nextIndex)
-            // 4. Name acknowledgment
             { speaker: "Stuart Big", text: "Ah, {NAME}... a fine name for a scout. I am Stuart Big, once the Chosen, now your spirit guide.", type: "dialogue" },
-            // 5. Golden Wheel and Chosen explanation
             { speaker: "Stuart Big", text: "I sought the legendary Golden Wheel once—a treasure of infinite bounty—but my paws slipped at the Great Gate. My poor tail still aches from the fall.", type: "dialogue" },
             { speaker: "Stuart Big", text: "", type: "choice", choices: [
                 { text: "What does it mean to be 'The Chosen'?", response: "It's a heavy title for a small rat. It means the colony has pinned their hopes of survival on your paws. Don't let the pressure go to your head." },
                 { text: "The Golden Wheel is actually real?", response: "Real enough to die for, as I can attest. It is a wheel of cheddar so aged and pure it glows like the sun. The Giants hide it in the Forbidden Hearth." }
             ], nextIndex: 7 },
-            // 7. Baby Gate
             { speaker: "Stuart Big", text: "Listen well: To reach the Forbidden Hearth, you must find the Golden Key to unlock the Baby Gate.", type: "dialogue" },
-            // 8. Edgar and Yorkie
             { speaker: "Stuart Big", text: "The key is guarded by Edgar Barkley, a Yorkie in the living room. He is technically an ally, but he is a creature of hollow loyalty and bottomless greed.", type: "dialogue" },
-            // 9. Beasts threat
             { speaker: "Stuart Big", text: "He's terrified of the 'Beasts'—the Giants' other pets—who have taken over the path to the kitchen. He won't let you pass unless you prove you can clear a way for his snacks.", type: "dialogue" },
-            // 10. Final question before Deep Inquiry
             { speaker: "Stuart Big", text: "He treats that key like a relic. Now, any last questions before you face the beast?", type: "dialogue" },
-            { speaker: "Stuart Big", text: "", type: "end_of_intro", nextIndex: -1 } // -1 means go to Phase 2
+            { speaker: "Stuart Big", text: "", type: "end_of_intro", nextIndex: -1 } 
         ];
 
         // Phase 2: Deep Inquiry - Question Menu for Stuart
@@ -69,18 +57,37 @@ class Dialogue {
             { text: "I'm ready. I'll go find Edgar.", response: "Good luck, {NAME}. Show him the 'tooth and claw' tactics of the Great Below, and don't let your tail drag!", exit: true }
         ];
 
-        // Inquiry questions for Edgar the Yorkie
         this.yorkieQuestions = [
             { text: "What was the computer password again?", response: "Seriously? It's 'LoveEdgar123'. Hard to forget the name of the favorite child, isn't it?" },
             { text: "Who's a good boy?", response: "I am! I—wait, no! I'm a fierce guardian of the hall! Stop patronizing me with Giant-talk!" },
             { text: "I'll leave you to your jerky.", response: "Mmph... *chomp*... yeah, beat it. Let me eat in peace.", exit: true }
         ];
 
-        // Active deep questions array
         this.deepQuestions = this.stuartQuestions;
     }
 
-    // --- NEW METHODS FOR YORKIE REWARDS ---
+    // --- NEW COMBAT TUTORIAL SETUP ---
+    startCombatTutorial() {
+        this.phase = "COMBAT_TUTORIAL";
+        this.speaker = "Stuart Big";
+        this.portrait = ASSET_MANAGER.getAsset("./assets/StuartBigDialogue.png");
+        this.tutorialStep = 0;
+        this.displayText = "";
+        this.charIndex = 0;
+        this.typeTimer = 0;
+        this.inputDelay = 0; //prevent instant skipping of tutorial
+        this.sceneManager.dialogueActive = true;
+        this.game.paused = false; // UNFREEZE GAME for combat tutorial
+        
+        this.tutorialLines = [
+            { text: "Listen closely, Chosen One! To use your Poison attack, press 1.", waitKey: "Digit1", prompt: "Press 1 to shoot poison..." },
+            { text: "Excellent! Now, to use your Tail Whip, press 2.", waitKey: "Digit2", prompt: "Press 2 to tail whip..." },
+            { text: "Perfect! And for a basic Bite, press SPACE.", waitKey: "Space", prompt: "Press SPACE to bite..." },
+            { text: "You're ready. Show him the fury of the Great Below!", waitKey: null, prompt: "Click or SPACE to continue..." }
+        ];
+    }
+
+    // --- EXISTING METHODS FOR YORKIE REWARDS ---
     startJerkyRewardDialogue() {
         this.lines = [
             "Sniff... sniff... is that...",
@@ -113,26 +120,83 @@ class Dialogue {
         this.exitingAfterResponse = false;
         this.sceneManager.dialogueActive = true;
     }
-    // ----------------------------------------
 
     update() {
-        // animate snake's portrait
         if (this.speaker === "Silent Slitherer" && this.portrait) {
             this.portraitTimer += this.game.clockTick;
-            if (this.portraitTimer > 0.30) { // flips frame every 0.15 seconds
-                this.portraitFrame = (this.portraitFrame + 1) % 4; // cycles 0, 1, 2, 3
+            if (this.portraitTimer > 0.30) { 
+                this.portraitFrame = (this.portraitFrame + 1) % 4; 
                 this.portraitTimer = 0;
             }
         }
-        // OLD LINE-BASED SYSTEM (for Yorkie and other NPCs)
+
+        // --- NEW COMBAT TUTORIAL LOGIC ---
+        if (this.phase === "COMBAT_TUTORIAL") {
+            const current = this.tutorialLines[this.tutorialStep];
+            if (!current) return;
+
+            // Handle typing delay buffer to prevent double skips
+            if (this.inputDelay > 0) {
+                this.inputDelay -= this.game.clockTick;
+            }
+
+            let processedLine = current.text.replace("{NAME}", this.playerName);
+
+            // Typewriter effect
+            if (this.charIndex < processedLine.length) {
+                this.typeTimer += this.game.clockTick;
+                if (this.typeTimer > 0.03) {
+                    this.displayText += processedLine[this.charIndex];
+                    this.charIndex++;
+                    this.typeTimer = 0;
+                }
+
+                // Allow user to click to fast-forward text
+                if (this.game.click) {
+                    this.game.click = null;
+                    this.displayText = processedLine;
+                    this.charIndex = processedLine.length;
+                    this.inputDelay = 0.3; // Set delay when fast-forwarding
+                }
+            } else if (this.inputDelay <= 0) {
+                // Done typing and buffer cleared. Wait for the specific key, or space/click if no key is assigned.
+                if (current.waitKey) {
+                    if (this.game.keys[current.waitKey]) {
+                        // NOTE: We DO NOT set this.game.keys = false here! 
+                        // This allows the Rat class to see the input and actually attack.
+                        this.tutorialStep++;
+                        this.displayText = "";
+                        this.charIndex = 0;
+                        this.inputDelay = 0.3; // Delay so we don't bleed into the next input
+                    }
+                } else {
+                    if (this.game.click || this.game.keys["Space"]) {
+                        this.game.click = null;
+                        this.game.keys["Space"] = false;
+                        
+                        this.tutorialStep++;
+                        if (this.tutorialStep >= this.tutorialLines.length) {
+                            // Tutorial done! Let the fight begin
+                            this.sceneManager.dialogueActive = false;
+                            this.phase = "INTRO"; // reset just in case
+                        } else {
+                            this.displayText = "";
+                            this.charIndex = 0;
+                            this.inputDelay = 0.3;
+                        }
+                    }
+                }
+            }
+            return;
+        }
+
+        // OLD LINE-BASED SYSTEM
         if (this.lines && this.lines.length > 0) {
             const rawLine = this.lines[this.currentLine];
             if (!rawLine) return;
             
-            // Replace {NAME} with player's name
             const currentLine = rawLine.replace("{NAME}", this.playerName);
             
-            // Typewriter effect
             if (this.charIndex < currentLine.length) {
                 this.typeTimer += this.game.clockTick;
                 if (this.typeTimer > 0.03) {
@@ -142,20 +206,16 @@ class Dialogue {
                 }
             }
             
-            // Advance dialogue with Space/Click
             if (this.game.click || this.game.keys["Space"]) {
                 this.game.click = null;
                 this.game.keys["Space"] = false;
                 
                 if (this.charIndex < currentLine.length) {
-                    // Finish typing current line
                     this.displayText = currentLine;
                     this.charIndex = currentLine.length;
                 } else {
-                    // Move to next line
                     this.currentLine++;
                     if (this.currentLine >= this.lines.length) {
-                        // Dialogue finished
                         this.sceneManager.dialogueActive = false;
                         this.game.paused = false;
                         this.lines = [];
@@ -166,7 +226,7 @@ class Dialogue {
                     }
                 }
             }
-            return; // Don't process phase-based system if using line system
+            return; 
         }
         
         // PHASE 1: Interactive Introduction
@@ -174,7 +234,6 @@ class Dialogue {
             const current = this.dialogues[this.currentIndex];
             if (!current) return;
 
-            // Handle INPUT_NAME type
             if (current.type === "input_name") {
                 this.game.typing = true;
                 if (this.game.lastInput === "Enter" && this.playerName.length > 0) {
@@ -193,9 +252,7 @@ class Dialogue {
                 return;
             }
 
-            // If we're displaying a choice response, handle that FIRST
             if (this.displayingChoiceResponse) {
-                // Process typewriter effect for the response
                 const fullResponse = this.displayText;
                 if (this.charIndex < fullResponse.length) {
                     this.typeTimer += this.game.clockTick;
@@ -209,7 +266,6 @@ class Dialogue {
                     this.game.click = null;
                     this.game.keys["Space"] = false;
 
-                    // allow user to skip typing effect without exiting prematurely
                     if (this.charIndex < fullResponse.length) {
                         this.charIndex = fullResponse.length;
                         return;
@@ -219,7 +275,6 @@ class Dialogue {
                     const current = this.dialogues[this.currentIndex];
                     this.currentIndex = current.nextIndex;
 
-                    // exit cleanly if out of bounds -> used for cutscenes
                     if (this.currentIndex >= this.dialogues.length) {
                         this.sceneManager.dialogueActive = false;
                         this.game.paused = false;
@@ -233,32 +288,27 @@ class Dialogue {
                 return;
             }
 
-            // Handle CHOICE type
             if (current.type === "choice") {
                 if (this.game.click) {
                     const mouseX = this.game.click.x;
                     const mouseY = this.game.click.y;
                     this.game.click = null;
 
-                    // Check which choice was clicked
                     const choiceButtons = this.getChoiceButtonBounds(current.choices);
                     for (let i = 0; i < choiceButtons.length; i++) {
                         const btn = choiceButtons[i];
                         if (mouseX >= btn.x && mouseX <= btn.x + btn.w && mouseY >= btn.y && mouseY <= btn.y + btn.h) {
-                            // Choice selected
                             this.selectedChoiceIndex = i;
                             this.displayText = current.choices[i].response.replace("{NAME}", this.playerName);
                             this.charIndex = 0;
-                            // Next time update is called, advance to next index
                             this.displayingChoiceResponse = true;
                             return;
                         }
                     }
                 }
-                return; // Wait for choice click
+                return; 
             }
 
-            // Advance on end_of_intro: handle question clicks
             if (current.type === "end_of_intro") {
                 if (this.game.click) {
                     const mouseX = this.game.click.x;
@@ -270,7 +320,6 @@ class Dialogue {
                         const btn = questionBounds[i];
                         if (mouseX >= btn.x && mouseX <= btn.x + btn.w && mouseY >= btn.y && mouseY <= btn.y + btn.h) {
                             const question = this.deepQuestions[i];
-                            // Show question response
                             this.phase = "INQUIRY";
                             this.currentQuestionIndex = i;
                             this.displayText = question.response.replace("{NAME}", this.playerName);
@@ -285,7 +334,6 @@ class Dialogue {
                 return;
             }
 
-            // Normal dialogue process
             let processedLine = current.text.replace("{NAME}", this.playerName);
             if (this.charIndex < processedLine.length) {
                 this.typeTimer += this.game.clockTick;
@@ -296,7 +344,6 @@ class Dialogue {
                 }
             }
 
-            // Advance dialogue with Space/Click
             if (this.game.click || this.game.keys["Space"]) {
                 this.game.click = null;
                 this.game.keys["Space"] = false;
@@ -305,7 +352,6 @@ class Dialogue {
                     this.displayText = processedLine;
                     this.charIndex = processedLine.length;
                 } else {
-                    // Move to next dialogue
                     this.currentIndex++;
                     this.displayText = "";
                     this.charIndex = 0;
@@ -317,7 +363,6 @@ class Dialogue {
         // PHASE 2: Deep Inquiry Menu
         else if (this.phase === "INQUIRY") {
             if (this.currentQuestionIndex === null) {
-                // User is viewing the question menu - waiting for a click
                 if (this.game.click) {
                     const mouseX = this.game.click.x;
                     const mouseY = this.game.click.y;
@@ -328,7 +373,6 @@ class Dialogue {
                         const btn = questionBounds[i];
                         if (mouseX >= btn.x && mouseX <= btn.x + btn.w && mouseY >= btn.y && mouseY <= btn.y + btn.h) {
                             const question = this.deepQuestions[i];
-                            // Show question response
                             this.currentQuestionIndex = i;
                             this.displayText = question.response.replace("{NAME}", this.playerName);
                             this.charIndex = 0;
@@ -340,11 +384,9 @@ class Dialogue {
                     }
                 }
             } else {
-                // User is reading a question's response
                 const question = this.deepQuestions[this.currentQuestionIndex];
                 let processedLine = this.displayText;
 
-                // Typewriter effect
                 if (this.charIndex < processedLine.length) {
                     this.typeTimer += this.game.clockTick;
                     if (this.typeTimer > 0.03) {
@@ -353,17 +395,14 @@ class Dialogue {
                     }
                 }
 
-                // Check for Space/Click to continue or advance
                 if (this.game.click || this.game.keys["Space"]) {
                     this.game.click = null;
                     this.game.keys["Space"] = false;
 
                     if (this.charIndex < processedLine.length) {
-                        // Finish typing current response
                         this.displayText = processedLine;
                         this.charIndex = processedLine.length;
                     } else {
-                        // If this was the exit question, exit now
                         if (this.exitingAfterResponse) {
                             this.sceneManager.dialogueActive = false;
                             this.game.paused = false;
@@ -375,12 +414,10 @@ class Dialogue {
                         }
 
                         if (question.followUp && !this.askingFollowUp) {
-                            // Show follow-up question
                             this.displayText = question.followUp.response.replace("{NAME}", this.playerName);
                             this.charIndex = 0;
                             this.askingFollowUp = true;
                         } else {
-                            // Return to question menu
                             this.currentQuestionIndex = null;
                             this.displayText = "";
                             this.charIndex = 0;
@@ -405,7 +442,6 @@ class Dialogue {
         let btnX = boxX + 280;
         let startY = boxY + 110;
 
-        // shrink bounds and push options up for Level 2 Snake
         if (this.speaker === "Silent Slitherer") {
             boxW = 700;
             boxH = 200;
@@ -414,14 +450,10 @@ class Dialogue {
 
             btnHeight = 28;
             btnPadding = 5;
-            // push buttons right to clear the portrait
-            // framePadding (15) + frameSize (170) + text spacing (30) = 215
             btnX = boxX + 215;
-
-            // shrink width so it stays inside the 700px box
             btnWidth = 450;
-
-            startY = boxY + 65;        }
+            startY = boxY + 65;        
+        }
 
         return choices.map((_, i) => ({
             x: btnX,
@@ -462,47 +494,96 @@ class Dialogue {
             this.mouseY = this.game.mouse.y;
         }
 
+        // --- NEW COMBAT TUTORIAL DRAWING ---
+        if (this.phase === "COMBAT_TUTORIAL") {
+            const boxW = 1200;
+            const boxH = 280;
+            const boxX = (w - boxW) / 2;
+            const boxY = h - boxH - 40;
+
+            ctx.fillStyle = "rgba(20, 20, 20, 0.9)";
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 4;
+            ctx.fillRect(boxX, boxY, boxW, boxH);
+            ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+            const framePadding = 15;
+            const frameSize = boxH - (framePadding * 2);
+            const frameX = boxX + framePadding;
+            const frameY = boxY + framePadding;
+
+            ctx.fillStyle = "#3a3a3a";
+            ctx.fillRect(frameX, frameY, frameSize, frameSize);
+            
+            if (this.portrait) {
+                ctx.drawImage(this.portrait, Math.floor(frameX + 5), Math.floor(frameY + 5), Math.floor(frameSize - 10), Math.floor(frameSize - 10));
+                ctx.strokeStyle = "#ffcc00";
+                ctx.lineWidth = 3;
+                ctx.strokeRect(frameX, frameY, frameSize, frameSize);
+            }
+
+            const textX = frameX + frameSize + 30;
+            const textY = boxY + 50;
+            const maxTextWidth = boxW - frameSize - 80;
+
+            ctx.fillStyle = "#aaaaff";
+            ctx.font = "bold 24px Arial";
+            ctx.textAlign = "left";
+            ctx.fillText(this.speaker, textX, textY - 10);
+
+            ctx.fillStyle = "white";
+            ctx.font = "22px 'Courier New'";
+
+            const current = this.tutorialLines[this.tutorialStep];
+            const textToShow = this.displayText.substring(0, this.charIndex);
+            this.wrapText(ctx, textToShow, textX, textY + 30, maxTextWidth, 32);
+
+            // ESC to skip in top right corner
+            ctx.font = "14px Arial";
+            ctx.fillStyle = "#888";
+            ctx.textAlign = "right";
+            ctx.fillText("ESC to skip tutorial", boxX + boxW - 20, boxY + 20);
+
+            // Flashing Specific Prompt when typing finishes
+            if (this.charIndex >= current.text.length) {
+                ctx.font = "16px Arial";
+                ctx.fillStyle = Math.floor(Date.now() / 500) % 2 === 0 ? "#ffcc00" : "#ffffff";
+                ctx.fillText(current.prompt, boxX + boxW - 20, boxY + boxH - 20);
+            }
+            return;
+        }
+
         // OLD LINE-BASED SYSTEM
         if (this.lines && this.lines.length > 0) {
-            // custom victory screen for system message
             if (this.speaker === "System") {
                 let customBox = ASSET_MANAGER.getAsset("./assets/text-box.png");
-
-                // scale multiplier: 0.30
-                // can increase or decrease decimal
                 let scale = 0.30;
                 let drawW = 1744 * scale;
                 let drawH = 988 * scale;
 
                 let drawX = (w - drawW) / 2;
-                let drawY = h - drawH - 20; // pushed against the bottom of the screen
+                let drawY = h - drawH - 20; 
 
                 if (customBox) {
                     ctx.drawImage(customBox, drawX, drawY, drawW, drawH);
                 }
 
-                // setup the black, centered Press Start 2P font
                 ctx.fillStyle = "black";
                 ctx.font = "18px 'Press Start 2P', Courier";
-                ctx.textAlign = "center"; // forces wrapText to center everything
+                ctx.textAlign = "center"; 
 
-                // calculate vertical center
                 let textY = drawY + (drawH / 2) - 10;
                 const textToShow = this.displayText.substring(0, this.charIndex);
 
-                // because textAlign is 'center', passing (w / 2) flawlessly centers the text!
                 this.wrapText(ctx, textToShow, w / 2, textY, drawW - 100, 35);
 
-                // flashing continue prompt
                 if (this.charIndex >= this.displayText.length) {
                     ctx.font = "12px 'Press Start 2P', Courier";
                     ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
                     ctx.fillText("Press SPACE to continue...", w / 2, drawY + drawH - 40);
                 }
-
                 return;
             }
-            // -------------------------------------------------
             const boxW = 1200;
             const boxH = 280;
             const boxX = (w - boxW) / 2;
@@ -564,7 +645,6 @@ class Dialogue {
             let boxX = (w - boxW) / 2;
             let boxY = h - boxH - 40;
 
-            // shrink dialogue box if Snake is speaking
             if (this.speaker === "Silent Slitherer") {
                 boxW = 700;
                 boxH = 200;
@@ -583,7 +663,6 @@ class Dialogue {
             const frameX = boxX + framePadding;
             const frameY = boxY + framePadding;
 
-            // only draw gray square if portrait exists
             let textX = boxX + 30;
             let maxTextWidth = boxW - 60;
 
@@ -591,18 +670,15 @@ class Dialogue {
                 ctx.fillStyle = "#3a3a3a";
                 ctx.fillRect(frameX, frameY, frameSize, frameSize);
 
-                // crop sprite sheet if it's the Snake
                 if (this.speaker === "Silent Slitherer") {
                     ctx.drawImage(
                         this.portrait,
-                        this.portraitFrame * 736, 0, 736, 736, // Source: X, Y, Width, Height
-                        Math.floor(frameX + 5), Math.floor(frameY + 5), Math.floor(frameSize - 10), Math.floor(frameSize - 10) // destination
+                        this.portraitFrame * 736, 0, 736, 736,
+                        Math.floor(frameX + 5), Math.floor(frameY + 5), Math.floor(frameSize - 10), Math.floor(frameSize - 10) 
                     );
                 } else {
-                    // normal drawing for Stuart Big and Yorkie
                     ctx.drawImage(this.portrait, Math.floor(frameX + 5), Math.floor(frameY + 5), Math.floor(frameSize - 10), Math.floor(frameSize - 10));
                 }
-                // --------------------------------------------------
 
                 ctx.strokeStyle = "#ffcc00";
                 ctx.lineWidth = 3;
@@ -730,7 +806,6 @@ class Dialogue {
                 ctx.fillStyle = "#aaaaff";
                 ctx.font = "bold 24px Arial";
                 ctx.textAlign = "left";
-                // Fixed hardcoded name to dynamic speaker
                 ctx.fillText(this.speaker, textX, textY - 10); 
 
                 const questionBounds = this.getQuestionButtonBounds();
@@ -794,7 +869,6 @@ class Dialogue {
                 ctx.fillStyle = "#aaaaff";
                 ctx.font = "bold 24px Arial";
                 ctx.textAlign = "left";
-                // Fixed hardcoded name to dynamic speaker
                 ctx.fillText(this.speaker, textX, textY - 10); 
 
                 ctx.fillStyle = "white";
