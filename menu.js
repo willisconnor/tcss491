@@ -262,6 +262,7 @@ class Menu {
         ctx.fillText("Bite: Press SPACE ", w / 2, h / 2);
         ctx.fillText("Poison: Press 1", w / 2, h / 2 + 50);
         ctx.fillText("Tail Whip: Press 2", w / 2, h / 2 + 100);
+        ctx.fillText(" When the dashed circle appears around an enemy, Tail Whip is in the appropriate distance to be used.", w / 2, h / 2 + 135);
 
         this.drawBtn(ctx, w / 2 - this.btnW / 2, h / 2 + 180, "BACK");
     }
