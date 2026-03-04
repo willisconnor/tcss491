@@ -252,7 +252,7 @@ class Menu {
         ctx.fillStyle = "white";
         ctx.font = "30px 'Press Start 2P', Arial";
         ctx.textAlign = "center";
-        ctx.fillText("GUIDE", w / 2, h / 2 - 200);
+        ctx.fillText("GUIDE for the Chosen One", w / 2, h / 2 - 200);
 
         ctx.font = "20px Arial";
         ctx.fillText("Movement: WASD or Arrow Keys", w / 2, h / 2 - 100);

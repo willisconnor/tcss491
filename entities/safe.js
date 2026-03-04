@@ -5,19 +5,21 @@ class Safe {
         this.y = y;
         this.width = 100;
         this.height = 100;
-        this.isOpen = false;
-        
+        this.isOpen = this.game.camera.safeUnlocked;
+
         this.updateBB();
     }
 
     updateBB() {
         this.BB = new BoundingBox(this.x, this.y, this.width, this.height);
+        this.interactBox = new BoundingBox(this.x - 20, this.y - 20, this.width + 40, this.height + 40);
     }
 
     // Called externally by the Keypad when the correct code is entered
     openSafe() {
         if (!this.isOpen) {
             this.isOpen = true;
+            this.game.camera.safeUnlocked = true;
             // Optional: Play a victory sound! 
             // this.game.audio.playMusic("./assets/victory_fanfare.mp3"); 
         }
@@ -25,6 +27,19 @@ class Safe {
 
     update() {
         // The safe itself is static and waits for the keypad to act upon it.
+        if (this.isOpen) {
+            let rat = this.game.entities.find(e => e.constructor.name === "Rat");
+            if (rat && this.interactBox && this.interactBox.collide(rat.BB) && this.game.keys["KeyE"]) {
+                this.game.keys["KeyE"] = false;
+
+                let sm = this.game.camera;
+                sm.winState = true;
+                sm.winTimer = 0;
+                this.game.click = null;
+                Object.keys(this.game.keys).forEach(k => this.game.keys[k] = false);
+                this.game.audio.playMusic("./assets/win-game.mp3", false);
+            }
+        }
     }
 
     draw(ctx) {
@@ -51,7 +66,15 @@ class Safe {
             // Add a glowing effect to the cheese
             ctx.shadowColor = "gold";
             ctx.shadowBlur = 15;
-            ctx.stroke();
+            ctx.shadowBlur = 0; // reset
+
+            const rat = this.game.entities.find(e => e.constructor.name === "Rat");
+            if (rat && this.interactBox && this.interactBox.collide(rat.BB)) {
+                ctx.fillStyle = "white";
+                ctx.font = "bold 12px 'Press Start 2P', Courier";
+                ctx.textAlign = "center";
+                ctx.fillText("[E] Pick up Cheese", this.x + this.width / 2, this.y - 15);
+            }
         } else {
             // Draw a closed vault door and handle
             ctx.fillStyle = "#777777";
