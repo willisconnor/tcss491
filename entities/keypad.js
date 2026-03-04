@@ -10,10 +10,15 @@ class Keypad {
         this.active = false;
         
         this.inputCode = "";
-        this.targetCode = "7319"; 
+        this.targetCode = "7319";
         
         this.statusMessage = "ENTER CODE";
         this.statusColor = "#00FF00"; // Neon Green
+
+        this.pressedButton = null;
+        this.pressedTimer = 0;
+        this.errorFlashTimer = 0;
+        this.successFlashTimer = 0;
         
         this.updateBB();
     }
@@ -44,11 +49,31 @@ class Keypad {
         // Check for physical interaction
         if (!this.active) {
             if (this.interactBox.collide(rat.BB) && this.game.keys["KeyE"]) {
-                this.active = true;
                 this.game.keys["KeyE"] = false;
-                rat.frozenForDialogue = true; 
+
+                // Check if cat is still active
+                let cat = this.game.entities.find(e => e.constructor.name === "Cat");
+                if (cat && cat.health > 0 && cat.state !== "SLEEPING" && cat.state !== "DEFEATED_WALK") {
+                    this.game.camera.itemPopupText = [
+                        "You can't focus on cracking a safe with",
+                        "that murderous feline watching you."
+                    ];
+                    this.game.camera.itemPopupActive = true;
+                    this.game.paused = true;
+                    return;
+                }
+
+                this.active = true;
+                rat.frozenForDialogue = true;
             }
             return;
+        }
+
+        if (this.errorFlashTimer > 0) this.errorFlashTimer -= this.game.clockTick;
+        if (this.successFlashTimer > 0) this.successFlashTimer -= this.game.clockTick;
+        if (this.pressedTimer > 0) {
+            this.pressedTimer -= this.game.clockTick;
+            if (this.pressedTimer <= 0) this.pressedButton = null;
         }
 
         // --- UI Interaction Logic ---
@@ -97,6 +122,15 @@ class Keypad {
     handleButtonPress(val) {
         if (this.statusMessage === "LOCKED" || this.statusMessage === "UNLOCKED") return;
 
+        this.pressedButton = val;
+        this.pressedTimer = 0.15;
+        let clickSound = ASSET_MANAGER.getAsset("./assets/button-click.wav");
+        if (clickSound) {
+            let soundClone = clickSound.cloneNode();
+            soundClone.volume = 0.5;
+            soundClone.play().catch(e => console.error(e));
+        }
+
         if (val === 'C') {
             this.inputCode = "";
         } else if (val === 'E') {
@@ -104,12 +138,44 @@ class Keypad {
                 this.statusMessage = "UNLOCKED";
                 this.statusColor = "yellow";
                 this.linkedSafe.openSafe();
-                
+
+                this.successFlashTimer = 1.0;
+                let heavenSound = ASSET_MANAGER.getAsset("./assets/heaven-sound-effect.wav");
+                if (heavenSound) {
+                    let hClone = heavenSound.cloneNode();
+                    hClone.volume = 0.15; // turned down significantly
+
+                    // safely pause background music while sound plays (the 2 sounds have a discordant clash)
+                    let bgm = this.game.audio.music || this.game.audio.currentMusic;
+                    if (bgm && typeof bgm.pause === 'function') {
+                        bgm.pause();
+                        hClone.onended = () => {
+                            // only resume if haven't picked up the cheese / won game!
+                            // ensure audio manager hasn't loaded new song in meantime.
+                            let currentBgm = this.game.audio.music || this.game.audio.currentMusic;
+                            if (currentBgm === bgm && !this.game.camera.winState) {
+                                bgm.play().catch(e => console.log(e));
+                            }
+                        };
+                    } else if (this.game.audio.setVolume) {
+                        let oldVol = this.game.audio.volume || 0.5;
+                        this.game.audio.setVolume(0);
+                        hClone.onended = () => {
+                            if (!this.game.camera.winState) {
+                                this.game.audio.setVolume(oldVol);
+                            }
+                        };
+                    }
+
+                    hClone.play().catch(e => console.error(e));
+                }
+
                 // Automatically close the UI shortly after solving
-                setTimeout(() => this.exit(), 1500); 
+                setTimeout(() => this.exit(), 1500);
             } else {
                 this.statusMessage = "LOCKED";
                 this.statusColor = "red";
+                this.errorFlashTimer = 1.0;
                 // Reset after 1 second
                 setTimeout(() => {
                     this.inputCode = "";
@@ -173,7 +239,13 @@ class Keypad {
         ctx.strokeRect(panelX, panelY, panelW, panelH);
 
         // LCD Display Screen
-        ctx.fillStyle = "#111111";
+        if (this.errorFlashTimer > 0) {
+            ctx.fillStyle = (Math.floor(this.errorFlashTimer * 10) % 2 === 0) ? "red" : "#111111";
+        } else if (this.successFlashTimer > 0) {
+            ctx.fillStyle = (Math.floor(this.successFlashTimer * 10) % 2 === 0) ? "#00FF00" : "#111111";
+        } else {
+            ctx.fillStyle = "#111111";
+        }
         ctx.fillRect(panelX + 20, panelY + 20, panelW - 40, 70);
         
         ctx.fillStyle = this.statusColor;
@@ -205,19 +277,20 @@ class Keypad {
                 let bx = startX + col * (btnSize + padding);
                 let by = startY + row * (btnSize + padding);
 
+                let isPressed = (buttons[row][col] === this.pressedButton);
+                let offset = isPressed ? 4 : 0;
+
                 // Button shadow/depth
                 ctx.fillStyle = "#555";
                 ctx.fillRect(bx, by, btnSize, btnSize);
-                
-                ctx.fillStyle = "#C0C0C0";
-                ctx.fillRect(bx + 2, by + 2, btnSize - 4, btnSize - 4);
+                ctx.fillStyle = isPressed ? "#808080" : "#C0C0C0";
+                ctx.fillRect(bx + 2, by + 2 + offset, btnSize - 4, btnSize - 4 - offset);
 
                 // Button Text
                 ctx.fillStyle = "black";
-                ctx.fillText(buttons[row][col], bx + btnSize / 2, by + btnSize / 2 + 10);
+                ctx.fillText(buttons[row][col], bx + btnSize / 2, by + btnSize / 2 + 10 + offset);
             }
         }
-
         // Global Close Button (Matches Computer)
         ctx.fillStyle = "#800000";
         ctx.fillRect(w - 60, 0, 60, 40);

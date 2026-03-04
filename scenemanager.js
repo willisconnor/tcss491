@@ -26,6 +26,13 @@ class SceneManager {
         this.hasBeefJerky = false;
         this.yorkieGivenJerky = false;
 
+        // persistent States
+        this.gateUnlocked = false;
+        this.catState = null;
+        this.safeUnlocked = false;
+        this.winState = false;
+        this.winTimer = 0;
+
         this.preDialogueActive = false;
         this.preDialogueTimer = 0;
         this.preDialogueDuration = 0;
@@ -322,6 +329,26 @@ class SceneManager {
             });
         }
 
+        if (this.levelNumber === 3) {
+            this.game.entities.forEach(entity => {
+                if (entity.constructor.name === "Cat") {
+                    this.saveCatState(entity);
+                }
+            });
+        }
+        // win logic
+        if (this.winState) {
+            this.winTimer += this.game.clockTick;
+            if (this.winTimer > 5) {
+                let anyKeyPressed = Object.values(this.game.keys).some(k => k === true);
+                if (!this.isReloading && (this.game.click || anyKeyPressed)) {
+                    this.isReloading = true;
+                    location.reload();
+                }
+            }
+            return; // stops rest of game logic from updating while win screen plays
+        }
+
         // Death Trigger Logic
         if (!this.loseState && !this.catLoseState && !this.computerLoseState && !this.safeLoseState && rat && rat.health <= 0 && this.ratLives === 0) {
             if (this.deathReason === "COMPUTER") {
@@ -483,8 +510,8 @@ class SceneManager {
         stationarySnake.id = "level2_snake_main";
         this.loadSnakeState(stationarySnake, stationarySnake.id);
 
-        // only add snake to the canvas if its still alive
-        if (!stationarySnake.dead) {
+        // only add snake to the canvas if it's still alive
+        if (!stationarySnake.dead && stationarySnake.health > 0) {
             this.game.addEntity(stationarySnake);
 
         }
@@ -535,15 +562,30 @@ class SceneManager {
         this.game.addEntity(new Door(this.game, 80, 95, "Level2", false));
 
         //add cat in location that has yet to be determined
-        this.game.addEntity(new Cat(this.game, 600, 200));
-        //can add a patrol path too for it to be dynamic
+        let myCat = new Cat(this.game, 600, 200);
+        if (this.catState) {
+            myCat.health = this.catState.health;
+            myCat.x = this.catState.x;
+            myCat.y = this.catState.y;
+            myCat.state = this.catState.state;
 
+            // fast forward if already defeated
+            if (myCat.state === "DEFEATED_WALK" || myCat.state === "SLEEPING") {
+                myCat.state = "SLEEPING";
+                myCat.x = 1170;
+                myCat.y = 490;
+                myCat.facing = 2; // down
+                myCat.currentAnimation = myCat.animations.get("death")[myCat.facing];
+            }
+        }
+        this.game.addEntity(myCat);
+        //can add a patrol path too for it to be dynamic
         console.log("Loaded level 3!");
     }
 
     saveSnakeState(snake, snakeId) {
         this.snakeStates.set(snakeId, {
-            dead: snake.dead,
+            dead: snake.dead || snake.health <= 0, // fallback check if animation didn't finish
             health: snake.health,
             x: snake.x,
             y: snake.y
@@ -556,6 +598,15 @@ class SceneManager {
             isUnlocked: computer.isUnlocked,
             verifyStep: computer.verifyStep,
             progress: computer.progress
+        };
+    }
+
+    saveCatState(cat) {
+        this.catState = {
+            state: cat.state,
+            health: cat.health,
+            x: cat.x,
+            y: cat.y
         };
     }
 
@@ -757,7 +808,54 @@ class SceneManager {
                 this.isFading = false;
             }
         }
+        // win logic
+        if (this.winState) {
+            ctx.save();
+            ctx.fillStyle = "black";
+            // ensure valid alpha
+            let alpha = Math.max(0, Math.min(1, this.winTimer / 2));
+            if (isNaN(alpha)) alpha = 1;
+            ctx.globalAlpha = alpha;
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.restore();
 
+            if (this.winTimer > 2) {
+                let boxWidth = 950;
+                let boxHeight = 350;
+                let boxX = (ctx.canvas.width - boxWidth) / 2;
+                let boxY = ctx.canvas.height / 2 - boxHeight / 2;
+
+                ctx.save();
+                ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+                ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+                ctx.strokeStyle = "gold";
+                ctx.lineWidth = 4;
+                ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+                ctx.textAlign = "center";
+                ctx.fillStyle = "gold";
+                ctx.font = "bold 48px 'Press Start 2P', Courier";
+                ctx.fillText("YOU SECURED THE 🧀", ctx.canvas.width / 2, boxY + 80);
+
+                ctx.fillStyle = "white";
+                ctx.font = "16px 'Press Start 2P', Courier";
+                ctx.fillText("The colony is saved, and you've officially earned", ctx.canvas.width / 2, boxY + 140);
+                ctx.fillText("the title of a true hero in the basement walls.", ctx.canvas.width / 2, boxY + 180);
+                ctx.fillText("You are safe for infinite winters.", ctx.canvas.width / 2, boxY + 220);
+
+                // Replaced the emoji with text to prevent the canvas crash
+                ctx.font = "bold 60px 'Press Start 2P', Courier";
+                ctx.fillText("WIN", ctx.canvas.width / 2, boxY + 310);
+
+                if (this.winTimer > 5) {
+                    ctx.font = "30px 'Press Start 2P', Courier";
+                    ctx.fillStyle = "gold";
+                    ctx.fillText("PRESS ANY KEY TO RESTART", ctx.canvas.width / 2, ctx.canvas.height - 40);
+                }
+                ctx.restore();
+            }
+            return;
+        }
         if (this.loseState) {
             if (this.loseTimer < 5) {
                 ctx.save();
@@ -859,7 +957,50 @@ class SceneManager {
                 ctx.fillText("PRESS ANY KEY TO RESTART", ctx.canvas.width / 2, ctx.canvas.height - 40);
             }
         }
+        if (this.winState) {
+            ctx.save();
+            ctx.fillStyle = "black";
+            ctx.globalAlpha = Math.min(1, this.winTimer / 2);
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.restore();
 
+            if (this.winTimer > 2) {
+                let boxWidth = 950;
+                let boxHeight = 350;
+                let boxX = (ctx.canvas.width - boxWidth) / 2;
+                let boxY = ctx.canvas.height / 2 - boxHeight / 2;
+
+                ctx.save();
+                ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+                ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+                ctx.strokeStyle = "gold";
+                ctx.lineWidth = 4;
+                ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+                ctx.restore();
+
+                ctx.textAlign = "center";
+
+                ctx.fillStyle = "gold";
+                ctx.font = "bold 48px 'Press Start 2P', Courier";
+                ctx.fillText("YOU SECURED THE BAG!", ctx.canvas.width / 2, boxY + 80);
+
+                ctx.fillStyle = "white";
+                ctx.font = "16px 'Press Start 2P', Courier";
+                ctx.fillText("The colony is saved, and you've officially earned", ctx.canvas.width / 2, boxY + 140);
+                ctx.fillText("the title of a true hero in the basement walls.", ctx.canvas.width / 2, boxY + 180);
+                ctx.fillText("You are safe for infinite winters.", ctx.canvas.width / 2, boxY + 220);
+
+                ctx.font = "bold 80px 'Press Start 2P', Courier";
+                ctx.fillText("🧀", ctx.canvas.width / 2, boxY + 310);
+
+                if (this.winTimer > 5) {
+                    ctx.font = "30px 'Press Start 2P', Courier";
+                    ctx.fillStyle = "gold";
+                    ctx.fillText("PRESS ANY KEY TO RESTART", ctx.canvas.width / 2, ctx.canvas.height - 40);
+                }
+            }
+            return;
+        }
         if (this.computerLoseState || this.safeLoseState) {
             ctx.save();
             ctx.fillStyle = "black";
