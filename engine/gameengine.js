@@ -19,7 +19,7 @@ class GameEngine {
         this.wheel = null;
         this.typing = false; // When true, WASD won't move the rat
         this.keys = {
-            "Escape": false, // Jayda added
+            "Escape": false, 
             "ShiftLeft" : false,
             "ArrowRight" : false,
             "ArrowUp" : false,
@@ -37,7 +37,7 @@ class GameEngine {
 
         // Options and the Details
         this.options = options || {
-            debugging: true,
+            debugging: false,
         };
     };
 
