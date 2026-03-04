@@ -125,9 +125,9 @@ class Yorkie {
     updateBB() {
         // adjusting numbers so rat can't fit under yorkie
         let xOffset = 0; // if you want to offset box by L or R
-        let yOffset = 20; // Pushes top of the box down
+        let yOffset = 15; // Pushes top of the box down
         let boxWidth = this.width -5; // Makes the box skinnier
-        let boxHeight = this.height + 15; // Makes the box taller
+        let boxHeight = this.height + 10; // Makes the box taller
 
         this.BB = new BoundingBox(this.x + xOffset, this.y + yOffset, boxWidth, boxHeight);
     }

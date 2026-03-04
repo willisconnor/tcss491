@@ -310,8 +310,11 @@ class SceneManager {
                     this.zoom = 1.75;
                 }
             } else {
-                this.x = rat.x - (viewW / 2);
-                this.y = rat.y - (viewH / 2);
+                // FOLLOW_RAT -> Normal gameplay
+                if (this.game.entities.find(e => e.constructor.name === "Rat").slidePhase === 0) {
+                    this.x = rat.x - (viewW / 2);
+                    this.y = rat.y - (viewH / 2);
+                }
             }
 
             this.x = Math.max(0, Math.min(this.x, this.worldWidth - viewW));

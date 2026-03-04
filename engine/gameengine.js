@@ -26,19 +26,18 @@ class GameEngine {
             "ArrowDown" : false,
             "ArrowLeft" : false,
             "Digit1": false,
+            "Digit2": false,
             "Space" : false,
             "KeyD" : false,
             "KeyW" : false,
             "KeyS" : false,
             "KeyA" : false,
-            "KeyE": false,
-            // X is for testing death animation
-            "KeyX" : false
+            "KeyE": false
         };
 
         // Options and the Details
         this.options = options || {
-            debugging: false,
+            debugging: true,
         };
     };
 
