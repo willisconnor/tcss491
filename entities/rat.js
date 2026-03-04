@@ -51,15 +51,15 @@ class Rat {
         this.slideTargetRadius = 250;       // Maximum distance to detect an enemy
         this.slideAttackRange = 40;         // How far the attack reaches (Rat stops dashing when this close)
         this.slideAttackDamage = 0.5;       // Damage of the dash attack
-        this.slideReturnRange = 20;          // Snaps back to start when within this many pixels
+        this.slideReturnRange = 20;         // Snaps back to start when within this many pixels
         this.dashSafetyBuffer = 0.15;       // Extra seconds added to the timeout calculation
     };
 
     loadAnimations() {
-        this.animations.get("idle")[0] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[1]), 0, 58, 48, 38, 3, 0.7, 0);
-        this.animations.get("idle")[1] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[1]), 0, 106, 48, 38, 3, 0.7, 0);
-        this.animations.get("idle")[2] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[1]), 0, 6, 48, 33, 3, 0.7, 0, -2.4);
-        this.animations.get("idle")[3] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[1]), 0, 148, 48, 44, 3, 0.7, 0, -2.4);
+        this.animations.get("idle")[0] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[1]), 0, 58, 48, 38, 3, 0.4, 0);
+        this.animations.get("idle")[1] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[1]), 0, 106, 48, 38, 3, 0.4, 0);
+        this.animations.get("idle")[2] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[1]), 0, 6, 48, 33, 3, 0.4, 0, -2.4);
+        this.animations.get("idle")[3] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[1]), 0, 148, 48, 44, 3, 0.4, 0, -2.4);
 
         this.animations.get("walk")[0] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[0]), 0, 74, 48, 18, 3, 0.15, 0, 0, 14);
         this.animations.get("walk")[1] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[0]), 0, 122, 48, 18, 3, 0.15, 0, 0, 14);
@@ -71,10 +71,10 @@ class Rat {
         this.animations.get("run")[2] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[0]), 0, 22, 48, 22, 3, 0.1, 0, 0, 14);
         this.animations.get("run")[3] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[0]), 0, 164, 48, 24, 3, 0.1, 0, 0, 14);
 
-        this.animations.get("attack")[0] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[2]), 183, 12, 62, 44, 3, 0.2, 0, 20, 0, false);
-        this.animations.get("attack")[1] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[2]), 371, 12, 62, 44, 3, 0.2, 0, 0, 0, false);
-        this.animations.get("attack")[2] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[2]), 0, 10, 62, 44, 3, 0.2, 0, 0, 0, false);
-        this.animations.get("attack")[3] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[2]), 558, 7, 62, 48, 3, 0.2, 0, 0, 0, false);
+        this.animations.get("attack")[0] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[2]), 183, 12, 62, 44, 3, 0.15, 0, 20, 0, false);
+        this.animations.get("attack")[1] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[2]), 371, 12, 62, 44, 3, 0.15, 0, 0, 0, false);
+        this.animations.get("attack")[2] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[2]), 0, 10, 62, 44, 3, 0.15, 0, 0, 0, false);
+        this.animations.get("attack")[3] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[2]), 558, 7, 62, 48, 3, 0.15, 0, 0, 0, false);
 
         this.animations.get("attack2")[0] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[3]), 0, 8, 48, 35, 3, 0.1, 0, 0, 0, false);
         this.animations.get("attack2")[1] = new Animator(ASSET_MANAGER.getAsset(RAT_SPRITES[3]), 144, 8, 48, 35, 3, 0.1, 0, 0, 0, false);
@@ -296,7 +296,6 @@ class Rat {
             } else if (this.game.keys["Space"] && this.attackCooldown <= 0) {
                 targetSpeed = 0;
                 targetAnim = this.animations.get("attack")[this.facing];
-                this.performAttack();
             } else {
                 if (this.game.keys["ArrowLeft"] || this.game.keys["KeyA"]) {
                     targetSpeed = 100;
@@ -330,6 +329,10 @@ class Rat {
         if (isPriority && !currentAnim.isDone()) {
             targetAnim = currentAnim;
             targetSpeed = 0;
+        }
+
+        if (isPriority && currentAnim.isDone() && !this.hasHit) {
+            this.performAttack();
         }
 
         if (this.animator !== targetAnim) {
