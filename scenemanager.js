@@ -29,6 +29,7 @@ class SceneManager {
         // persistent States
         this.gateUnlocked = false;
         this.catState = null;
+        this.yorkieState = null;
         this.safeUnlocked = false;
         this.winState = false;
         this.winTimer = 0;
@@ -104,7 +105,13 @@ class SceneManager {
 
             this.punchSound.volume = 0.05;
         }
-        this.computerState = null;
+        this.catIntroPlayed = false;
+        this.heartContainerUsed = false;
+        this.maxLives = 3;
+        this.snakeDefeatTextPlayed = false;
+        this.debugUnlimitedHealth = false;
+        this.debugOnePunch = false;
+        this.debugNoDialogue = false;
     }
 
     update() {
@@ -133,12 +140,32 @@ class SceneManager {
                 }
                 if (this.game.options && this.game.options.debugging) {
                     if (mouseX >= 20 && mouseX <= 320 && mouseY >= 130 && mouseY <= 160) {
-                        this.skipToLevel2Alive();
+                        this.skipToLevel1();
                         this.game.click = null;
                         return;
                     }
                     if (mouseX >= 20 && mouseX <= 320 && mouseY >= 170 && mouseY <= 200) {
+                        this.skipToLevel2Alive();
+                        this.game.click = null;
+                        return;
+                    }
+                    if (mouseX >= 20 && mouseX <= 320 && mouseY >= 210 && mouseY <= 240) {
                         this.skipToLevel3Dead();
+                        this.game.click = null;
+                        return;
+                    }
+                    if (mouseX >= 20 && mouseX <= 320 && mouseY >= 250 && mouseY <= 280) {
+                        this.debugUnlimitedHealth = !this.debugUnlimitedHealth;
+                        this.game.click = null;
+                        return;
+                    }
+                    if (mouseX >= 20 && mouseX <= 320 && mouseY >= 290 && mouseY <= 320) {
+                        this.debugOnePunch = !this.debugOnePunch;
+                        this.game.click = null;
+                        return;
+                    }
+                    if (mouseX >= 20 && mouseX <= 320 && mouseY >= 330 && mouseY <= 360) {
+                        this.debugNoDialogue = !this.debugNoDialogue;
                         this.game.click = null;
                         return;
                     }
@@ -234,9 +261,13 @@ class SceneManager {
             if (this.levelNumber === 2 && !this.snakeIntroPlayed) {
                 let snake = this.game.entities.find(e => e.constructor.name === "Snake" && e.id === "level2_snake_main");
                 if (snake && rat.x > 300 && this.cameraState === "FOLLOW_RAT") {
-                    this.cameraState = "PAN_TO_SNAKE";
-                    this.game.paused = true;
-                    snake.facing = 0;
+                    if (this.debugNoDialogue) {
+                        this.snakeIntroPlayed = true;
+                    } else {
+                        this.cameraState = "PAN_TO_SNAKE";
+                        this.game.paused = true;
+                        snake.facing = 0;
+                    }
                 }
             }
 
@@ -328,6 +359,13 @@ class SceneManager {
                 }
                 if (entity.constructor.name === "Computer") {
                     this.saveComputerState(entity);
+                }
+            });
+        }
+        if (this.levelNumber === 1) {
+            this.game.entities.forEach(entity => {
+                if (entity.constructor.name === "Yorkie") {
+                    this.saveYorkieState(entity);
                 }
             });
         }
@@ -454,12 +492,30 @@ class SceneManager {
         rat.health = this.ratHealth; //restore health
         this.game.addEntity(rat);
         this.game.addEntity(new StuartBig(this.game, 200, 215, 2));
-        this.game.addEntity(new Yorkie(this.game, 420, 420));
+        let yorkieX = 320;
+        let yorkieY = 150;
+        if (this.yorkieState) {
+            yorkieX = this.yorkieState.x;
+            yorkieY = this.yorkieState.y;
+        }
+        let yorkieEnt = new Yorkie(this.game, yorkieX, yorkieY);
+        if (this.yorkieState) {
+            yorkieEnt.actionState = this.yorkieState.actionState;
+            yorkieEnt.facing = this.yorkieState.facing;
+            yorkieEnt.animator = yorkieEnt.animations.get(
+                yorkieEnt.actionState === "SLEEPING" || yorkieEnt.actionState === "JERKY_IDLE" ? "sleep" : "sleep"
+            )[yorkieEnt.facing];
+        }
+        this.game.addEntity(yorkieEnt);
         this.game.addEntity(new Door(this.game, 420, 90, "Level2", true));
+        if (!this.hasGoldenKey) {
+            this.game.addEntity(new GoldenKey(this.game, 65, 120));
+        }
 
         // Play music
         this.currentMusicPath = "./assets/background_music.wav";
         this.game.audio.playMusic(this.currentMusicPath);
+        this.game.addEntity(new HeartContainer(this.game, 1375, 540));
 
         console.log("Loaded level one!");
     }
@@ -594,6 +650,14 @@ class SceneManager {
             y: snake.y
         });
     }
+    saveYorkieState(yorkie) {
+        this.yorkieState = {
+            x: yorkie.x,
+            y: yorkie.y,
+            actionState: yorkie.actionState,
+            facing: yorkie.facing
+        };
+    }
     saveComputerState(computer) {
         this.computerState = {
             resumeState: computer.resumeState,
@@ -661,21 +725,49 @@ class SceneManager {
 
                 ctx.font = "10px 'Press Start 2P'";
 
-                // button 1: level 2 Alive
+// button 1: Level 1 post intro
                 ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
                 ctx.fillRect(20, 130, 310, 30);
                 ctx.strokeStyle = "#ffcc00";
                 ctx.strokeRect(20, 130, 310, 30);
                 ctx.fillStyle = "white";
-                ctx.fillText("WARP Level 2 (SNAKE IS ALIVE)", 35, 151);
+                ctx.fillText("WARP Level 1 (PRE-FIGHT)", 35, 151);
 
-                // button 2: Level 3 Dead
+// button 2: level 2 Alive
                 ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
                 ctx.fillRect(20, 170, 310, 30);
                 ctx.strokeStyle = "#ffcc00";
                 ctx.strokeRect(20, 170, 310, 30);
                 ctx.fillStyle = "white";
-                ctx.fillText("WARP Level 3 (SNAKE IS DEAD)", 35, 191);
+                ctx.fillText("WARP Level 2 (SNAKE ALIVE)", 35, 191);
+
+// button 3: Level 3 Snake Dead
+                ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
+                ctx.fillRect(20, 210, 310, 30);
+                ctx.strokeStyle = "#ffcc00";
+                ctx.strokeRect(20, 210, 310, 30);
+                ctx.fillStyle = "white";
+                ctx.fillText("WARP Level 3 (SNAKE DEAD)", 35, 231);
+                ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
+                ctx.fillRect(20, 250, 310, 30);
+                ctx.strokeStyle = this.debugUnlimitedHealth ? "#39FF14" : "#ffcc00";
+                ctx.strokeRect(20, 250, 310, 30);
+                ctx.fillStyle = this.debugUnlimitedHealth ? "#39FF14" : "white";
+                ctx.fillText(`UNLIMITED HEALTH: ${this.debugUnlimitedHealth ? "ON" : "OFF"}`, 35, 271);
+
+                ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
+                ctx.fillRect(20, 290, 310, 30);
+                ctx.strokeStyle = this.debugOnePunch ? "#39FF14" : "#ffcc00";
+                ctx.strokeRect(20, 290, 310, 30);
+                ctx.fillStyle = this.debugOnePunch ? "#39FF14" : "white";
+                ctx.fillText(`ONE PUNCH MAN: ${this.debugOnePunch ? "ON" : "OFF"}`, 35, 311);
+
+                ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
+                ctx.fillRect(20, 330, 310, 30);
+                ctx.strokeStyle = this.debugNoDialogue ? "#39FF14" : "#ffcc00";
+                ctx.strokeRect(20, 330, 310, 30);
+                ctx.fillStyle = this.debugNoDialogue ? "#39FF14" : "white";
+                ctx.fillText(`NO DIALOGUE: ${this.debugNoDialogue ? "ON" : "OFF"}`, 35, 351);
             }
             ctx.restore();
         }
@@ -715,7 +807,7 @@ class SceneManager {
             let isRecovering = rat && rat.isRecovering;
             let recoveryTimer = rat ? rat.recoveryTimer : 0;
 
-            for (let i = 0; i < 3; i++) {
+            for (let i = 0; i < this.maxLives; i++) {
                 let sourceX = 0;
                 if (i < this.ratLives) {
                     if (isRecovering && i === this.ratLives - 1) {
@@ -1076,9 +1168,10 @@ class SceneManager {
             computer.drawUI(ctx);
         }
         let keypad = this.game.entities.find(e => e instanceof Keypad);
-        if (keypad) {
-            keypad.drawUI(ctx);
-        }
+        if (keypad) keypad.drawUI(ctx);
+
+        let heartContainer = this.game.entities.find(e => e.constructor.name === "HeartContainer");
+        if (heartContainer) heartContainer.drawUI(ctx);
     }
 
     drawMinimap(ctx) {
@@ -1222,6 +1315,28 @@ class SceneManager {
         console.log("Map cached successfully at scale " + this.scale);
     }
 
+    skipToLevel1() {
+        this.stuartIntroPlayed = true;
+        this.loreCompleted = true;
+        this.yorkieDefeated = false;
+        this.storyState = "YORKIE_CHALLENGE";
+        // key has NOT been collected so the player must still find it
+        this.hasGoldenKey = false;
+        this.menuActive = false;
+        this.dialogueActive = false;
+        this.game.paused = false;
+        this.game.entities.forEach(entity => {
+            if (entity !== this) entity.removeFromWorld = true;
+        });
+        this.loadLevelOne();
+        let yorkie = this.game.entities.find(e => e.constructor.name === "Yorkie");
+        if (yorkie) {
+            yorkie.actionState = "PRE_FIGHT";
+            yorkie.animator = yorkie.animations.get("sleep")[yorkie.facing];
+        }
+        this.mapCached = false;
+    }
+
     skipToLevel2Alive() {
         console.log("DEBUG: Instant Warp to Level 2 (Snake Alive)...");
 
@@ -1241,7 +1356,7 @@ class SceneManager {
         this.game.entities.forEach(entity => {
             if (entity !== this) entity.removeFromWorld = true;
         });
-
+        this.snakeDefeatTextPlayed = false;
         this.loadLevelTwo(1);
         this.mapCached = false;
     }
@@ -1265,7 +1380,7 @@ class SceneManager {
         this.game.entities.forEach(entity => {
             if (entity !== this) entity.removeFromWorld = true;
         });
-
+        this.snakeDefeatTextPlayed = true;
         this.loadLevelThree();
         this.mapCached = false;
     }

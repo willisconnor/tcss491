@@ -601,7 +601,9 @@ class Cat extends Enemy{
         }
 
         // Inherited from Enemy — hides automatically when dead
-        this.drawHealthBar(ctx);
+        if (this.state !== "SLEEPING" && this.state !== "DEFEATED_WALK") {
+            this.drawHealthBar(ctx);
+        }
 
         if (game.options.debugging) {
             ctx.save();

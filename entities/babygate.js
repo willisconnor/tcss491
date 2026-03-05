@@ -51,8 +51,8 @@ class BabyGate {
 
                     let sm = this.game.camera;
                     sm.itemPopupText = [
-                        "Access granted! Time to haul your furry",
-                        "butt to the finish line."
+                        "Key worked! Access granted! Time to haul your",
+                        "furry butt to the finish line."
                     ];
                     sm.itemPopupActive = true;
                     this.game.click = null;

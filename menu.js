@@ -145,18 +145,23 @@ class Menu {
 
         // Check if Stuart's intro has already been played
         if (!this.game.camera.stuartIntroPlayed) {
-            // First time: play the intro dialogue
-            this.game.camera.dialogueActive = true;
-            this.game.camera.dialogue.currentIndex = 0;
-            this.game.camera.dialogue.charIndex = 0;
-            this.game.camera.dialogue.displayText = "";
-            this.game.camera.dialogue.phase = "INTRO";
-            this.game.camera.dialogue.selectedChoiceIndex = null;
-            this.game.camera.dialogue.selectedQuestions = new Set();
-            this.game.camera.dialogue.displayingChoiceResponse = false;
-            this.game.camera.dialogue.currentQuestionIndex = null;
-            this.game.camera.dialogue.askingFollowUp = false;
-            this.game.camera.dialogue.typeTimer = 0;
+            if (this.game.camera.debugNoDialogue) {
+                this.game.camera.dialogueActive = false;
+                this.game.camera.stuartIntroPlayed = true;
+            } else {
+                // First time: play the intro dialogue
+                this.game.camera.dialogueActive = true;
+                this.game.camera.dialogue.currentIndex = 0;
+                this.game.camera.dialogue.charIndex = 0;
+                this.game.camera.dialogue.displayText = "";
+                this.game.camera.dialogue.phase = "INTRO";
+                this.game.camera.dialogue.selectedChoiceIndex = null;
+                this.game.camera.dialogue.selectedQuestions = new Set();
+                this.game.camera.dialogue.displayingChoiceResponse = false;
+                this.game.camera.dialogue.currentQuestionIndex = null;
+                this.game.camera.dialogue.askingFollowUp = false;
+                this.game.camera.dialogue.typeTimer = 0;
+            }
         } else {
             // already played intro -> skip straight to game without dialogue
             this.game.camera.dialogueActive = false;

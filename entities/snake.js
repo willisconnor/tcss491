@@ -2,8 +2,8 @@
 //@date: 2/7/26
 //Snake enemy: patrols a path or remains idle, then chases and attacks player when visible
 
-class Snake extends Enemy{
-    constructor(game, x, y, patrolPath = null){
+class Snake extends Enemy {
+    constructor(game, x, y, patrolPath = null) {
         super(
             game,
             x, y,
@@ -115,7 +115,7 @@ class Snake extends Enemy{
         this.animations.get("death")[3] = deathAnim;
     }
 
-    moveToward(targetX, targetY){
+    moveToward(targetX, targetY) {
         const dx = targetX - this.x;
         const dy = targetY - this.y;
 
@@ -185,7 +185,7 @@ class Snake extends Enemy{
         }
 
         const target = this.patrolPath[this.patrolIndex];
-        const distance = getDistance({ x: this.x, y: this.y }, target);
+        const distance = getDistance({x: this.x, y: this.y}, target);
 
         if (distance < 5) {
             this.patrolWaitTimer = this.patrolWaitDuration;
@@ -261,6 +261,10 @@ class Snake extends Enemy{
      */
     onDeath() {
         this.state = "DEAD";
+        // save dead state immediately so level transitions always see it as dead
+        if (this.game.camera && this.id) {
+            this.game.camera.saveSnakeState(this, this.id);
+        }
         let anim = this.animations.get("death")[this.facing];
         if (anim) {
             anim.elapsedTime = 0;
@@ -418,10 +422,10 @@ class Snake extends Enemy{
 
             ctx.restore();
         }
-        
+
         // inherited from enemy class, will hide automatically when dead!
         this.drawHealthBar(ctx);
-        
+
         if (game.options.debugging) {
             ctx.save();
 
@@ -508,7 +512,7 @@ class Snake extends Enemy{
             ctx.fillText(
                 `${this.state} F:${this.facing} HF:${this.horizontalFacing}`,
                 this.x,
-                this.y- 30
+                this.y - 30
             );
 
             ctx.restore();

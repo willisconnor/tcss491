@@ -37,7 +37,7 @@ class GameEngine {
 
         // Options and the Details
         this.options = options || {
-            debugging: true,
+            debugging: false,
         };
     };
 
@@ -182,8 +182,9 @@ class GameEngine {
                 // Add Yorkie and PoisonParticle to the list of things that NEVER stop
                 let isEssential = entity.constructor.name === "GoldenKey" ||
                     entity.constructor.name === "BeefJerky" ||
-                    entity.constructor.name === "Yorkie" || 
+                    entity.constructor.name === "Yorkie" ||
                     entity.constructor.name === "PoisonParticle" ||
+                    entity.constructor.name === "HeartContainer" ||
                     entity === this.camera;
 
                 if (!this.paused || isEssential) {
