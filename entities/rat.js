@@ -276,6 +276,9 @@ class Rat {
                     this.x = this.slideStartX;
                     this.y = this.slideStartY;
                     targetSpeed = 0;
+
+                    // Flips rat back to its original facing direction!
+                    this.facing = (this.facing === 0) ? 1 : 0;
                 }
             }
         } else {
