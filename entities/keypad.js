@@ -64,6 +64,7 @@ class Keypad {
                 }
 
                 this.active = true;
+                InteractionFX.triggerShockwave(this.x + this.width / 2, this.y + this.height / 2, "#00ff66");
                 rat.frozenForDialogue = true;
             }
             return;
@@ -204,13 +205,10 @@ class Keypad {
         }
         ctx.fillRect(this.x + 5, this.y + 5, this.width - 10, 8);
 
-        // Interaction prompt (Only show if the safe is NOT already open)
+        // Proximity glow (Only show if the safe is NOT already open)
         const rat = this.game.entities.find(e => e.constructor.name === "Rat");
         if (!this.active && !this.linkedSafe.isOpen && rat && this.interactBox.collide(rat.BB)) {
-            ctx.fillStyle = "white";
-            ctx.font = "bold 12px 'Press Start 2P', Courier";
-            ctx.textAlign = "center";
-            ctx.fillText("[E] Enter Code", this.x + this.width / 2, this.y - 15);
+            InteractionFX.drawRectGlow(ctx, this.x, this.y, this.width, this.height, "#00ff66");
         }
     }
 

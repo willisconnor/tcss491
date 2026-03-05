@@ -54,7 +54,7 @@ class StuartBig {
                         this.startFurtherQuestionsDialogue();
                         this.actionState = "TALKING";
                         this.game.keys["KeyE"] = false;
-                    }
+                        InteractionFX.triggerShockwave(this.x + this.width / 2, this.y + this.height / 2, "#ffffff");                    }
                     break;
                     
                 case "TALKING":
@@ -107,15 +107,13 @@ class StuartBig {
         ctx.save();
         this.animator.drawFrame(this.game.clockTick, ctx, this.x, this.y, this.scale);
         ctx.restore();
-        
-        // Draw interaction prompt if Stuart intro has been played and player is in range
+
+        // Sprite-accurate proximity glow when player is in range
         let rat = this.game.entities.find(e => e.constructor.name === "Rat");
         if (rat && this.game.camera.stuartIntroPlayed && !this.game.camera.dialogueActive) {
             let interactBox = new BoundingBox(this.x - 20, this.y - 20, this.width + 40, this.height + 40);
             if (rat.BB && interactBox.collide(rat.BB)) {
-                ctx.font = "14px Arial";
-                ctx.fillStyle = "yellow";
-                ctx.fillText("[E] Stuart Big", this.x, this.y - 10);
+                InteractionFX.drawSpriteGlow(ctx, this.animator, this.x, this.y, this.scale, "#ffffff", "stuart");
             }
         }
     }

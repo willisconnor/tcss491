@@ -70,6 +70,7 @@ class HeartContainer {
 
         if (!this.game.paused && this.interactBox.collide(rat.BB) && this.game.keys["KeyE"]) {
             this.game.keys["KeyE"] = false;
+            InteractionFX.triggerShockwave(this.x + this.drawW / 2, this.y + this.drawH / 2, "#ff69b4");
             this.showPopup = true;
             this.selectedOption = 0;
             this.navCooldown = 0.3;
@@ -172,12 +173,7 @@ class HeartContainer {
 
         const rat = this.game.entities.find(e => e.constructor.name === "Rat");
         if (rat && this.interactBox.collide(rat.BB) && !this.game.paused) {
-            ctx.save();
-            ctx.fillStyle = "white";
-            ctx.font = "bold 12px 'Press Start 2P'";
-            ctx.textAlign = "center";
-            ctx.fillText("[E] Heart", this.x + this.drawW / 2, this.y - 10);
-            ctx.restore();
+            InteractionFX.drawImageGlow(ctx, this.sprite, 0, 0, this.frameWidth, this.frameHeight, this.x, this.y, this.drawW, this.drawH, "#ff69b4");
         }
     }
 }

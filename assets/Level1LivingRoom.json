@@ -4,7 +4,7 @@
      "export":
         {
          "format":"json",
-         "target":"..\/Desktop\/TCSS 491 Game And Simulation Design\/Level1LivingRoom.json"
+         "target":"..\/WebstormProjects\/tcss491\/Desktop\/TCSS 491 Game And Simulation Design\/Level1LivingRoom.json"
         }
     },
  "height":10,
@@ -89,7 +89,7 @@
          "name":"walls\/furniture",
          "opacity":1,
          "type":"tilelayer",
-         "visible":false,
+         "visible":true,
          "width":23,
          "x":0,
          "y":0
@@ -110,7 +110,7 @@
          "name":"Shadows",
          "opacity":1,
          "type":"tilelayer",
-         "visible":false,
+         "visible":true,
          "width":23,
          "x":0,
          "y":0
@@ -1036,9 +1036,112 @@
          "visible":true,
          "x":0,
          "y":0
+        }, 
+        {
+         "draworder":"topdown",
+         "id":8,
+         "name":"doorLevel2",
+         "objects":[
+                {
+                 "height":0,
+                 "id":117,
+                 "name":"",
+                 "polygon":[
+                        {
+                         "x":0,
+                         "y":0
+                        }, 
+                        {
+                         "x":4.01440415908169,
+                         "y":0.198732879162463
+                        }, 
+                        {
+                         "x":4.13364388657916,
+                         "y":-21.8208701320381
+                        }, 
+                        {
+                         "x":6.08122610237128,
+                         "y":-21.7811235562056
+                        }, 
+                        {
+                         "x":6.12097267820377,
+                         "y":-22.7350413761854
+                        }, 
+                        {
+                         "x":16.0576166363268,
+                         "y":-22.7747879520179
+                        }, 
+                        {
+                         "x":16.0178700604943,
+                         "y":0.0794931516649839
+                        }, 
+                        {
+                         "x":16.9717878804741,
+                         "y":0.198732879162463
+                        }, 
+                        {
+                         "x":16.9717878804741,
+                         "y":0.675691789152367
+                        }, 
+                        {
+                         "x":24.2851578336526,
+                         "y":0.914171244147319
+                        }, 
+                        {
+                         "x":24.0069318028252,
+                         "y":-23.8479454994952
+                        }, 
+                        {
+                         "x":23.0927605586779,
+                         "y":-23.8081989236627
+                        }, 
+                        {
+                         "x":23.0927605586779,
+                         "y":-25.8750208669523
+                        }, 
+                        {
+                         "x":21.9798564353681,
+                         "y":-25.8352742911198
+                        }, 
+                        {
+                         "x":22.0990961628656,
+                         "y":-26.7891921110996
+                        }, 
+                        {
+                         "x":2.14631509495457,
+                         "y":-26.9084318385971
+                        }, 
+                        {
+                         "x":2.14631509495457,
+                         "y":-25.6762879877898
+                        }, 
+                        {
+                         "x":1.07315754747728,
+                         "y":-25.7955277152873
+                        }, 
+                        {
+                         "x":1.07315754747728,
+                         "y":-23.7684523478302
+                        }, 
+                        {
+                         "x":0.0794931516649768,
+                         "y":-23.8081989236627
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":107.911953385216,
+                 "y":46.8214663306756
+                }],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
         }],
- "nextlayerid":7,
- "nextobjectid":117,
+ "nextlayerid":9,
+ "nextobjectid":118,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
@@ -1047,7 +1150,7 @@
         {
          "columns":270,
          "firstgid":1,
-         "image":"global.png",
+         "image":"..\/WebstormProjects\/tcss491\/assets\/global.png",
          "imageheight":3440,
          "imagewidth":4320,
          "margin":0,
