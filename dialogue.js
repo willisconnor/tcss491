@@ -116,11 +116,14 @@ class Dialogue {
     // ----------------------------------------
 
     update() {
-        // animate snake's portrait
-        if (this.speaker === "Silent Slitherer" && this.portrait) {
+        // animate snake's & cats portrait
+        if ((this.speaker === "Silent Slitherer" || this.speaker === "Carrot the Cat") && this.portrait) {
             this.portraitTimer += this.game.clockTick;
-            if (this.portraitTimer > 0.30) { // flips frame every 0.15 seconds
-                this.portraitFrame = (this.portraitFrame + 1) % 4; // cycles 0, 1, 2, 3
+            const isCatPortrait = this.speaker === "Carrot the Cat";
+            const frameSpeed = isCatPortrait ? 1.5 : 0.35;
+            const frameLimit = 2; // Both cat and snake now have 2 frames
+            if (this.portraitTimer > frameSpeed) {
+                this.portraitFrame = (this.portraitFrame + 1) % frameLimit;
                 this.portraitTimer = 0;
             }
         }
@@ -421,7 +424,27 @@ class Dialogue {
             // shrink width so it stays inside the 700px box
             btnWidth = 450;
 
-            startY = boxY + 65;        }
+            startY = boxY + 65;
+        }
+
+        // shrink bounds and push options for Level 3 Cat (5 options need compact spacing)
+        if (this.speaker === "Carrot the Cat") {
+            boxW = 800;
+            boxH = 190;
+            boxX = (w - boxW) / 2;
+            boxY = h - boxH - 40;
+
+            btnHeight = 22;
+            btnPadding = 2;
+            // push buttons right to clear the portrait
+            // framePadding (15) + frameSize (160) + text spacing (25) = 200
+            btnX = boxX + 200;
+
+            // shrink width so it stays inside the 800px box with margin
+            btnWidth = 560;
+
+            startY = boxY + 52;
+        }
 
         return choices.map((_, i) => ({
             x: btnX,
@@ -503,17 +526,17 @@ class Dialogue {
                 return;
             }
             // -------------------------------------------------
-            const boxW = 1200;
-            const boxH = 280;
+            const isCat = this.speaker === "Carrot the Cat";
+            const boxW = isCat ? 800 : 1200;
+            const boxH = isCat ? 190 : 280;
             const boxX = (w - boxW) / 2;
             const boxY = h - boxH - 40;
 
-            ctx.fillStyle = "rgba(20, 20, 20, 0.9)";
-            ctx.strokeStyle = "#ffffff";
+            ctx.fillStyle = isCat ? "rgba(120, 45, 0, 0.93)" : "rgba(20, 20, 20, 0.9)";
+            ctx.strokeStyle = isCat ? "#FF6B00" : "#ffffff";
             ctx.lineWidth = 4;
             ctx.fillRect(boxX, boxY, boxW, boxH);
             ctx.strokeRect(boxX, boxY, boxW, boxH);
-
             const framePadding = 15;
             const frameSize = boxH - (framePadding * 2);
             const frameX = boxX + framePadding;
@@ -523,10 +546,14 @@ class Dialogue {
             ctx.fillRect(frameX, frameY, frameSize, frameSize);
 
             if (this.portrait) {
-                ctx.drawImage(this.portrait, Math.floor(frameX + 5), Math.floor(frameY + 5), Math.floor(frameSize - 10), Math.floor(frameSize - 10));
+                if (this.speaker === "Carrot the Cat") {
+                    ctx.drawImage(this.portrait, this.portraitFrame * 433, 0, 433, 578, Math.floor(frameX + 5), Math.floor(frameY + 5), Math.floor(frameSize - 10), Math.floor(frameSize - 10));
+                } else {
+                    ctx.drawImage(this.portrait, Math.floor(frameX + 5), Math.floor(frameY + 5), Math.floor(frameSize - 10), Math.floor(frameSize - 10));
+                }
             }
 
-            ctx.strokeStyle = "#ffcc00";
+            ctx.strokeStyle = isCat ? "#FF6B00" : "#ffcc00";
             ctx.lineWidth = 3;
             ctx.strokeRect(frameX, frameY, frameSize, frameSize);
 
@@ -534,11 +561,10 @@ class Dialogue {
             const textY = boxY + 50;
             const maxTextWidth = boxW - frameSize - 80;
 
-            ctx.fillStyle = "#aaaaff";
+            ctx.fillStyle = isCat ? "#FFB347" : "#aaaaff";
             ctx.font = "bold 24px Arial";
             ctx.textAlign = "left";
             ctx.fillText(this.speaker, textX, textY - 10);
-
             ctx.fillStyle = "white";
             ctx.font = "22px 'Courier New'";
 
@@ -563,13 +589,16 @@ class Dialogue {
             let boxH = 280;
             let boxX = (w - boxW) / 2;
             let boxY = h - boxH - 40;
-
-            // shrink dialogue box if Snake is speaking
             if (this.speaker === "Silent Slitherer") {
                 boxW = 700;
                 boxH = 200;
                 boxX = (w - boxW) / 2;
                 boxY = h - boxH - 20;
+            } else if (this.speaker === "Carrot the Cat") {
+                boxW = 800;
+                boxH = 190;
+                boxX = (w - boxW) / 2;
+                boxY = h - boxH - 40;
             }
 
             ctx.fillStyle = "rgba(20, 20, 20, 0.9)";
@@ -591,15 +620,20 @@ class Dialogue {
                 ctx.fillStyle = "#3a3a3a";
                 ctx.fillRect(frameX, frameY, frameSize, frameSize);
 
-                // crop sprite sheet if it's the Snake
+                // crop sprite sheet if it's the Snake (new 1000x500 portrait, 2 frames of 500x500 each)
                 if (this.speaker === "Silent Slitherer") {
                     ctx.drawImage(
                         this.portrait,
-                        this.portraitFrame * 736, 0, 736, 736, // Source: X, Y, Width, Height
+                        this.portraitFrame * 500, 0, 500, 500, // Source: X, Y, Width, Height
                         Math.floor(frameX + 5), Math.floor(frameY + 5), Math.floor(frameSize - 10), Math.floor(frameSize - 10) // destination
                     );
+                } else if (this.speaker === "Carrot the Cat") {
+                    ctx.drawImage(
+                        this.portrait,
+                        this.portraitFrame * 433, 0, 433, 578,
+                        Math.floor(frameX + 5), Math.floor(frameY + 5), Math.floor(frameSize - 10), Math.floor(frameSize - 10)
+                    );
                 } else {
-                    // normal drawing for Stuart Big and Yorkie
                     ctx.drawImage(this.portrait, Math.floor(frameX + 5), Math.floor(frameY + 5), Math.floor(frameSize - 10), Math.floor(frameSize - 10));
                 }
                 // --------------------------------------------------
@@ -657,7 +691,12 @@ class Dialogue {
                         ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
                     }
                     ctx.fillStyle = isHovered ? "#FFE080" : "#FFD700";
-                    ctx.font = "22px 'Courier New'";
+                    // Smaller font for cat's many options
+                    if (this.speaker === "Carrot the Cat") {
+                        ctx.font = "14px 'Courier New'";
+                    } else {
+                        ctx.font = "22px 'Courier New'";
+                    }
                     ctx.textAlign = "left";
                     ctx.textBaseline = "middle";
                     ctx.fillText("• " + choice.text, btn.x + 10, btn.y + btn.h / 2);

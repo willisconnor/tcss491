@@ -388,7 +388,8 @@ class Rat {
         // Gate Collision Check here x- axis
         if (!this.game.collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight) &&
             !this.checkYorkieCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight) &&
-            !this.checkGateCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
+            !this.checkGateCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight) &&
+            !this.checkCatCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
             this.x = newX;
         }
         // checking Y-axis movement only, using potentially UPDATED X we re-calculate X because if we moved left/right
@@ -399,7 +400,8 @@ class Rat {
         // Gate collision check here Y-Axis
         if (!this.game.collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight) &&
             !this.checkYorkieCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight) &&
-            !this.checkGateCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
+            !this.checkGateCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight) &&
+            !this.checkCatCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
             this.y = newY; // safe to move Y
         }
 
@@ -498,7 +500,18 @@ class Rat {
         }
         return false;
     }
-
+    checkCatCollision(newX, newY, colliderW, colliderH) {
+        let cat = this.game.entities.find(e => e.constructor.name === "Cat");
+        // Only block movement when cat is in passive/defeated states
+        if (cat && cat.boundingBox) {
+            const blockingStates = ["SLEEPING", "HISSING", "DEFEATED_WALK"];
+            if (blockingStates.includes(cat.state)) {
+                let potentialRatBox = new BoundingBox(newX, newY, colliderW, colliderH);
+                return potentialRatBox.collide(cat.boundingBox);
+            }
+        }
+        return false;
+    }
     draw(ctx) {
         ctx.imageSmoothingEnabled = false;
         let drawX = this.x;
