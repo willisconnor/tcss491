@@ -124,7 +124,7 @@ class Computer {
 
         if (this.game.keys["Escape"]) {
             // block escape key cheat during penalty
-            if (this.state === "ANSWER_REVEAL" || this.state === "ERROR_WAIT") {
+            if (this.state === "ANSWER_REVEAL" || this.state === "ERROR_WAIT" || this.state === "VERIFY_PROGRESS") {
                 this.game.keys["Escape"] = false;
             } else {
                 this.exit();
@@ -141,7 +141,7 @@ class Computer {
 
             if (mx > w - 60 && mx < w && my < 60) {
                 // block exit button cheat during penalty
-                if (this.state === "ANSWER_REVEAL" || this.state === "ERROR_WAIT") {
+                if (this.state === "ANSWER_REVEAL" || this.state === "ERROR_WAIT" || this.state === "VERIFY_PROGRESS") {
                     this.game.click = null;
                     return;
                 }
@@ -270,7 +270,7 @@ class Computer {
                 this.passwordInput = this.passwordInput.slice(0, -1);
                 this.game.lastInput = null;
             } else if (this.game.lastInput && this.game.lastInput.length === 1) {
-                this.passwordInput += this.game.lastInput;
+                if (this.passwordInput.length < 16) this.passwordInput += this.game.lastInput;
                 this.game.lastInput = null;
             }
         }
@@ -405,11 +405,11 @@ class Computer {
             ctx.fillRect(0,0,w,h);
 
             ctx.fillStyle = "#C0C0C0";
-            ctx.fillRect(w/2 - 300, 50, 600, 500);
+            ctx.fillRect(w/2 - 315, 50, 630, 500);
             ctx.strokeStyle = "white";
-            ctx.strokeRect(w/2 - 300, 50, 600, 500);
+            ctx.strokeRect(w/2 - 315, 50, 630, 500);
             ctx.fillStyle = "navy";
-            ctx.fillRect(w/2 - 298, 52, 596, 30);
+            ctx.fillRect(w/2 - 313, 52, 626, 30);
             ctx.fillStyle = "white";
             ctx.font = "bold 18px Arial";
             ctx.textAlign = "center";
