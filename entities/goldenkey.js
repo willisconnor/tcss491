@@ -18,15 +18,7 @@ class GoldenKey {
 
     update() {
         // 1. If we already have it, wait for Space to unpause
-        if (this.collected && this.showMessage) {
-            if (this.game.keys["Space"]) {
-                this.showMessage = false;
-                this.game.paused = false;
-                this.game.keys["Space"] = false;
-                this.removeFromWorld = true;
-            }
-            return;
-        }
+
 
         if (this.collected) return;
 
@@ -51,15 +43,27 @@ class GoldenKey {
                     // so Door knows we have key even after object is removed
                     this.game.camera.hasGoldenKey = true;
 
-                    this.showMessage = true;
-                    this.game.paused = true; // pauses REST of the world
-                    // play ding sound effect
+                    const keyMessages = [
+                        ["A BABY gate? They really thought that'd stop you?", "Adorable. Key acquired, gate's absolutely cooked."],
+                        ["Snatched the key! Time to crash that embarrassing", "baby gate like the feral menace you truly are."],
+                        ["This key unlocks the BABY GATE. You are one step", "closer to getting that golden wheel of cheese."],
+                        ["Key secured. Go show that baby gate who runs", "these walls, you absolute little basement legend."],
+                        ["Picked up the key! That sad little baby gate", "doesn't stand a chance against you. Destroy it."]
+                    ];
+                    const msg = keyMessages[Math.floor(Math.random() * keyMessages.length)];
+                    let sm = this.game.camera;
+                    sm.itemPopupText = msg;
+                    sm.itemPopupActive = true;
+                    this.game.paused = true;
+                    this.game.keys["Space"] = false;
+
                     let dingRaw = ASSET_MANAGER.getAsset("./assets/ding.wav");
                     if (dingRaw) {
                         let dingSound = dingRaw.cloneNode();
-                        dingSound.volume = 0.3;        // lowers volume scale of [0.0 to 1.0]
+                        dingSound.volume = 0.3;
                         dingSound.play().catch(e => console.error(e));
                     }
+                    this.removeFromWorld = true;
                 }
             }
         }
@@ -70,35 +74,9 @@ class GoldenKey {
     }
 
     draw(ctx) {
-        // draw the key in minimap coordinates, moves with map
+        // draw the key in world coordinates, moves with map
         if (!this.collected) {
             ctx.drawImage(this.sprite, this.x, this.y, this.width, this.height);
-        }
-
-        // draw message in screen coordinates hud
-        if (this.showMessage) {
-            // save current state; zoomed and panned by camera
-            ctx.save();
-
-
-            // This forces 0,0 to be top-left of monitor/canvas, ignoring camera.
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-            // now drawing at canvas.width / 2 will be center of screen
-            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-            ctx.fillRect(this.game.ctx.canvas.width / 2 - 200, this.game.ctx.canvas.height / 2 - 50, 400, 100);
-
-            ctx.fillStyle = "gold";
-            ctx.font = "24px Arial";
-            ctx.textAlign = "center";
-            ctx.fillText("You've retrieved the key!!", this.game.ctx.canvas.width / 2, this.game.ctx.canvas.height / 2 - 10);
-
-            ctx.fillStyle = "white";
-            ctx.font = "16px Arial";
-            ctx.fillText("Press the spacebar to continue...", ctx.canvas.width / 2, ctx.canvas.height / 2 + 25);
-
-            // RESTORE the camera transform so next entity draws correctly in the world
-            ctx.restore();
         }
     }
 }

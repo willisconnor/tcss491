@@ -173,12 +173,15 @@ class Yorkie {
 
             switch (this.actionState) {
                 case "IDLE":
-                    this.animator = this.animations.get("sleep")[this.facing];
-                    if (playerInRange && this.game.keys["KeyE"]) {
+                    this.animator = this.animations.get("sleep")[this.facing];if (playerInRange && this.game.keys["KeyE"]) {
+                    if (this.game.camera.debugNoDialogue) {
+                        this.actionState = "PRE_FIGHT";
+                    } else {
                         this.startDialogue();
                         this.actionState = "TALKING";
-                        this.game.keys["KeyE"] = false;
                     }
+                    this.game.keys["KeyE"] = false;
+                }
                     break;
 
                 case "TALKING":
@@ -203,9 +206,13 @@ class Yorkie {
                     this.animator = this.animations.get("lick")[0];
                     if (this.health <= 0) {
                         this.game.camera.yorkieDefeated = true;
-                        this.actionState = "POST_FIGHT";
                         this.game.camera.storyState = "YORKIE_DEFEATED";
-                        this.startDialogue();
+                        if (this.game.camera.debugNoDialogue) {
+                            this.actionState = "WAIT_FOR_RAT";
+                        } else {
+                            this.actionState = "POST_FIGHT";
+                            this.startDialogue();
+                        }
                     }
                     break;
 

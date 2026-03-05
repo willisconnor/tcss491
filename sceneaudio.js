@@ -22,12 +22,12 @@ class SceneAudio {
     }
 
     playSound(path) {
-        let sound = new Audio(path);
+        let cached = ASSET_MANAGER.getAsset(path);
+        if (!cached) return;
+        let sound = cached.cloneNode();
         sound.volume = this.volume;
         sound.muted = this.muted;
-        sound.play().catch(() => {
-            console.warn("Sound effect waiting for user interaction to start.");
-        });
+        sound.play().catch(() => {});
     }
 
     stopMusic() {

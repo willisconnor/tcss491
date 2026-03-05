@@ -61,6 +61,8 @@ ASSET_MANAGER.queueDownload("./assets/loseHumanVerification.mp3");
 ASSET_MANAGER.queueDownload("./assets/win-game.mp3");
 ASSET_MANAGER.queueDownload("./assets/button-click.wav");
 ASSET_MANAGER.queueDownload("./assets/heaven-sound-effect.wav");
+ASSET_MANAGER.queueDownload("./assets/cat.png");
+ASSET_MANAGER.queueDownload("./assets/cat-hiss.wav");
 ASSET_MANAGER.downloadAll(() => {
     const canvas = document.getElementById("gameWorld");
     const ctx = canvas.getContext("2d");
@@ -79,7 +81,7 @@ ASSET_MANAGER.downloadAll(() => {
     gameEngine.addEntity(new StuartBig(gameEngine, 200, 215, 2));
     const sceneManager = new SceneManager(gameEngine);
     gameEngine.addEntity(sceneManager);
-
+    gameEngine.addEntity(new HeartContainer(gameEngine, 1375, 540));
     gameEngine.start();
 
 });

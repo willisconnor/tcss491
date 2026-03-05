@@ -101,7 +101,7 @@ class Rat {
     takeDamage(damage) {
         // stop taking damage if invulnerable OR currently showing the empty HP bar
         if (this.invulnerabilityTimer > 0 || this.isRecovering || this.slidePhase === 1 || this.slidePhase === 3) return;
-
+        if (this.game.camera && this.game.camera.debugUnlimitedHealth) return;
         this.health -= damage;
         this.invulnerabilityTimer = this.invulnerabilityDuration;
 
@@ -431,6 +431,7 @@ class Rat {
         let isDashAttack = (this.slidePhase === 2);
         let currentRange = isDashAttack ? this.slideAttackRange : this.basicAttackRange;
         let currentDamage = isDashAttack ? this.slideAttackDamage : this.basicAttackDamage;
+        if (this.game.camera && this.game.camera.debugOnePunch) currentDamage = 9999;
         let hitX = this.x;
         let hitY = this.y;
         if (this.facing === 0) hitX -= currentRange;
