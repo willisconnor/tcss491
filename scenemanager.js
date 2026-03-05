@@ -197,10 +197,6 @@ class SceneManager {
             this.game.paused = false; 
         }
 
-        if (this.paused || this.dialogueActive || this.itemPopupActive) {
-            this.game.paused = true;
-        }
-
         if (this.dialogueActive && this.storyState === "STUART_TALK" && !this.preDialogueActive && !this._dialogueWasActive && !this.stuartIntroPlayed) {
             this.preDialogueActive = true;
             this.preDialogueTimer = this.preDialogueDuration;

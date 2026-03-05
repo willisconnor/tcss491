@@ -297,27 +297,30 @@ class Rat {
                 targetSpeed = 0;
                 targetAnim = this.animations.get("attack")[this.facing];
             } else {
-                if (this.game.keys["ArrowLeft"] || this.game.keys["KeyA"]) {
-                    targetSpeed = 100;
-                    this.facing = 0;
-                    targetAnim = this.animations.get("walk")[this.facing];
-                } else if (this.game.keys["ArrowRight"] || this.game.keys["KeyD"]) {
-                    targetSpeed = 100;
-                    this.facing = 1;
-                    targetAnim = this.animations.get("walk")[this.facing];
-                } else if (this.game.keys["ArrowDown"] || this.game.keys["KeyS"]) {
-                    targetSpeed = 100;
-                    this.facing = 2;
-                    targetAnim = this.animations.get("walk")[this.facing];
-                } else if (this.game.keys["ArrowUp"] || this.game.keys["KeyW"]) {
-                    targetSpeed = 100;
-                    this.facing = 3;
-                    targetAnim = this.animations.get("walk")[this.facing];
-                }
+                let inTutorial = (this.game.camera && this.game.camera.tutorialActive);
+                if (!inTutorial) {
+                    if (this.game.keys["ArrowLeft"] || this.game.keys["KeyA"]) {
+                        targetSpeed = 100;
+                        this.facing = 0;
+                        targetAnim = this.animations.get("walk")[this.facing];
+                    } else if (this.game.keys["ArrowRight"] || this.game.keys["KeyD"]) {
+                        targetSpeed = 100;
+                        this.facing = 1;
+                        targetAnim = this.animations.get("walk")[this.facing];
+                    } else if (this.game.keys["ArrowDown"] || this.game.keys["KeyS"]) {
+                        targetSpeed = 100;
+                        this.facing = 2;
+                        targetAnim = this.animations.get("walk")[this.facing];
+                    } else if (this.game.keys["ArrowUp"] || this.game.keys["KeyW"]) {
+                        targetSpeed = 100;
+                        this.facing = 3;
+                        targetAnim = this.animations.get("walk")[this.facing];
+                    }
 
-                if (this.game.keys["ShiftLeft"] && targetSpeed > 0 && !this.isRecovering) {
-                    targetSpeed = 200;
-                    targetAnim = this.animations.get("run")[this.facing];
+                    if (this.game.keys["ShiftLeft"] && targetSpeed > 0 && !this.isRecovering) {
+                        targetSpeed = 200;
+                        targetAnim = this.animations.get("run")[this.facing];
+                    }
                 }
             }
         }
