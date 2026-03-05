@@ -160,7 +160,8 @@ class GameEngine {
                 entity.draw(this.ctx, this);
             }
         }
-
+        // render shockwave effects in world-space (before ctx.restore in drawOverlays)
+        InteractionFX.updateAndDraw(this.ctx, this.clockTick);
         // draw overlays (dialogue, fade, pause) on TOP of entities
         if (this.camera) {
             this.camera.drawOverlays(this.ctx);

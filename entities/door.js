@@ -49,13 +49,22 @@ class Door {
                         }
                     }
 
-                    if (this.destination === "Level2") {
-                        this.game.camera.loadLevelTwo(this.game.camera.levelNumber);
-                    } else if (this.destination === "Level1") {
-                        this.game.camera.loadLevelOne();
-                    } else if (this.destination === "Level3") {
-                        this.game.camera.loadLevelThree();
+                    // shockwave centered on polygon shape (or fallback to entity center)
+                    const shapeName = "door" + this.destination;
+                    const shapes = this.game.camera.interactableShapes[shapeName];
+                    let burstX = this.x + this.width / 2;
+                    let burstY = this.y + this.height / 2;
+                    if (shapes && shapes.length > 0) {
+                        // Merge all polygon points to find true center
+                        const allPts = shapes.flat();
+                        const c = InteractionFX.polygonCenter(allPts);
+                        burstX = c.x;
+                        burstY = c.y;
                     }
+                    InteractionFX.triggerShockwave(burstX, burstY, "#ffffff");
+
+                    // Iris transition instead of abrupt level load
+                    this.game.camera.startIrisTransition(this.destination);
                 }
             } else {
                 this.showPrompt = false;
@@ -66,11 +75,17 @@ class Door {
     draw(ctx) {
         ctx.save();
         if (this.showPrompt) {
-            ctx.font = "20px Arial";
-            ctx.fillStyle = "yellow";
-            ctx.textAlign = "center";
-            // removed this.game.camera.x so door don't float around (fixed in debug mode)
-            ctx.fillText("Press 'E' to Enter", this.x + 50, this.y - 20);
+            // draw polygon glow from Tiled JSON interactable layer
+            const shapeName = "door" + this.destination;
+            const shapes = this.game.camera.interactableShapes[shapeName];
+            if (shapes) {
+                for (const pts of shapes) {
+                    InteractionFX.drawPolygonGlow(ctx, pts, "#ffffff");
+                }
+            } else {
+                // fallback if no polygon data
+                InteractionFX.drawRectGlow(ctx, this.x, this.y, this.width, this.height, "#ffffff");
+            }
         }
         ctx.restore();
 

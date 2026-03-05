@@ -83,6 +83,16 @@ class Computer {
         if (!this.active) {
             if (this.interactBox.collide(rat.BB) && this.game.keys["KeyE"]) {
                 this.active = true;
+                // center shockwave on computer polygon shape
+                const cShapes = this.game.camera.interactableShapes["computer"];
+                let compCX = this.x + this.width / 2;
+                let compCY = this.y + this.height / 2;
+                if (cShapes && cShapes.length > 0) {
+                    const c = InteractionFX.polygonCenter(cShapes.flat());
+                    compCX = c.x;
+                    compCY = c.y;
+                }
+                InteractionFX.triggerShockwave(compCX, compCY, "#00ccff");
                 this.state = "STARTUP";
                 this.transitionTimer = 0;
                 this.uiScale = 0;
@@ -279,12 +289,15 @@ class Computer {
     draw(ctx) {
         const rat = this.game.entities.find(e => e.constructor.name === "Rat");
         if (!this.active && rat && this.interactBox.collide(rat.BB)) {
-            ctx.fillStyle = "white";
-            ctx.font = "bold 12px 'Press Start 2P'";
-            ctx.textAlign = "center";
-            ctx.fillText("[E] Hack Computer", this.x + this.width / 2, this.y - 15);
-        }
-    }
+            // draw polygon glow from Tiled JSON "computer" layer
+            const shapes = this.game.camera.interactableShapes["computer"];
+            if (shapes) {
+                for (const pts of shapes) {
+                    InteractionFX.drawPolygonGlow(ctx, pts, "#00ccff");
+                }
+            } else {
+                InteractionFX.drawRectGlow(ctx, this.x, this.y, this.width, this.height, "#00ccff");
+            }}}
 
     drawUI(ctx) {
         if (!this.active) return;
