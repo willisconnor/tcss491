@@ -129,7 +129,11 @@ class Menu {
 
     startGame() {
         this.stopTypingSounds(); // cleanup
-        if (this.game.camera) this.game.camera.loreCompleted = true;
+        if (this.game.camera) { 
+            this.game.camera.loreCompleted = true;
+            this.game.camera.isFading = true;
+            this.game.camera.fadeAlpha = 1;
+        }
         // 1. START THE MUSIC
         // Use the music path stored in SceneManager so it matches the current level
         if (this.game.camera && this.game.camera.currentMusicPath) {
