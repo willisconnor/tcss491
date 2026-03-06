@@ -66,7 +66,8 @@ class Yorkie {
             this.health = 0;
             this.lastHealth = 0;
             this.dead = true;
-            
+
+            // Check if he already received the beef jerky from a previous visit
             if (this.game.camera.yorkieGivenJerky) {
                 this.actionState = "JERKY_IDLE";
             } else {
@@ -105,10 +106,11 @@ class Yorkie {
     }
 
     updateBB() {
-        let xOffset = 0; 
-        let yOffset = 15; 
-        let boxWidth = this.width - 5; 
-        let boxHeight = this.height + 10; 
+        // adjusting numbers so rat can't fit under yorkie
+        let xOffset = 0; // if you want to offset box by L or R
+        let yOffset = 15; // Pushes top of the box down
+        let boxWidth = this.width - 5; // Makes the box skinnier
+        let boxHeight = this.height + 10; // Makes the box taller
 
         this.BB = new BoundingBox(this.x + xOffset, this.y + yOffset, boxWidth, boxHeight);
     }
@@ -150,15 +152,17 @@ class Yorkie {
 
             switch (this.actionState) {
                 case "IDLE":
-                    this.animator = this.animations.get("sleep")[this.facing];if (playerInRange && this.game.keys["KeyE"]) {
-                    if (this.game.camera.debugNoDialogue) {
-                        this.actionState = "PRE_FIGHT";
-                    } else {
-                        this.startDialogue();
-                        this.actionState = "TALKING";
+                    this.animator = this.animations.get("sleep")[this.facing];
+                    if (playerInRange && this.game.keys["KeyE"]) {
+                        if (this.game.camera.debugNoDialogue) {
+                            this.actionState = "PRE_FIGHT";
+                        } else {
+                            this.startDialogue();
+                            this.actionState = "TALKING";
+                        }
+                        this.game.keys["KeyE"] = false;
+                        InteractionFX.triggerShockwave(this.x + this.width / 2, this.y + this.height / 2, "#ffffff");
                     }
-                    this.game.keys["KeyE"] = false;
-                }
                     break;
 
                 case "TALKING":
@@ -176,6 +180,8 @@ class Yorkie {
                     if (playerInRange && this.game.keys["KeyE"]) {
                         this.actionState = "TRAINING";
                         this.game.keys["KeyE"] = false;
+                        InteractionFX.triggerShockwave(this.x + this.width / 2, this.y + this.height / 2, "#ff3c3c");
+
 
                         // --- TRIGGER STUART'S COMBAT TUTORIAL ---
                         if (this.game.camera && !this.game.camera.combatTutorialDone) {
@@ -211,7 +217,7 @@ class Yorkie {
 
                 case "LEAVING":
                     if (this.speed === 0) {
-                        this.speed = 2; 
+                        this.speed = 2;
                         this.originalSpeed = 2;
                     }
 
@@ -240,7 +246,8 @@ class Yorkie {
 
                 case "SLEEPING":
                     this.animator = this.animations.get("sleep")[this.facing];
-                    
+
+                    // Interaction for when he's asleep (waiting for jerky)
                     if (playerInRange && this.game.keys["KeyE"]) {
                         if (!this.game.camera.hasBeefJerky && !this.game.camera.yorkieGivenJerky) {
                             const sceneManager = this.game.camera;
@@ -252,27 +259,34 @@ class Yorkie {
                             sceneManager.dialogue.charIndex = 0;
                             sceneManager.dialogue.typeTimer = 0;
                             sceneManager.dialogueActive = true;
-                            
+
                         } else if (this.game.camera.hasBeefJerky && !this.game.camera.yorkieGivenJerky) {
-                            this.actionState = "JERKY_IDLE"; 
-                            this.game.camera.yorkieGivenJerky = true; 
-                            
+                            // Rat has jerky, giving it to Yorkie
+                            this.actionState = "JERKY_IDLE"; // Wake him up into new awake state
+                            this.game.camera.yorkieGivenJerky = true;
+
+                            // Start the password dialogue
                             if (this.game.camera.dialogue.startJerkyRewardDialogue) {
                                 this.game.camera.dialogue.startJerkyRewardDialogue();
                             }
+
                         }
-                        this.game.keys["KeyE"] = false; 
+
+                        this.game.keys["KeyE"] = false; // consume the key press
+                        InteractionFX.triggerShockwave(this.x + this.width / 2, this.y + this.height / 2, "#ffffff");
                     }
                     break;
-                  
+
+
                 case "JERKY_IDLE":
                     this.animator = this.animations.get("lick")[this.facing];
-                    
+
                     if (playerInRange && this.game.keys["KeyE"]) {
                         if (this.game.camera.dialogue.startYorkieOptionsDialogue) {
                             this.game.camera.dialogue.startYorkieOptionsDialogue();
                         }
-                        this.game.keys["KeyE"] = false;
+                        this.game.keys["KeyE"] = false
+                        InteractionFX.triggerShockwave(this.x + this.width / 2, this.y + this.height / 2, "#ffffff");
                     }
                     break;
             }
@@ -316,22 +330,18 @@ class Yorkie {
         }
 
         this.animator.drawFrame(this.game.clockTick, ctx, Math.floor(drawX), Math.floor(drawY), this.scale);
-        
-        ctx.restore(); 
 
+        ctx.restore(); // Restore to clear the filters
+
+        // Sprite-accurate proximity glow when player is in range
         let rat = this.game.entities.find(e => e.constructor.name === "Rat");
         if (rat) {
             let interactBox = new BoundingBox(this.x - 20, this.y - 20, this.width + 40, this.height + 40);
             if (rat.BB && interactBox.collide(rat.BB) && !this.game.camera.dialogueActive) {
-                ctx.font = "14px Arial";
-                
-                if (this.actionState === "IDLE" || this.actionState === "SLEEPING" || this.actionState === "JERKY_IDLE") {
-                    ctx.fillStyle = "yellow";
-                    ctx.fillText("[E] Yorkie", this.x, this.y - 10);
-                }
-                else if (this.actionState === "PRE_FIGHT") {
-                    ctx.fillStyle = "red";
-                    ctx.fillText("[E] FIGHT!", this.x, this.y - 10);
+                let glowColor = "#ffffff";
+                if (this.actionState === "PRE_FIGHT") glowColor = "#ff3c3c";
+                if (this.actionState === "IDLE" || this.actionState === "SLEEPING" || this.actionState === "JERKY_IDLE" || this.actionState === "PRE_FIGHT") {
+                    InteractionFX.drawSpriteGlow(ctx, this.animator, this.x, this.y, this.scale, glowColor, "yorkie");
                 }
             }
         }

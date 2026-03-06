@@ -13,8 +13,8 @@ class SceneManager {
         // camera zoom preferred by team
         this.zoom = 1.75;
 
-        this.fadeAlpha = 1;
-        this.isFading = true;
+        this.fadeAlpha = 0;
+        this.isFading = false;
         this.currentMusicPath = "./assets/background_music.wav";
 
         this.yorkieDefeated = false;
@@ -49,7 +49,20 @@ class SceneManager {
         this.menu = new Menu(this.game);
         this.dialogueActive = false;
         this.dialogue = new Dialogue(this.game, this);
+        // Interactable shape polygons parsed from Tiled JSON layers
+        this.interactableShapes = {};
 
+        // Iris transition state (Animal Crossing style)
+        this.iris = {
+            active: false,
+            phase: "none",       // "closing", "loading", "opening", "none"
+            progress: 0,         // 0 = open, 1 = closed
+            speed: 1.8,          // ~0.55s to close/open
+            holdTimer: 0,
+            holdDuration: 1.0,   // seconds of black screen between levels
+            pendingDestination: null,
+            pendingFromLevel: null
+        };
         this.level = ASSET_MANAGER.getAsset("./assets/Level1LivingRoom.json");
         this.levelNumber = 1;
         this.spritesheet = ASSET_MANAGER.getAsset("./assets/global.png");
@@ -65,6 +78,7 @@ class SceneManager {
         if (this.game.collisionManager) {
             this.game.collisionManager.loadFromTiledJSON(this.level);
         }
+        this.parseInteractableLayers();
 
         this.minimapWidth = 250;
         this.minimapMargin = 10;
@@ -217,7 +231,45 @@ class SceneManager {
             }
             this.game.paused = true;
         }
-
+// Iris transition update
+        if (this.iris.active) {
+            const tick = this.game.clockTick;
+            if (this.iris.phase === "closing") {
+                this.iris.progress += this.iris.speed * tick;
+                if (this.iris.progress >= 1) {
+                    this.iris.progress = 1;
+                    this.iris.phase = "loading";
+                }
+            } else if (this.iris.phase === "loading") {
+                // Perform the level load now (screen is fully black)
+                const dest = this.iris.pendingDestination;
+                const from = this.iris.pendingFromLevel;
+                this.game.paused = false;
+                if (dest === "Level1") this.loadLevelOne();
+                else if (dest === "Level2") this.loadLevelTwo(from);
+                else if (dest === "Level3") this.loadLevelThree();
+                this.iris.phase = "holding";
+                this.iris.holdTimer = this.iris.holdDuration;
+                this.iris.progress = 1;
+                this.game.paused = false;
+            } else if (this.iris.phase === "holding") {
+                // Black screen pause before revealing new level
+                this.iris.holdTimer -= tick;
+                if (this.iris.holdTimer <= 0) {
+                    this.iris.phase = "opening";
+                    this.iris.progress = 1;
+                }
+            } else if (this.iris.phase === "opening") {
+                this.iris.progress -= this.iris.speed * tick;
+                if (this.iris.progress <= 0) {
+                    this.iris.progress = 0;
+                    this.iris.phase = "none";
+                    this.iris.active = false;
+                }
+            }
+            // Skip rest of update during iris transition closing phase
+            if (this.iris.phase === "closing" || this.iris.phase === "loading") return;
+        }
         if (this.menuActive) {
             this.menu.update();
             return;
@@ -528,7 +580,7 @@ class SceneManager {
         this.currentMusicPath = "./assets/background_music.wav";
         this.game.audio.playMusic(this.currentMusicPath);
         this.game.addEntity(new HeartContainer(this.game, 1375, 540));
-
+        this.parseInteractableLayers();
         console.log("Loaded level one!");
     }
 
@@ -586,6 +638,7 @@ class SceneManager {
             this.game.addEntity(stationarySnake);
 
         }
+        this.parseInteractableLayers();
         console.log("Level 2 Loaded!");
     }
 
@@ -650,8 +703,42 @@ class SceneManager {
             }
         }
         this.game.addEntity(myCat);
+        this.parseInteractableLayers();
         //can add a patrol path too for it to be dynamic
         console.log("Loaded level 3!");
+    }
+
+    parseInteractableLayers() {
+        this.interactableShapes = {};
+        if (!this.level || !this.level.layers) return;
+        const scale = this.scale; // 4
+        for (const layer of this.level.layers) {
+            if (layer.type === "objectgroup" && layer.name !== "collisions") {
+                const allPoints = [];
+                for (const obj of layer.objects) {
+                    if (obj.polygon) {
+                        const pts = obj.polygon.map(p => ({
+                            x: (obj.x + p.x) * scale,
+                            y: (obj.y + p.y) * scale
+                        }));
+                        allPoints.push(pts);
+                    }
+                }
+                if (allPoints.length > 0) {
+                    this.interactableShapes[layer.name] = allPoints;
+                }
+            }
+        }
+    }
+
+    startIrisTransition(destination) {
+        if (this.iris.active) return; // prevent double-trigger
+        this.iris.active = true;
+        this.iris.phase = "closing";
+        this.iris.progress = 0;
+        this.iris.pendingDestination = destination;
+        this.iris.pendingFromLevel = this.levelNumber;
+        this.game.paused = true;
     }
 
     saveSnakeState(snake, snakeId) {
@@ -662,6 +749,7 @@ class SceneManager {
             y: snake.y
         });
     }
+
     saveYorkieState(yorkie) {
         this.yorkieState = {
             x: yorkie.x,
@@ -670,6 +758,7 @@ class SceneManager {
             facing: yorkie.facing
         };
     }
+
     saveComputerState(computer) {
         this.computerState = {
             resumeState: computer.resumeState,
@@ -920,7 +1009,25 @@ class SceneManager {
             }
             return;
         }
-
+        // Iris transition overlay
+        if (this.iris.active && this.iris.progress > 0) {
+            let rat = this.game.entities.find(e => e.constructor.name === "Rat");
+            let focusX = ctx.canvas.width / 2;
+            let focusY = ctx.canvas.height / 2;
+            if (rat) {
+                // Convert rat world-space to screen-space
+                focusX = (rat.x - this.x) * this.zoom + (24 * rat.scale * this.zoom);
+                focusY = (rat.y - this.y) * this.zoom + (19 * rat.scale * this.zoom);
+            }
+            // Ease-in for closing, ease-out for opening (snappy feel)
+            let eased = this.iris.progress;
+            if (this.iris.phase === "closing") {
+                eased = eased * eased; // accelerate toward black
+            } else if (this.iris.phase === "opening") {
+                eased = 1 - Math.pow(1 - eased, 2); // decelerate as it opens
+            }
+            InteractionFX.drawIris(ctx, focusX, focusY, eased, ctx.canvas.width, ctx.canvas.height);
+        }
         if (this.isFading) {
             ctx.fillStyle = `rgba(0, 0, 0, ${this.fadeAlpha})`;
             ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);

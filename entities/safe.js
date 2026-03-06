@@ -31,7 +31,7 @@ class Safe {
             let rat = this.game.entities.find(e => e.constructor.name === "Rat");
             if (rat && this.interactBox && this.interactBox.collide(rat.BB) && this.game.keys["KeyE"]) {
                 this.game.keys["KeyE"] = false;
-
+                InteractionFX.triggerShockwave(this.x + this.width / 2, this.y + this.height / 2, "gold");
                 let sm = this.game.camera;
                 sm.winState = true;
                 sm.winTimer = 0;
@@ -70,10 +70,7 @@ class Safe {
 
             const rat = this.game.entities.find(e => e.constructor.name === "Rat");
             if (rat && this.interactBox && this.interactBox.collide(rat.BB)) {
-                ctx.fillStyle = "white";
-                ctx.font = "bold 12px 'Press Start 2P', Courier";
-                ctx.textAlign = "center";
-                ctx.fillText("[E] Pick up Cheese", this.x + this.width / 2, this.y - 15);
+                InteractionFX.drawRectGlow(ctx, this.x, this.y, this.width, this.height, "gold");
             }
         } else {
             // Draw a closed vault door and handle

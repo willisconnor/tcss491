@@ -2,8 +2,8 @@
 //@date: 2/26/26
 //Cat enemy: patrols a path or remains idle, then chases and attacks player when visible
 
-class Cat extends Enemy{
-    constructor(game, x, y, patrolPath = null){
+class Cat extends Enemy {
+    constructor(game, x, y, patrolPath = null) {
         super(
             game,
             x, y,
@@ -31,6 +31,17 @@ class Cat extends Enemy{
         this.attackAnimationTimer = 0;
         this.attackAnimationDuration = 0.5;
         this.hurtAnimationTimer = 0;
+        this.ratWasInRange = false;
+        this.catInsults = [
+            "Do I look like a petting zoo? Piss off, squeaker.",
+            "I'd eat you, but I'm watching my cholesterol. Scram.",
+            "Nine lives and I waste one looking at your ugly mug.",
+            "Touch me again and I'll turn you into a fuzzy slipper.",
+            "I'm on my union-mandated break. Go bother the dog.",
+            "You smell like garbage and disappointment. Walk away.",
+            "Didn't I already kill you in another life? Beat it.",
+            "Look, the claws are resting. Don't tempt me."
+        ];
         this.stateBeforeHurt = null;
 
         // Single spritesheet — 896x4608, cells are 64x64 (14 cols x 72 rows) <- this is not true its 66 rows not 72
@@ -55,7 +66,8 @@ class Cat extends Enemy{
         let bbHeight = 35 * this.scale;
         let offsetX = (this.width - bbWidth) / 3;
         let offsetY = (this.height - bbHeight) / 3;
-        this.boundingBox = new BoundingBox(this.x + offsetX, this.y + offsetY, bbWidth, bbHeight);    }
+        this.boundingBox = new BoundingBox(this.x + offsetX, this.y + offsetY, bbWidth, bbHeight);
+    }
 
     /**
      * Helper: create an Animator from a row on OrangeCat.png
@@ -78,15 +90,16 @@ class Cat extends Enemy{
             loop
         );
     }
+
     // facing: 0=left, 1=right, 2=down, 3=up
     loadAnimations() {
         this.animations = new Map();
-        this.animations.set("idle",   []);
-        this.animations.set("walk",   []);
-        this.animations.set("run",    []);
+        this.animations.set("idle", []);
+        this.animations.set("walk", []);
+        this.animations.set("run", []);
         this.animations.set("attack", []);
-        this.animations.set("death",  []);
-        this.animations.set("hiss",   []);
+        this.animations.set("death", []);
+        this.animations.set("hiss", []);
 
         this.horizontalFacing = 1; // default right
 
@@ -116,7 +129,7 @@ class Cat extends Enemy{
 
         // --- HISS ---
         const hissLeftDown = this.makeAnim(60, 2, 0.2, true);
-        const hissRightUp  = this.makeAnim(61, 2, 0.2, true);
+        const hissRightUp = this.makeAnim(61, 2, 0.2, true);
 
         this.animations.get("hiss")[0] = hissLeftDown; // Left
         this.animations.get("hiss")[1] = hissRightUp;  // Right
@@ -131,6 +144,7 @@ class Cat extends Enemy{
             this.animations.get("death")[i] = sleepAnim;
         }
     }
+
     updateBoundingBox() {
         // size of the torso box
         let bbWidth = 35 * this.scale;
@@ -162,6 +176,7 @@ class Cat extends Enemy{
         // apply newly calculated box
         this.boundingBox = new BoundingBox(this.x + offsetX, this.y + offsetY, bbWidth, bbHeight);
     }
+
     moveWithSlidingCat(clockTick, collisionManager, target, spriteWidth, spriteHeight, colliderRadius) {
         const colliderWidth = colliderRadius * 2;
         const colliderHeight = colliderRadius;
@@ -278,6 +293,7 @@ class Cat extends Enemy{
             }
         }
     }
+
     moveToward(targetX, targetY) {
         const dx = targetX - this.x;
         const dy = targetY - this.y;
@@ -341,7 +357,7 @@ class Cat extends Enemy{
         }
 
         const target = this.patrolPath[this.patrolIndex];
-        const distance = getDistance({ x: this.x, y: this.y }, target);
+        const distance = getDistance({x: this.x, y: this.y}, target);
 
         if (distance < 5) {
             this.patrolWaitTimer = this.patrolWaitDuration;
@@ -401,7 +417,7 @@ class Cat extends Enemy{
         this.state = "DEFEATED_WALK";
         this.velocity.x = 0;
         this.velocity.y = 0;
-
+        this.detectionRange = Math.round(this.detectionRange / 3);
         // generate waypoint path to avoid complex obstacles!
         this.retreatPath = this.getRetreatPath();
         this.retreatIndex = 0;
@@ -422,10 +438,31 @@ class Cat extends Enemy{
     update() {
         // Poison tick
         this.updatePoison(this.game.clockTick);
-
+        // Cat intro dialogue, first time rat enters detection range
+        if (!this.dead && !this.game.camera.catIntroPlayed && this.state !== "INTRO_DIALOGUE") {
+            const ratEnt = this.game.entities.find(e => e.constructor.name === "Rat");
+            if (ratEnt) {
+                const d = getDistance({x: this.x, y: this.y}, {x: ratEnt.x, y: ratEnt.y});
+                if (d < this.detectionRange) {
+                    if (this.game.camera.debugNoDialogue) {
+                        this.game.camera.catIntroPlayed = true;
+                    } else {
+                        this.state = "INTRO_DIALOGUE";
+                        this.startIntroDialogue();
+                    }
+                }
+            }
+        }
+        if (this.state === "INTRO_DIALOGUE") {
+            if (!this.game.camera.dialogueActive) {
+                this.state = "IDLE";
+                this.game.camera.catIntroPlayed = true;
+            }
+            this.updateBoundingBox();
+            return;
+        }
         // defeated cat logic
-        if (this.state === "DEFEATED_WALK" || this.state === "SLEEPING") {
-
+        if (this.state === "DEFEATED_WALK" || this.state === "SLEEPING" || this.state === "HISSING") {
             if (this.state === "DEFEATED_WALK") {
                 // get current waypoint we are walking to
                 let target = this.retreatPath[this.retreatIndex];
@@ -472,18 +509,41 @@ class Cat extends Enemy{
                     }
                 }
 
+            } else if (this.state === "HISSING") {
+                this.currentAnimation = this.animations.get("hiss")[this.facing];
+                if (!this.game.camera.dialogueActive) {
+                    this.state = "SLEEPING";
+                    this.currentAnimation = this.animations.get("death")[this.facing];
+                    this.ratWasInRange = true; // prevent instant re-trigger while rat still in range
+                }
             } else if (this.state === "SLEEPING") {
                 this.velocity.x = 0;
                 this.velocity.y = 0;
                 this.currentAnimation = this.animations.get("death")[this.facing];
-            }
 
+                // hiss trigger when rat re-enters detection range
+                const sleepingRat = this.game.entities.find(e => e.constructor.name === "Rat");
+                if (sleepingRat) {
+                    const dist = getDistance({x: this.x, y: this.y}, {x: sleepingRat.x, y: sleepingRat.y});
+                    const inRange = dist < this.detectionRange;
+                    if (inRange && !this.ratWasInRange) this.triggerHiss();
+                    this.ratWasInRange = inRange;
+                }
+            }
+            // Push rat away if bounding boxes overlap — prevents trapping
+            const ratEnt = this.game.entities.find(e => e.constructor.name === "Rat");
+            if (ratEnt && ratEnt.boundingBox && this.boundingBox && this.boundingBox.collide(ratEnt.boundingBox)) {
+                const dx = (ratEnt.x + ratEnt.width / 2) - (this.x + this.width / 2);
+                const dy = (ratEnt.y + ratEnt.height / 2) - (this.y + this.height / 2);
+                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                ratEnt.x += (dx / dist) * 6;
+                ratEnt.y += (dy / dist) * 6;
+            }
             this.updateBoundingBox();
             return;
         }
         // ensure standard death triggers our override
-        if (this.health <= 0 && this.state !== "DEFEATED_WALK" && this.state !== "SLEEPING") {
-            this.onDeath();
+        if (this.health <= 0 && this.state !== "DEFEATED_WALK" && this.state !== "SLEEPING" && this.state !== "HISSING" && this.state !== "INTRO_DIALOGUE") {            this.onDeath();
             return;
         }
 
@@ -552,15 +612,16 @@ class Cat extends Enemy{
 
         this.updateBoundingBox();
     }
+
     getRetreatPath() {
-        const bedTarget = { x: 1170, y: 490 };
+        const bedTarget = {x: 1170, y: 490};
 
         // defining some "Safe Nodes" in level where there are no obstacles
         const safeNodes = [
-            { x: 419, y: 160 }, // top left
-            { x: 1284, y: 227 }, // top right
-            { x: 1088, y: 515 }, // bottom right
-            { x: 104, y: 515 }, // bottom hallway
+            {x: 419, y: 160}, // top left
+            {x: 1284, y: 227}, // top right
+            {x: 1088, y: 515}, // bottom right
+            {x: 104, y: 515}, // bottom hallway
         ];
 
         // find the closest safe node to where cat currently 'died'
@@ -568,7 +629,7 @@ class Cat extends Enemy{
         let shortestDist = Infinity;
 
         for (const node of safeNodes) {
-            const dist = getDistance({ x: this.x, y: this.y }, node);
+            const dist = getDistance({x: this.x, y: this.y}, node);
             if (dist < shortestDist) {
                 shortestDist = dist;
                 closestNode = node;
@@ -578,7 +639,56 @@ class Cat extends Enemy{
         // return a path -> 1st step: go to closest safe space, 2nd step: go to bed
         return [closestNode, bedTarget];
     }
+    startIntroDialogue() {
+        const sm = this.game.camera;
+        sm.dialogue.dialogues = [
+            { speaker: "Carrot the Cat", text: "Well, well... another squeaky little casualty in my territory.", type: "dialogue" },
+            { speaker: "Carrot the Cat", text: "I am Carrot. I guard this kitchen with extreme prejudice.", type: "dialogue" },
+            { speaker: "Carrot the Cat", text: "Come on then, little rat. Let's see if you fight as desperately as you smell.", type: "dialogue" },
+            { speaker: "Carrot the Cat", text: "", type: "choice", choices: [
+                    { text: "Carrot? Were the Humans out of intimidating names?", response: "Laugh while you can, furball. I'm about to improve your eyesight by scratching your eyes out." },
+                    { text: "I don't have time for this. Step aside, Garfield.", response: "Oh, I love fast food. It makes the chase so much more satisfying." },
+                    { text: "The dog taught me everything. You're just a fluffy downgrade.", response: "Edgar is a neurotic mop. I am a finely tuned killing machine." },                    { text: "You realize if I die, the colony starves, right?", response: "Oh, I know. It's a two-for-one special." },
+                    { text: "I can throw poison and I'm not afraid to use it!", response: "Spicy food. My absolute favorite." }
+                ], nextIndex: 5 }
+        ];
+        sm.dialogue.speaker = "Carrot the Cat";
+        sm.dialogue.portrait = ASSET_MANAGER.getAsset("./assets/cat.png");
+        sm.dialogue.phase = "INTRO";
+        sm.dialogue.currentIndex = 0;
+        sm.dialogue.displayText = "";
+        sm.dialogue.charIndex = 0;
+        sm.dialogue.typeTimer = 0;
+        sm.dialogue.selectedChoiceIndex = null;
+        sm.dialogue.displayingChoiceResponse = false;
+        sm.dialogue.lines = [];
+        sm.dialogueActive = true;
+        this.game.paused = true;
+    }
 
+    triggerHiss() {
+        if (this.game.camera.debugNoDialogue) return;
+        this.state = "HISSING";
+        this.currentAnimation = this.animations.get("hiss")[this.facing];
+
+        const hissSound = ASSET_MANAGER.getAsset("./assets/cat-hiss.wav");
+        if (hissSound) {
+            const s = hissSound.cloneNode();
+            s.volume = 0.4;
+            s.play().catch(e => console.error(e));
+        }
+
+        const insult = this.catInsults[Math.floor(Math.random() * this.catInsults.length)];
+        const sm = this.game.camera;
+        sm.dialogue.lines = [insult];
+        sm.dialogue.speaker = "Carrot the Cat";
+        sm.dialogue.portrait = ASSET_MANAGER.getAsset("./assets/cat.png");
+        sm.dialogue.currentLine = 0;
+        sm.dialogue.displayText = "";
+        sm.dialogue.charIndex = 0;
+        sm.dialogue.typeTimer = 0;
+        sm.dialogueActive = true;
+    }
     draw(ctx, game) {
         if (this.currentAnimation) {
             ctx.save();
@@ -655,7 +765,7 @@ class Cat extends Enemy{
                 ctx.beginPath();
                 ctx.moveTo(this.x + this.width / 2, this.y + this.height / 2); // start at cat
 
-                for(let i = this.retreatIndex; i < this.retreatPath.length; i++) {
+                for (let i = this.retreatIndex; i < this.retreatPath.length; i++) {
                     let pt = this.retreatPath[i];
                     ctx.lineTo(pt.x, pt.y);
                     ctx.fillRect(pt.x - 5, pt.y - 5, 10, 10);
@@ -664,4 +774,5 @@ class Cat extends Enemy{
                 ctx.lineWidth = 1;
             }
         }
-    }}
+    }
+}
