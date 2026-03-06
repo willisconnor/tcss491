@@ -60,7 +60,7 @@ class GoldenKey {
                     let dingRaw = ASSET_MANAGER.getAsset("./assets/ding.wav");
                     if (dingRaw) {
                         let dingSound = dingRaw.cloneNode();
-                        dingSound.volume = 0.3;
+                        dingSound.volume = 0.2;
                         dingSound.play().catch(e => console.error(e));
                     }
                     this.removeFromWorld = true;

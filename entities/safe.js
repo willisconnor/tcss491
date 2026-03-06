@@ -32,6 +32,8 @@ class Safe {
             if (rat && this.interactBox && this.interactBox.collide(rat.BB) && this.game.keys["KeyE"]) {
                 this.game.keys["KeyE"] = false;
                 InteractionFX.triggerShockwave(this.x + this.width / 2, this.y + this.height / 2, "gold");
+                let dingSound = ASSET_MANAGER.getAsset("./assets/ding.wav");
+                if (dingSound) { let s = dingSound.cloneNode(); s.volume = 0.2; s.play().catch(e => console.error(e)); }
                 let sm = this.game.camera;
                 sm.winState = true;
                 sm.winTimer = 0;

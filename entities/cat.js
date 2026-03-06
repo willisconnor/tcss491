@@ -641,6 +641,18 @@ class Cat extends Enemy {
     }
     startIntroDialogue() {
         const sm = this.game.camera;
+        // face the rat when conversation starts
+        const ratEnt = this.game.entities.find(e => e.constructor.name === "Rat");
+        if (ratEnt) {
+            const dx = ratEnt.x - this.x;
+            const dy = ratEnt.y - this.y;
+            if (Math.abs(dx) > Math.abs(dy)) {
+                this.facing = dx > 0 ? 1 : 0; // right or left
+            } else {
+                this.facing = dy > 0 ? 2 : 3; // down or up
+            }
+            this.currentAnimation = this.animations.get("idle")[this.facing];
+        }
         sm.dialogue.dialogues = [
             { speaker: "Carrot the Cat", text: "Well, well... another squeaky little casualty in my territory.", type: "dialogue" },
             { speaker: "Carrot the Cat", text: "I am Carrot. I guard this kitchen with extreme prejudice.", type: "dialogue" },
@@ -674,7 +686,7 @@ class Cat extends Enemy {
         const hissSound = ASSET_MANAGER.getAsset("./assets/cat-hiss.wav");
         if (hissSound) {
             const s = hissSound.cloneNode();
-            s.volume = 0.4;
+            s.volume = 0.2;
             s.play().catch(e => console.error(e));
         }
 

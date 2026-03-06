@@ -39,18 +39,22 @@ class HeartContainer {
         if (!rat) return;
 
         if (this.showPopup) {
-            if (this.navCooldown > 0) this.navCooldown -= this.game.clockTick;
-
             const leftPressed = this.game.keys["ArrowLeft"] || this.game.keys["KeyA"];
             const rightPressed = this.game.keys["ArrowRight"] || this.game.keys["KeyD"];
 
-            if ((leftPressed || rightPressed) && this.navCooldown <= 0) {
-                this.selectedOption = leftPressed ? 0 : 1;
-                this.navCooldown = 0.2;
+            if (leftPressed || rightPressed) {
+                if (!this.inputLocked) {
+                    this.selectedOption = leftPressed ? 0 : 1;
+                    if (this.game.audio) this.game.audio.playSound("./assets/button-click.wav");
+                    this.inputLocked = true;
+                }
+            } else {
+                this.inputLocked = false;
             }
 
             if (this.game.keys["Space"]) {
                 this.game.keys["Space"] = false;
+                this.inputLocked = false;
                 if (this.selectedOption === 0) {
                     // yes — collect
                     this.collected = true;
@@ -71,6 +75,8 @@ class HeartContainer {
         if (!this.game.paused && this.interactBox.collide(rat.BB) && this.game.keys["KeyE"]) {
             this.game.keys["KeyE"] = false;
             InteractionFX.triggerShockwave(this.x + this.drawW / 2, this.y + this.drawH / 2, "#ff69b4");
+            let dingSound = ASSET_MANAGER.getAsset("./assets/ding.wav");
+            if (dingSound) { let s = dingSound.cloneNode(); s.volume = 0.15; s.play().catch(e => console.error(e)); }
             this.showPopup = true;
             this.selectedOption = 0;
             this.navCooldown = 0.3;

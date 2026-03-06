@@ -63,6 +63,8 @@ ASSET_MANAGER.queueDownload("./assets/button-click.wav");
 ASSET_MANAGER.queueDownload("./assets/heaven-sound-effect.wav");
 ASSET_MANAGER.queueDownload("./assets/cat.png");
 ASSET_MANAGER.queueDownload("./assets/cat-hiss.wav");
+ASSET_MANAGER.queueDownload("./assets/HPBar.png");
+ASSET_MANAGER.queueDownload("./assets/poisonmeter.png");
 ASSET_MANAGER.downloadAll(() => {
     const canvas = document.getElementById("gameWorld");
     const ctx = canvas.getContext("2d");

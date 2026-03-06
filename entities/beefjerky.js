@@ -40,7 +40,7 @@ class BeefJerky {
             let dingSound = ASSET_MANAGER.getAsset("./assets/ding.wav");
             if (dingSound) {
                 let soundClone = dingSound.cloneNode(); // Create clone first!
-                soundClone.volume = 0.3;
+                soundClone.volume = 0.2;
                 soundClone.play().catch(e => console.error(e));
             }
 

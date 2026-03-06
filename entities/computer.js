@@ -82,6 +82,24 @@ class Computer {
 
         if (!this.active) {
             if (this.interactBox.collide(rat.BB) && this.game.keys["KeyE"]) {
+                this.game.keys["KeyE"] = false;
+
+                // Block computer use if snake is alive and nearby
+                let snake = this.game.entities.find(e => e.constructor.name === "Snake" && !e.dead);
+                if (snake) {
+                    const snakeQuotes = [
+                        ["Now is NOT the time to hack a computer!", "Deal with that nasty noodle first!"],
+                        ["You want to type with a snake breathing", "down your neck? Handle it, hero."],
+                        ["Focus! That slithery menace will eat you", "before you can say 'password123'."],
+                        ["The IT department is closed until the", "snake problem is resolved. Priority one."],
+                        ["A hacker never codes under duress.", "Eliminate the threat, then type."]
+                    ];
+                    this.game.camera.itemPopupText = snakeQuotes[Math.floor(Math.random() * snakeQuotes.length)];
+                    this.game.camera.itemPopupActive = true;
+                    this.game.paused = true;
+                    return;
+                }
+
                 this.active = true;
                 // center shockwave on computer polygon shape
                 const cShapes = this.game.camera.interactableShapes["computer"];
