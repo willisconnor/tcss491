@@ -44,7 +44,9 @@ class Dialogue {
             { speaker: "Stuart Big", text: "Listen well: To reach the Forbidden Hearth, you must find the Golden Key to unlock the Baby Gate.", type: "dialogue" },
             { speaker: "Stuart Big", text: "The key is guarded by Edgar Barkley, a Yorkie in the living room. He is technically an ally, but he is a creature of hollow loyalty and bottomless greed.", type: "dialogue" },
             { speaker: "Stuart Big", text: "He's terrified of the 'Beasts'—the Giants' other pets—who have taken over the path to the kitchen. He won't let you pass unless you prove you can clear a way for his snacks.", type: "dialogue" },
-            { speaker: "Stuart Big", text: "He treats that key like a relic. Now, any last questions before you face the beast?", type: "dialogue" },
+            { speaker: "Stuart Big", text:"Before you run off, remember your training: Use WASD or the ARROW KEYS to move, and hold SHIFT if you need to bolt. A slow rat is a dead rat.", type: "dialogue" },
+            { speaker: "Stuart Big", text: "See something interesting? Or want to chat? Press 'E' to interact with objects and spirits like myself. And one more thing-- Don't forget to check the minimap in the corner; it could show you hints and clues of where to go next if you get lost.", type: "dialogue" },
+            { speaker: "Stuart Big", text: "Now, any last questions before you face the beast?", type: "dialogue" },
             { speaker: "Stuart Big", text: "", type: "end_of_intro", nextIndex: -1 } 
         ];
 
@@ -80,10 +82,10 @@ class Dialogue {
         this.game.paused = false; // UNFREEZE GAME for combat tutorial
         
         this.tutorialLines = [
-            { text: "Listen closely, Chosen One! To use your Poison attack, press 1.", waitKey: "Digit1", prompt: "Press 1 to shoot poison..." },
+            { text: "Listen closely, {NAME}! To spit poison and slow enemies down, press 1.", waitKey: "Digit1", prompt: "Press 1 to shoot poison..." },
             { text: "Excellent! Now, to use your Tail Whip, press 2.", waitKey: "Digit2", prompt: "Press 2 to tail whip..." },
-            { text: "Perfect! And for a basic Bite, press SPACE.", waitKey: "Space", prompt: "Press SPACE to bite..." },
-            { text: "You're ready. Show him the fury of the Great Below!", waitKey: null, prompt: "Click or SPACE to continue..." }
+            { text: "Deadly! But never forget your natural weapons. When you're eye-to-eye with a beast, press SPACE to deliver a vicious BITE.", waitKey: "Space", prompt: "Press SPACE to bite..." },
+            { text: "You've got the fire in your whiskers! Now show this overgrown floor mop the fury of the Great Below!", waitKey: null, prompt: "Click or SPACE to continue..." }
         ];
     }
 
