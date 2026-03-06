@@ -65,7 +65,120 @@ ASSET_MANAGER.queueDownload("./assets/cat.png");
 ASSET_MANAGER.queueDownload("./assets/cat-hiss.wav");
 ASSET_MANAGER.queueDownload("./assets/HPBar.png");
 ASSET_MANAGER.queueDownload("./assets/poisonmeter.png");
+ASSET_MANAGER.queueDownload("./assets/Rat1.png");
+ASSET_MANAGER.queueDownload("./assets/Rat2.png");
+ASSET_MANAGER.queueDownload("./assets/Rat3.png");
+ASSET_MANAGER.queueDownload("./assets/Rat4.png");
+
+// LOADING SCREEN
+let _loadCanvas = null;
+let _loadCtx = null;
+function _drawPixelCloud(ctx, x, y, size) {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+    const s = size / 5;
+    ctx.fillRect(x - s * 2, y, s * 4, s * 2);
+    ctx.fillRect(x - s * 3, y + s, s * 6, s);
+    ctx.fillRect(x - s, y - s, s * 2, s);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+    ctx.fillRect(x - s * 4, y + s * 0.5, s, s);
+    ctx.fillRect(x + s * 3, y + s * 0.5, s, s);
+}
+
+function _drawPixelStar(ctx, x, y, size) {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    const s = size / 4;
+    ctx.fillRect(x - s / 2, y - s * 2, s, s * 4);
+    ctx.fillRect(x - s * 2, y - s / 2, s * 4, s);
+}
+
+const _loadInterval = setInterval(() => {
+    if (!_loadCanvas) {
+        _loadCanvas = document.getElementById("gameWorld");
+        if (!_loadCanvas) return; // DOM not ready yet, skip this tick
+        _loadCtx = _loadCanvas.getContext("2d");
+    }
+    const total = ASSET_MANAGER.downloadQueue.length;
+    const done = ASSET_MANAGER.successCount + ASSET_MANAGER.errorCount;
+    const progress = total > 0 ? done / total : 0;
+    const w = _loadCanvas.width;
+    const h = _loadCanvas.height;
+
+    // Gradient background (lavender → sky blue → soft pink)
+    const grad = _loadCtx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#d4a0e8');
+    grad.addColorStop(0.4, '#9bc4f0');
+    grad.addColorStop(1, '#e8a8d0');
+    _loadCtx.fillStyle = grad;
+    _loadCtx.fillRect(0, 0, w, h);
+
+    // Clouds
+    _drawPixelCloud(_loadCtx, w * 0.12, h * 0.22, 90);
+    _drawPixelCloud(_loadCtx, w * 0.45, h * 0.12, 70);
+    _drawPixelCloud(_loadCtx, w * 0.82, h * 0.28, 80);
+    _drawPixelCloud(_loadCtx, w * 0.6, h * 0.55, 55);
+    _drawPixelCloud(_loadCtx, w * 0.22, h * 0.6, 65);
+
+    // Stars
+    _drawPixelStar(_loadCtx, w * 0.3, h * 0.08, 10);
+    _drawPixelStar(_loadCtx, w * 0.72, h * 0.06, 8);
+    _drawPixelStar(_loadCtx, w * 0.88, h * 0.18, 12);
+    _drawPixelStar(_loadCtx, w * 0.08, h * 0.42, 9);
+    _drawPixelStar(_loadCtx, w * 0.55, h * 0.35, 7);
+
+    // "Loading Game..." text
+    const dots = '.'.repeat(Math.floor(Date.now() / 400) % 4);
+    _loadCtx.fillStyle = 'white';
+    _loadCtx.font = "28px 'Press Start 2P', monospace";
+    _loadCtx.textAlign = 'center';
+    _loadCtx.textBaseline = 'middle';
+    _loadCtx.fillText('Loading Game' + dots, w / 2, h / 2 - 40);
+
+    // Plus sign decorations
+    _loadCtx.font = "18px 'Press Start 2P', monospace";
+    _loadCtx.fillText('+', w / 2 + 180, h / 2 - 42);
+    _loadCtx.fillText('+', w / 2 - 190, h / 2 - 38);
+
+    // Loading bar
+    const barW = 320;
+    const barH = 32;
+    const barX = (w - barW) / 2;
+    const barY = h / 2;
+
+    // White pixel border
+    _loadCtx.fillStyle = 'white';
+    _loadCtx.fillRect(barX - 4, barY - 4, barW + 8, barH + 8);
+
+    // Dark interior
+    _loadCtx.fillStyle = '#1a0a2e';
+    _loadCtx.fillRect(barX, barY, barW, barH);
+
+    // Chunky progress blocks
+    const blockCount = 10;
+    const gap = 4;
+    const innerW = barW - gap * 2;
+    const blockW = (innerW / blockCount) - gap;
+    const filledBlocks = Math.floor(progress * blockCount);
+    for (let i = 0; i < filledBlocks; i++) {
+        _loadCtx.fillStyle = 'white';
+        _loadCtx.fillRect(
+            barX + gap + i * (blockW + gap),
+            barY + gap,
+            blockW,
+            barH - gap * 2
+        );
+    }
+
+    // Small butterfly/cursor near the bar
+    const cursorX = barX + gap + filledBlocks * (blockW + gap) + 5;
+    _loadCtx.fillStyle = '#ffd700';
+    _loadCtx.fillRect(cursorX, barY + barH / 2 - 3, 6, 6);
+    _loadCtx.fillRect(cursorX - 3, barY + barH / 2 - 6, 4, 4);
+    _loadCtx.fillRect(cursorX + 5, barY + barH / 2 - 6, 4, 4);
+
+    _loadCtx.textBaseline = 'alphabetic';
+}, 50);
 ASSET_MANAGER.downloadAll(() => {
+    clearInterval(_loadInterval);
     const canvas = document.getElementById("gameWorld");
     const ctx = canvas.getContext("2d");
 
