@@ -799,13 +799,18 @@ class SceneManager {
             this.drawOverlays(ctx);
         }
 
-        // ONLY DRAW DEBUG STUFF IF WE ARE ON THE MAIN MENU
-        if (this.menuActive) {
+        // ONLY DRAW DEBUG STUFF IF WE ARE ON THE MAIN MENU and not in story intro
+        // Drawn LAST so it renders on top of rat portraits
+        if (this.menuActive && this.menu.state === "START") {
             const x = this.cbX;
             const y = this.cbY;
             const size = this.cbSize;
 
             ctx.save();
+
+            // Debug checkbox — always visible on menu
+            ctx.fillStyle = "rgba(34, 34, 34, 0.85)";
+            ctx.fillRect(x - 4, y - 4, size + 140, size + 8);
             ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
             ctx.fillRect(x, y, size, size);
             ctx.strokeStyle = "#ffcc00";
@@ -816,51 +821,59 @@ class SceneManager {
             ctx.textAlign = "left";
             ctx.fillText("DEBUG MODE", x + size + 10, y + size - 6);
 
-            // draw 'X' & Warp Buttons if debugging is on
+            // Draw debug panel with solid background to cover Rat4
             if (this.game.options && this.game.options.debugging) {
                 ctx.fillStyle = "#39FF14";
                 ctx.fillText("X", x + 5, y + size - 5);
 
+                // Solid black background panel behind all debug buttons
+                ctx.fillStyle = "rgba(10, 10, 10, 0.92)";
+                ctx.fillRect(14, 120, 325, 260);
+                ctx.strokeStyle = "#ffcc00";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(14, 120, 325, 260);
+
                 ctx.font = "10px 'Press Start 2P'";
 
-// button 1: Level 1 post intro
-                ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
+                // button 1: Level 1 post intro
+                ctx.fillStyle = "rgba(34, 34, 34, 0.9)";
                 ctx.fillRect(20, 130, 310, 30);
                 ctx.strokeStyle = "#ffcc00";
                 ctx.strokeRect(20, 130, 310, 30);
                 ctx.fillStyle = "white";
                 ctx.fillText("WARP Level 1 (PRE-FIGHT)", 35, 151);
 
-// button 2: level 2 Alive
-                ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
+                // button 2: level 2 Alive
+                ctx.fillStyle = "rgba(34, 34, 34, 0.9)";
                 ctx.fillRect(20, 170, 310, 30);
                 ctx.strokeStyle = "#ffcc00";
                 ctx.strokeRect(20, 170, 310, 30);
                 ctx.fillStyle = "white";
                 ctx.fillText("WARP Level 2 (SNAKE ALIVE)", 35, 191);
 
-// button 3: Level 3 Snake Dead
-                ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
+                // button 3: Level 3 Snake Dead
+                ctx.fillStyle = "rgba(34, 34, 34, 0.9)";
                 ctx.fillRect(20, 210, 310, 30);
                 ctx.strokeStyle = "#ffcc00";
                 ctx.strokeRect(20, 210, 310, 30);
                 ctx.fillStyle = "white";
                 ctx.fillText("WARP Level 3 (SNAKE DEAD)", 35, 231);
-                ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
+
+                ctx.fillStyle = "rgba(34, 34, 34, 0.9)";
                 ctx.fillRect(20, 250, 310, 30);
                 ctx.strokeStyle = this.debugUnlimitedHealth ? "#39FF14" : "#ffcc00";
                 ctx.strokeRect(20, 250, 310, 30);
                 ctx.fillStyle = this.debugUnlimitedHealth ? "#39FF14" : "white";
                 ctx.fillText(`UNLIMITED HEALTH: ${this.debugUnlimitedHealth ? "ON" : "OFF"}`, 35, 271);
 
-                ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
+                ctx.fillStyle = "rgba(34, 34, 34, 0.9)";
                 ctx.fillRect(20, 290, 310, 30);
                 ctx.strokeStyle = this.debugOnePunch ? "#39FF14" : "#ffcc00";
                 ctx.strokeRect(20, 290, 310, 30);
                 ctx.fillStyle = this.debugOnePunch ? "#39FF14" : "white";
                 ctx.fillText(`ONE PUNCH MAN: ${this.debugOnePunch ? "ON" : "OFF"}`, 35, 311);
 
-                ctx.fillStyle = "rgba(34, 34, 34, 0.8)";
+                ctx.fillStyle = "rgba(34, 34, 34, 0.9)";
                 ctx.fillRect(20, 330, 310, 30);
                 ctx.strokeStyle = this.debugNoDialogue ? "#39FF14" : "#ffcc00";
                 ctx.strokeRect(20, 330, 310, 30);

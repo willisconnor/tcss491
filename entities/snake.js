@@ -44,7 +44,12 @@ class Snake extends Enemy {
         // Load animations
         this.loadAnimations();
         this.currentAnimation = this.animations.get("idle")[this.facing];
-
+        // Wall hugging state for smarter pathfinding
+        this.isExtricatingX = false;
+        this.isExtricatingY = false;
+        this.extricateDirX = 0;
+        this.extricateDirY = 0;
+        this.lastAxis = null;
         // Initialize bounding box
         this.boundingBox = new BoundingBox(this.x, this.y, this.width, this.height);
     }
@@ -118,17 +123,118 @@ class Snake extends Enemy {
     moveToward(targetX, targetY) {
         const dx = targetX - this.x;
         const dy = targetY - this.y;
-
-        // Base speed was 0.5 in the constructor. 150 * 0.5 = 75.
-        // This allows the 0.4x poison modifier to actually slow the snake down!
         const pixelsPerSecond = 150 * this.speed;
+        const stickiness = 30; // bias toward current axis to prevent jittering
 
-        if (Math.abs(dx) > Math.abs(dy)) {
+        let weightX = Math.abs(dx);
+        let weightY = Math.abs(dy);
+
+        if (this.lastAxis === 'X') weightX += stickiness;
+        if (this.lastAxis === 'Y') weightY += stickiness;
+
+        if (Math.abs(dx) < 5) weightX = 0;
+        if (Math.abs(dy) < 5) weightY = 0;
+
+        if (weightX > weightY) {
             this.velocity.x = dx > 0 ? pixelsPerSecond : -pixelsPerSecond;
             this.velocity.y = 0;
+            this.lastAxis = 'X';
         } else {
             this.velocity.x = 0;
             this.velocity.y = dy > 0 ? pixelsPerSecond : -pixelsPerSecond;
+            this.lastAxis = 'Y';
+        }
+    }
+
+    moveWithSlidingSnake(clockTick, collisionManager, target, spriteWidth, spriteHeight, colliderRadius) {
+        const colliderWidth = colliderRadius * 2;
+        const colliderHeight = colliderRadius;
+        const slideAmount = (150 * this.speed) * clockTick;
+
+        let moveX = this.velocity.x * clockTick;
+        let moveY = this.velocity.y * clockTick;
+
+        if (target) {
+            let targetDirX = target.x > this.x ? 1 : -1;
+            let targetDirY = target.y > this.y ? 1 : -1;
+
+            if (this.isExtricatingX) {
+                let testFreeX = this.x + (targetDirX * slideAmount);
+                let testColliderX = testFreeX + (spriteWidth / 2) - colliderRadius;
+                let currentColliderY = this.y + spriteHeight - colliderHeight;
+                if (!collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
+                    this.isExtricatingX = false;
+                } else {
+                    moveX = 0;
+                    moveY = this.extricateDirY * slideAmount;
+                }
+            } else if (this.isExtricatingY) {
+                let testFreeY = this.y + (targetDirY * slideAmount);
+                let currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
+                let testColliderY = testFreeY + spriteHeight - colliderHeight;
+                if (!collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
+                    this.isExtricatingY = false;
+                } else {
+                    moveY = 0;
+                    moveX = this.extricateDirX * slideAmount;
+                }
+            }
+        }
+
+        let xBlocked = false;
+        let yBlocked = false;
+
+        if (Math.abs(moveX) > 0.001) {
+            const testX = this.x + moveX;
+            const testColliderX = testX + (spriteWidth / 2) - colliderRadius;
+            const currentColliderY = this.y + spriteHeight - colliderHeight;
+            if (!collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
+                this.x = testX;
+            } else {
+                xBlocked = true;
+                this.velocity.x = 0;
+            }
+        }
+
+        if (Math.abs(moveY) > 0.001) {
+            const testY = this.y + moveY;
+            const currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
+            const testColliderY = testY + spriteHeight - colliderHeight;
+            if (!collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
+                this.y = testY;
+            } else {
+                yBlocked = true;
+                this.velocity.y = 0;
+            }
+        }
+
+        if (target && !this.isExtricatingX && !this.isExtricatingY) {
+            if (xBlocked) {
+                this.isExtricatingX = true;
+                this.extricateDirY = target.y >= this.y ? 1 : -1;
+                let testY = this.y + (this.extricateDirY * slideAmount);
+                let testColliderY = testY + spriteHeight - colliderHeight;
+                let currentColliderX = this.x + (spriteWidth / 2) - colliderRadius;
+                if (!collisionManager.checkCollision(currentColliderX, testColliderY, colliderWidth, colliderHeight)) {
+                    this.y = testY;
+                } else {
+                    this.extricateDirY *= -1;
+                }
+            } else if (yBlocked) {
+                this.isExtricatingY = true;
+                this.extricateDirX = target.x >= this.x ? 1 : -1;
+                let testX = this.x + (this.extricateDirX * slideAmount);
+                let testColliderX = testX + (spriteWidth / 2) - colliderRadius;
+                let currentColliderY = this.y + spriteHeight - colliderHeight;
+                if (!collisionManager.checkCollision(testColliderX, currentColliderY, colliderWidth, colliderHeight)) {
+                    this.x = testX;
+                } else {
+                    this.extricateDirX *= -1;
+                }
+            }
+        } else if (target) {
+            if (this.isExtricatingX && yBlocked) this.extricateDirY *= -1;
+            if (this.isExtricatingY && xBlocked) this.extricateDirX *= -1;
         }
     }
 
@@ -142,16 +248,16 @@ class Snake extends Enemy {
         if (rat) {
             // add small dead zone to prevent rapid flickering when vertically aligned
             const dx = rat.x - this.x;
-            if (dx > 2) {
+            if (dx > 15) {
                 this.horizontalFacing = 1; // rat is clearly to the right
-            } else if (dx < -2) {
+            } else if (dx < -15) {
                 this.horizontalFacing = 0; // rat is clearly to the left
             }
             // if dx is between -2 and 2, it keeps the previous horizontalFacing
         }
 
         // Set facing based on actual movement direction
-        if (Math.abs(this.velocity.x) > 0.1) {
+        if (Math.abs(this.velocity.x) > Math.abs(this.velocity.y) + 5) {
             // Moving horizontally
             this.facing = this.velocity.x > 0 ? 1 : 0;
             this.horizontalFacing = this.facing;
@@ -374,9 +480,8 @@ class Snake extends Enemy {
         const colliderRadius = 10 * this.scale;
         const ratTarget = this.state === "CHASE" ? this.game.entities.find(e => e.constructor.name === "Rat") : null;
 
-        // call parent class's sliding method
-        this.moveWithSliding(this.game.clockTick, this.game.collisionManager, ratTarget, spriteWidth, spriteHeight, colliderRadius);
-
+        // use Cat's wall hugging sliding method for smarter obstacle navigation
+        this.moveWithSlidingSnake(this.game.clockTick, this.game.collisionManager, ratTarget, spriteWidth, spriteHeight, colliderRadius);
         this.updateBoundingBox();
     }
 

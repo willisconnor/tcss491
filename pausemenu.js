@@ -108,8 +108,16 @@ class PauseMenu {
                     this.game.camera.preDialogueActive = false;
                     this.game.camera._dialogueWasActive = false;
 
+                    // Pause music (don't destroy it) so we can resume later
+                    if (this.game.audio.currentMusic) {
+                        this.game.audio.currentMusic.pause();
+                    }
+
                     this.game.camera.menuActive = true;
                     this.game.camera.menu.state = "START";
+                    // Reset menu intro so it doesn't replay the full animation on return
+                    this.game.camera.menu.introDone = true;
+                    this.game.camera.menu.introPhase = "DONE";
                     this.isDragging = false;
                     this.soundSettingsOpen = false;
                     this.tutorialOpen = false;
