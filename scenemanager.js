@@ -1261,7 +1261,7 @@ class SceneManager {
 
                     // smaller subtext
                     ctx.font = "20px 'Press Start 2P', Courier";
-                    ctx.fillText("Security tripped the giants are coming", ctx.canvas.width / 2, boxY + 110);
+                    ctx.fillText("Security tripped! The giants are coming", ctx.canvas.width / 2, boxY + 110);
                     ctx.fillText("and they brought the big traps.", ctx.canvas.width / 2, boxY + 150);
                     ctx.font = "bold 100px 'Press Start 2P', Courier";
                     ctx.fillText("🤡", ctx.canvas.width / 2, boxY + 250);
