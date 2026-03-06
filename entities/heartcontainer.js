@@ -47,6 +47,7 @@ class HeartContainer {
             if ((leftPressed || rightPressed) && this.navCooldown <= 0) {
                 this.selectedOption = leftPressed ? 0 : 1;
                 this.navCooldown = 0.2;
+                if (this.game.audio) this.game.audio.playSound("./assets/button-click.wav");
             }
 
             if (this.game.keys["Space"]) {
@@ -71,6 +72,8 @@ class HeartContainer {
         if (!this.game.paused && this.interactBox.collide(rat.BB) && this.game.keys["KeyE"]) {
             this.game.keys["KeyE"] = false;
             InteractionFX.triggerShockwave(this.x + this.drawW / 2, this.y + this.drawH / 2, "#ff69b4");
+            let dingSound = ASSET_MANAGER.getAsset("./assets/ding.wav");
+            if (dingSound) { let s = dingSound.cloneNode(); s.volume = 0.15; s.play().catch(e => console.error(e)); }
             this.showPopup = true;
             this.selectedOption = 0;
             this.navCooldown = 0.3;

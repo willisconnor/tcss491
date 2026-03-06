@@ -42,6 +42,9 @@ class Rat {
         // adding these two lines to track the pause before refilling HP :)
         this.isRecovering = false;
         this.recoveryTimer = 0;
+        this.isRefilling = false;
+        this.refillTimer = 0;
+        this.refillDuration = 0.6; // seconds to animate red → green
 
         this.slideStartX = 0;
         this.slideTimer = 0;
@@ -100,8 +103,7 @@ class Rat {
 
     takeDamage(damage) {
         // stop taking damage if invulnerable OR currently showing the empty HP bar
-        if (this.invulnerabilityTimer > 0 || this.isRecovering || this.slidePhase === 1 || this.slidePhase === 3) return;
-        if (this.game.camera && this.game.camera.debugUnlimitedHealth) return;
+        if (this.invulnerabilityTimer > 0 || this.isRecovering || this.isRefilling || this.slidePhase === 1 || this.slidePhase === 3) return;        if (this.game.camera && this.game.camera.debugUnlimitedHealth) return;
         this.health -= damage;
         this.invulnerabilityTimer = this.invulnerabilityDuration;
 
@@ -159,9 +161,10 @@ class Rat {
                 this.isRecovering = false;
 
                 if (this.game.camera.ratLives > 0) {
-                    // if we still have lives left, refill the HP bar
-                    this.health = this.maxHealth;
-                    this.game.camera.ratHealth = this.maxHealth;
+                    // Start the refill animation instead of instant heal
+                    this.isRefilling = true;
+                    this.refillTimer = 0;
+                    this.health = 0; // start from empty
                     this.invulnerabilityTimer = this.invulnerabilityDuration * 3;
                 } else {
                     this.die();
@@ -169,9 +172,26 @@ class Rat {
             }
             // rat can keep moving when attacked, just walking
         }
+        // Refill animation: smoothly fills HP bar from 0 to max after losing a life
+        if (this.isRefilling) {
+            this.refillTimer += this.game.clockTick;
+            const pct = Math.min(1, this.refillTimer / this.refillDuration);
+            this.health = this.maxHealth * pct;
+            this.game.camera.ratHealth = this.health;
+
+            // Keep rat in idle while refilling
+            this.animator = this.animations.get("idle")[this.facing];
+            this.updateBB();
+
+            if (pct >= 1) {
+                this.health = this.maxHealth;
+                this.game.camera.ratHealth = this.maxHealth;
+                this.isRefilling = false;
+            }
+            return; // don't process movement/attacks during refill
+        }
         // stop all movement & action if rat is completely out of lives
-        if (this.health <= 0 && !this.isRecovering) {
-            this.game.camera.ratLives = 0; // ensure UI updates to 3 gray hearts
+        if (this.health <= 0 && !this.isRecovering && !this.isRefilling) {            this.game.camera.ratLives = 0; // ensure UI updates to 3 gray hearts
             this.animator = this.animations.get("dead");
             this.updateBB();
             return;
@@ -561,26 +581,6 @@ class Rat {
         }
         this.animator.drawFrame(this.game.clockTick, ctx, drawX, drawY, this.scale);
         ctx.restore();
-
-        // new addition: rat boss battle health bar
-        // check if there are enemies alive on the current map layer
-        let activeBoss = this.game.entities.some(e => e instanceof Enemy && !e.dead);
-        if (activeBoss && this.game.camera && this.game.camera.levelNumber >= 2) {
-            ctx.save();
-            const barWidth = 50;
-            const barHeight = 5;
-            const healthPercent = Math.max(0, this.health / this.maxHealth);
-
-            let barX = drawX + (width / 2) - (barWidth / 2);
-            let barY = drawY - 20;
-
-            ctx.fillStyle = "red";
-            ctx.fillRect(barX, barY, barWidth, barHeight);
-            ctx.fillStyle = "#39FF14"; // neon green
-            ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
-            ctx.restore();
-        }
-
         // Attack indicator around enemy, appears with the rat is within range to do the tail whip attack
         if (this.currentTarget && this.slidePhase === 0 && this.attackCooldown <= 0) {
             ctx.save();

@@ -248,8 +248,7 @@ class Yorkie {
                     this.animator = this.animations.get("sleep")[this.facing];
 
                     // Interaction for when he's asleep (waiting for jerky)
-                    if (playerInRange && this.game.keys["KeyE"]) {
-                        if (!this.game.camera.hasBeefJerky && !this.game.camera.yorkieGivenJerky) {
+                    if (playerInRange && this.game.keys["KeyE"] && !this.game.camera.dialogueActive) {                        if (!this.game.camera.hasBeefJerky && !this.game.camera.yorkieGivenJerky) {
                             const sceneManager = this.game.camera;
                             sceneManager.dialogue.lines = ["Zzz... smell no treats... Zzz..."];
                             sceneManager.dialogue.speaker = "Edgar Barkley (Yorkie)";
@@ -281,7 +280,7 @@ class Yorkie {
                 case "JERKY_IDLE":
                     this.animator = this.animations.get("lick")[this.facing];
 
-                    if (playerInRange && this.game.keys["KeyE"]) {
+                    if (playerInRange && this.game.keys["KeyE"] && !this.game.camera.dialogueActive) {
                         if (this.game.camera.dialogue.startYorkieOptionsDialogue) {
                             this.game.camera.dialogue.startYorkieOptionsDialogue();
                         }

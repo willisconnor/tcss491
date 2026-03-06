@@ -204,12 +204,7 @@ class SceneManager {
         }
 
         // Only force a game pause if the dialogue is NOT the combat tutorial
-        if (this.paused || (this.dialogueActive && this.dialogue.phase !== "COMBAT_TUTORIAL") || this.itemPopupActive) {
-            this.game.paused = true;
-        } else {
-            // CRUCIAL: Explicitly unpause the game when no menus are active
-            this.game.paused = false; 
-        }
+        this.game.paused = this.paused || (this.dialogueActive && this.dialogue.phase !== "COMBAT_TUTORIAL") || this.itemPopupActive;
 
         if (this.dialogueActive && this.storyState === "STUART_TALK" && !this.preDialogueActive && !this._dialogueWasActive && !this.stuartIntroPlayed) {
             this.preDialogueActive = true;
@@ -894,17 +889,83 @@ class SceneManager {
     drawOverlays(ctx) {
         ctx.restore();
         let heartAsset = ASSET_MANAGER.getAsset("./assets/hearts.png");
-        if (heartAsset) {
+        let hpBarAsset = ASSET_MANAGER.getAsset("./assets/HPBar.png");
+        let rat = this.game.entities.find(e => e.constructor.name === "Rat");
+
+        if (heartAsset && rat) {
+            // HP BAR, top-left, drawn FIRST
+            const hpFrameH = 300;
+            const hpFrameW = 300 * (hpBarAsset ? hpBarAsset.width / hpBarAsset.height : 1);
+            const hpBarX = 10;
+            const hpBarY = -100;
+            const healthPct = Math.max(0, this.ratHealth / 10);
+
+            if (hpBarAsset) {
+                const insetLeft = hpFrameW * 0.18;
+                const insetRight = hpFrameW * 0.065;
+                const insetTop = hpFrameH * 0.432;
+                const insetBottom = hpFrameH * 0.485;
+
+                const fillX = hpBarX + insetLeft;
+                const fillY = hpBarY + insetTop;
+                const fillMaxW = hpFrameW - insetLeft - insetRight;
+                const fillH = hpFrameH - insetTop - insetBottom;
+
+                ctx.save();
+
+                // Clip to inner fill area
+                ctx.beginPath();
+                ctx.rect(fillX, fillY, fillMaxW, fillH);
+                ctx.clip();
+
+                // dark background for empty portion
+                ctx.fillStyle = "#2a0000";
+                ctx.fillRect(fillX, fillY, fillMaxW, fillH);
+
+                // Multi color health fill: green → yellow → orange → red
+                if (healthPct > 0) {
+                    let r, g, b = 30;
+                    if (healthPct > 0.75) {
+                        // Green to Yellow (75%-100%)
+                        const t = (healthPct - 0.75) / 0.25;
+                        r = Math.floor(255 * (1 - t));
+                        g = 220;
+                    } else if (healthPct > 0.5) {
+                        // Yellow to Orange (50%-75%)
+                        const t = (healthPct - 0.5) / 0.25;
+                        r = 255;
+                        g = Math.floor(120 + 100 * t);
+                    } else if (healthPct > 0.25) {
+                        // Orange to Red (25%-50%)
+                        const t = (healthPct - 0.25) / 0.25;
+                        r = 255;
+                        g = Math.floor(120 * t);
+                    } else {
+                        // Deep Red (0%-25%)
+                        r = 200;
+                        g = 0;
+                    }
+                    ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                    ctx.fillRect(fillX, fillY, fillMaxW * healthPct, fillH);
+                }
+
+                ctx.restore(); // release clip
+
+                // draw frame on top
+                ctx.drawImage(hpBarAsset, hpBarX, hpBarY, hpFrameW, hpFrameH);
+            }
+
+            // LIVES, hearts drawn BELOW the HP bar
             const heartWidth = 200;
             const heartHeight = 200;
-            const scale = 0.40;
-            const drawW = heartWidth * scale;
-            const drawH = heartHeight * scale;
-            const startX = 20;
-            const startY = 30;
+            const heartScale = 0.40;
+            const drawW = heartWidth * heartScale;
+            const drawH = heartHeight * heartScale;
+            const startX = hpBarX + 25;
+            const startY = hpBarY + hpFrameH - 125;
+
             const spacing = 0;
 
-            let rat = this.game.entities.find(e => e.constructor.name === "Rat");
             let isRecovering = rat && rat.isRecovering;
             let recoveryTimer = rat ? rat.recoveryTimer : 0;
 
@@ -926,6 +987,58 @@ class SceneManager {
                     sourceX, 0, heartWidth, heartHeight,
                     startX + i * (drawW + spacing), startY, drawW, drawH
                 );
+            }
+
+            // poison meter UI (bottom-right corner)
+            let poisonMeterAsset = ASSET_MANAGER.getAsset("./assets/poisonmeter.png");
+            if (poisonMeterAsset && rat) {
+                const meterH = 210;
+                const meterW = Math.round(meterH * (poisonMeterAsset.width / poisonMeterAsset.height));
+                const meterX = ctx.canvas.width - meterW - 20;
+                const meterY = ctx.canvas.height - meterH - 30;
+
+                const cooldownPct = rat.poisonCooldown > 0 ? rat.poisonCooldown / rat.poisonCooldownMax : 0;
+                const fillPct = 1 - cooldownPct;
+
+                const pInsetLeft = meterW * 0.25;     // left border thickness
+                const pInsetRight = meterW * 0.3;    // right border thickness
+                const pInsetTop = meterH * 0.065;      // top cap thickness
+                const pInsetBottom = meterH * 0.02;   // bottom cap thickness
+
+                const pFillX = meterX + pInsetLeft;
+                const pFillMaxW = meterW - pInsetLeft - pInsetRight;
+                const pFillMaxH = meterH - pInsetTop - pInsetBottom;
+                const pFillBaseY = meterY + pInsetTop; // top of the fillable area
+
+                ctx.save();
+
+                // Clip to inner area so green can NEVER bleed past the frame
+                ctx.beginPath();
+                ctx.rect(pFillX, pFillBaseY, pFillMaxW, pFillMaxH);
+                ctx.clip();
+
+                // Draw filled portion from bottom up
+                if (fillPct > 0) {
+                    const fillH = pFillMaxH * fillPct;
+                    const fillY = pFillBaseY + pFillMaxH - fillH;
+                    ctx.fillStyle = "#39FF14";
+                    ctx.globalAlpha = 0.7;
+                    ctx.fillRect(pFillX, fillY, pFillMaxW, fillH);
+                    ctx.globalAlpha = 1;
+                }
+
+                ctx.restore(); // releases clip
+
+                // draw the meter frame image ON TOP so borders cover edges
+                ctx.drawImage(poisonMeterAsset, meterX, meterY, meterW, meterH);
+
+                // "POISON" label below
+                ctx.save();
+                ctx.fillStyle = fillPct >= 1 ? "#39FF14" : "#666666";
+                ctx.font = "10px 'Press Start 2P', Courier";
+                ctx.textAlign = "center";
+                ctx.fillText("POISON", meterX + meterW / 2, meterY + meterH + 16);
+                ctx.restore();
             }
             if (this.game.options && this.game.options.debugging) {
                 if (rat) {
