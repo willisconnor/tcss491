@@ -179,16 +179,12 @@ class Rat {
             this.health = this.maxHealth * pct;
             this.game.camera.ratHealth = this.health;
 
-            // Keep rat in idle while refilling
-            this.animator = this.animations.get("idle")[this.facing];
-            this.updateBB();
-
             if (pct >= 1) {
                 this.health = this.maxHealth;
                 this.game.camera.ratHealth = this.maxHealth;
                 this.isRefilling = false;
             }
-            return; // don't process movement/attacks during refill
+            // Removed early return and forced idle to allow rat movement while refilling
         }
         // stop all movement & action if rat is completely out of lives
         if (this.health <= 0 && !this.isRecovering && !this.isRefilling) {            this.game.camera.ratLives = 0; // ensure UI updates to 3 gray hearts
@@ -340,7 +336,7 @@ class Rat {
                         targetAnim = this.animations.get("walk")[this.facing];
                     }
 
-                    if (this.game.keys["ShiftLeft"] && targetSpeed > 0 && !this.isRecovering) {
+                    if (this.game.keys["ShiftLeft"] && targetSpeed > 0 && !this.isRecovering && !this.isRefilling) {
                         targetSpeed = 200;
                         targetAnim = this.animations.get("run")[this.facing];
                     }

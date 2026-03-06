@@ -39,19 +39,22 @@ class HeartContainer {
         if (!rat) return;
 
         if (this.showPopup) {
-            if (this.navCooldown > 0) this.navCooldown -= this.game.clockTick;
-
             const leftPressed = this.game.keys["ArrowLeft"] || this.game.keys["KeyA"];
             const rightPressed = this.game.keys["ArrowRight"] || this.game.keys["KeyD"];
 
-            if ((leftPressed || rightPressed) && this.navCooldown <= 0) {
-                this.selectedOption = leftPressed ? 0 : 1;
-                this.navCooldown = 0.2;
-                if (this.game.audio) this.game.audio.playSound("./assets/button-click.wav");
+            if (leftPressed || rightPressed) {
+                if (!this.inputLocked) {
+                    this.selectedOption = leftPressed ? 0 : 1;
+                    if (this.game.audio) this.game.audio.playSound("./assets/button-click.wav");
+                    this.inputLocked = true;
+                }
+            } else {
+                this.inputLocked = false;
             }
 
             if (this.game.keys["Space"]) {
                 this.game.keys["Space"] = false;
+                this.inputLocked = false;
                 if (this.selectedOption === 0) {
                     // yes — collect
                     this.collected = true;

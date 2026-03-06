@@ -204,7 +204,9 @@ class SceneManager {
         }
 
         // Only force a game pause if the dialogue is NOT the combat tutorial
-        this.game.paused = this.paused || (this.dialogueActive && this.dialogue.phase !== "COMBAT_TUTORIAL") || this.itemPopupActive;
+        let hc = this.game.entities.find(e => e.constructor.name === "HeartContainer");
+        let hcActive = hc && hc.showPopup;
+        this.game.paused = this.paused || (this.dialogueActive && this.dialogue.phase !== "COMBAT_TUTORIAL") || this.itemPopupActive || hcActive;
 
         if (this.dialogueActive && this.storyState === "STUART_TALK" && !this.preDialogueActive && !this._dialogueWasActive && !this.stuartIntroPlayed) {
             this.preDialogueActive = true;

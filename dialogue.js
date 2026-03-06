@@ -544,8 +544,11 @@ class Dialogue {
             ctx.textAlign = "right";
             ctx.fillText("ESC to skip tutorial", boxX + boxW - 20, boxY + 20);
 
+            // Define processedLine in the draw scope so we can check its length
+            let processedLine = current.text.replace("{NAME}", this.playerName);
+
             // Flashing Specific Prompt when typing finishes
-            if (this.charIndex >= current.text.length) {
+            if (this.charIndex >= processedLine.length) {
                 ctx.font = "16px Arial";
                 ctx.fillStyle = Math.floor(Date.now() / 500) % 2 === 0 ? "#ffcc00" : "#ffffff";
                 ctx.fillText(current.prompt, boxX + boxW - 20, boxY + boxH - 20);
