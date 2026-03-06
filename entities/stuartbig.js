@@ -25,13 +25,13 @@ class StuartBig {
     // Stuart Big doesn't move, so he just has the idle animation
     loadAnimations() {
         this.animations.get("idle")[0] = new Animator(ASSET_MANAGER.getAsset("./assets/stuart_big.png"),
-            0, 58, 48, 38, 3, 1.5, 0);
+            0, 58, 48, 38, 3, 0.4, 0);
         this.animations.get("idle")[1] = new Animator(ASSET_MANAGER.getAsset("./assets/stuart_big.png"),
-            0, 106, 48, 38, 3, 1.5, 0);
+            0, 106, 48, 38, 3, 0.4, 0);
         this.animations.get("idle")[2] = new Animator(ASSET_MANAGER.getAsset("./assets/stuart_big.png"),
-            0, 6, 48, 33, 3, 1.5, 0);
+            0, 6, 48, 33, 3, 0.4, 0);
         this.animations.get("idle")[3] = new Animator(ASSET_MANAGER.getAsset("./assets/stuart_big.png"),
-            0, 148, 48, 44, 3, 1.5, 0);
+            0, 148, 48, 44, 3, 0.4, 0);
     };
 
     // Nothing to update

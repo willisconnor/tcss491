@@ -442,43 +442,17 @@ class Dialogue {
         let boxH = 280;
         let boxX = (w - boxW) / 2;
         let boxY = h - boxH - 40;
-        let btnHeight = 45;
-        let btnPadding = 10;
-        let btnWidth = 550;
-        let btnX = boxX + 280;
-        let startY = boxY + 110;
-
-        if (this.speaker === "Silent Slitherer") {
-            boxW = 700;
-            boxH = 200;
-            boxX = (w - boxW) / 2;
-            boxY = h - boxH - 20;
-
-            btnHeight = 28;
-            btnPadding = 5;
-            btnX = boxX + 215;
-            btnWidth = 450;
-
-            startY = boxY + 65;
-        }
-
-        // shrink bounds and push options for Level 3 Cat (5 options need compact spacing)
+        let btnHeight = 40;
+        let btnPadding = 8;
+        let btnWidth = 600;
+        let btnX = boxX + 300;
+        let startY = boxY + 70;
+        // Compact the buttons for Carrot the Cat so 5 choices fit in the 280px height
         if (this.speaker === "Carrot the Cat") {
-            boxW = 800;
-            boxH = 190;
-            boxX = (w - boxW) / 2;
-            boxY = h - boxH - 40;
-
-            btnHeight = 22;
-            btnPadding = 2;
-            // push buttons right to clear the portrait
-            // framePadding (15) + frameSize (160) + text spacing (25) = 200
-            btnX = boxX + 200;
-
-            // shrink width so it stays inside the 800px box with margin
-            btnWidth = 560;
-
-            startY = boxY + 52;
+            btnHeight = 40; 
+            btnPadding = 5;
+            btnWidth = 600;
+            startY = boxY + 60; 
         }
 
         return choices.map((_, i) => ({
@@ -612,8 +586,8 @@ class Dialogue {
             }
             // -------------------------------------------------
             const isCat = this.speaker === "Carrot the Cat";
-            const boxW = isCat ? 800 : 1200;
-            const boxH = isCat ? 190 : 280;
+            const boxW = 1200; // Standardized width
+            const boxH = 280;  // Standardized height
             const boxX = (w - boxW) / 2;
             const boxY = h - boxH - 40;
 
@@ -674,17 +648,7 @@ class Dialogue {
             let boxH = 280;
             let boxX = (w - boxW) / 2;
             let boxY = h - boxH - 40;
-            if (this.speaker === "Silent Slitherer") {
-                boxW = 700;
-                boxH = 200;
-                boxX = (w - boxW) / 2;
-                boxY = h - boxH - 20;
-            } else if (this.speaker === "Carrot the Cat") {
-                boxW = 800;
-                boxH = 190;
-                boxX = (w - boxW) / 2;
-                boxY = h - boxH - 40;
-            }
+
 
             ctx.fillStyle = "rgba(20, 20, 20, 0.9)";
             ctx.strokeStyle = "#ffffff";
@@ -774,12 +738,9 @@ class Dialogue {
                         ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
                     }
                     ctx.fillStyle = isHovered ? "#FFE080" : "#FFD700";
-                    // Smaller font for cat's many options
-                    if (this.speaker === "Carrot the Cat") {
-                        ctx.font = "14px 'Courier New'";
-                    } else {
-                        ctx.font = "22px 'Courier New'";
-                    }
+ 
+                    ctx.font = "22px 'Courier New'";
+                    
                     ctx.textAlign = "left";
                     ctx.textBaseline = "middle";
                     ctx.fillText("• " + choice.text, btn.x + 10, btn.y + btn.h / 2);
