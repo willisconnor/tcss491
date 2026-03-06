@@ -5,14 +5,15 @@ class PauseMenu {
         this.btnH = 60;
 
         // Volume slider properties
-        this.sliderX = 0; // Will be calculated in draw
-        this.sliderY = 0; // Will be calculated in draw
-        this.sliderWidth = 180; // Slightly smaller to fit with checkbox
+        this.sliderX = 0; 
+        this.sliderY = 0; 
+        this.sliderWidth = 180; 
         this.sliderHeight = 20;
         this.isDragging = false;
 
-        // Sound settings state
+        // Menu states
         this.soundSettingsOpen = false;
+        this.tutorialOpen = false; // New state for the tutorial
     }
 
     update() {
@@ -25,7 +26,6 @@ class PauseMenu {
             const centerY = h / 2;
 
             if (this.soundSettingsOpen) {
-                // Keep slider coords in sync with draw so clicks register
                 this.sliderX = centerX + 20;
                 this.sliderY = centerY;
 
@@ -38,11 +38,11 @@ class PauseMenu {
                     return;
                 }
 
-                // Checkbox area (includes label click)
+                // Checkbox area
                 const cbX = this.sliderX;
                 const cbY = this.sliderY + 40;
                 const cbSize = 24;
-                const cbLabelW = 200; // clickable area to the right for the label
+                const cbLabelW = 200;
                 if (mouseX >= cbX && mouseX <= cbX + cbSize + cbLabelW &&
                     mouseY >= cbY && mouseY <= cbY + cbSize) {
                     this.game.audio.toggleMute();
@@ -57,31 +57,47 @@ class PauseMenu {
                     this.game.click = null;
                     return;
                 }
+            } else if (this.tutorialOpen) {
+                // BACK button for Tutorial Menu
+                if (mouseX >= centerX && mouseX <= centerX + this.btnW &&
+                    mouseY >= centerY + 160 && mouseY <= centerY + 160 + this.btnH) {
+                    this.tutorialOpen = false;
+                    this.game.click = null;
+                    return;
+                }
             } else {
-                // Normal pause menu interactions
+                // Normal pause menu interactions with updated Y coordinates for 4 buttons
+                
                 // RESUME Button
                 if (mouseX >= centerX && mouseX <= centerX + this.btnW &&
-                    mouseY >= centerY && mouseY <= centerY + this.btnH) {
+                    mouseY >= centerY - 100 && mouseY <= centerY - 100 + this.btnH) {
                     this.game.camera.paused = false;
                     this.isDragging = false;
                     this.soundSettingsOpen = false;
+                    this.tutorialOpen = false;
+                }
+
+                // TUTORIAL Button
+                else if (mouseX >= centerX && mouseX <= centerX + this.btnW &&
+                    mouseY >= centerY - 20 && mouseY <= centerY - 20 + this.btnH) {
+                    this.tutorialOpen = true;
                 }
 
                 // SOUND SETTINGS Button
                 else if (mouseX >= centerX && mouseX <= centerX + this.btnW &&
-                    mouseY >= centerY + 80 && mouseY <= centerY + 80 + this.btnH) {
+                    mouseY >= centerY + 60 && mouseY <= centerY + 60 + this.btnH) {
                     this.soundSettingsOpen = true;
                 }
 
                 // MAIN MENU Button
                 else if (mouseX >= centerX && mouseX <= centerX + this.btnW &&
-                    mouseY >= centerY + 160 && mouseY <= centerY + 160 + this.btnH) {
-                    // Clear any active dialogue or pre-dialogue to avoid stuck state
+                    mouseY >= centerY + 140 && mouseY <= centerY + 140 + this.btnH) {
+                    
                     this.game.camera.paused = false;
                     this.game.paused = false;
                     this.game.camera.dialogueActive = false;
                     this.game.typing = false;
-                    // clear dialogue buffers
+                    
                     if (this.game.camera.dialogue) {
                         this.game.camera.dialogue.displayText = "";
                         this.game.camera.dialogue.charIndex = 0;
@@ -89,7 +105,6 @@ class PauseMenu {
                         this.game.camera.dialogue.currentQuestionIndex = null;
                         this.game.camera.dialogue.displayingChoiceResponse = false;
                     }
-                    // stop pre-dialogue state
                     this.game.camera.preDialogueActive = false;
                     this.game.camera._dialogueWasActive = false;
 
@@ -97,21 +112,20 @@ class PauseMenu {
                     this.game.camera.menu.state = "START";
                     this.isDragging = false;
                     this.soundSettingsOpen = false;
+                    this.tutorialOpen = false;
                 }
             }
             this.game.click = null;
         }
 
-        // Stop dragging when mouse is released
         if (!this.game.keys["MouseDown"]) {
             this.isDragging = false;
         }
     }
 
     updateVolume(mouseX) {
-        // Calculate volume from slider position (0 to 1)
         let volume = (mouseX - this.sliderX) / this.sliderWidth;
-        volume = Math.max(0, Math.min(1, volume)); // Clamp between 0 and 1
+        volume = Math.max(0, Math.min(1, volume)); 
         this.game.audio.setVolume(volume);
     }
 
@@ -119,7 +133,6 @@ class PauseMenu {
         const w = ctx.canvas.width;
         const h = ctx.canvas.height;
 
-        // Darken the game background
         ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
         ctx.fillRect(0, 0, w, h);
 
@@ -127,19 +140,41 @@ class PauseMenu {
         const centerY = h / 2;
 
         if (this.soundSettingsOpen) {
-            // Sound settings menu
             this.drawSoundSettingsMenu(ctx, centerX, centerY);
+        } else if (this.tutorialOpen) {
+            this.drawTutorialMenu(ctx, centerX, centerY);
         } else {
-            // Normal pause menu
             ctx.fillStyle = "#ffcc00";
             ctx.font = "bold 60px 'Courier New'";
             ctx.textAlign = "center";
-            ctx.fillText("PAUSED", w / 2, h / 2 - 120);
+            ctx.fillText("PAUSED", w / 2, h / 2 - 160);
 
-            this.drawBtn(ctx, centerX, centerY, "RESUME");
-            this.drawBtn(ctx, centerX, centerY + 80, "SOUND SETTINGS");
-            this.drawBtn(ctx, centerX, centerY + 160, "MAIN MENU");
+            // Re-spaced buttons
+            this.drawBtn(ctx, centerX, centerY - 100, "RESUME");
+            this.drawBtn(ctx, centerX, centerY - 20, "TUTORIAL");
+            this.drawBtn(ctx, centerX, centerY + 60, "SOUND SETTINGS");
+            this.drawBtn(ctx, centerX, centerY + 140, "MAIN MENU");
         }
+    }
+
+    drawTutorialMenu(ctx, centerX, centerY) {
+        const w = ctx.canvas.width;
+        const h = ctx.canvas.height;
+
+        ctx.fillStyle = "white";
+        ctx.font = "30px 'Press Start 2P', Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("GUIDE for the Chosen One", w / 2, h / 2 - 210);
+
+        ctx.font = "20px Arial";
+        ctx.fillText("Interact: Press E", w / 2, h / 2 - 150);
+        ctx.fillText("Movement: WASD or Arrow Keys", w / 2, h / 2 - 100);
+        ctx.fillText("Sprint: Hold SHIFT", w / 2, h / 2 - 50);
+        ctx.fillText("Bite: Press SPACE ", w / 2, h / 2);
+        ctx.fillText("Poison: Press 1", w / 2, h / 2 + 50);
+        ctx.fillText("Tail Whip: Press 2", w / 2, h / 2 + 100);
+
+        this.drawBtn(ctx, centerX, centerY + 160, "BACK");
     }
 
     drawSoundSettingsMenu(ctx, centerX, centerY) {
@@ -148,12 +183,10 @@ class PauseMenu {
         ctx.textAlign = "center";
         ctx.fillText("SOUND SETTINGS", ctx.canvas.width / 2, centerY - 120);
 
-        // Draw volume slider
         this.sliderX = centerX + 20;
         this.sliderY = centerY;
         this.drawSoundSettings(ctx);
 
-        // Back button
         this.drawBtn(ctx, centerX, centerY + 120, "BACK");
     }
 
@@ -161,51 +194,42 @@ class PauseMenu {
         const volume = this.game.audio.volume;
         const isMuted = this.game.audio.muted;
         
-        // Label
         ctx.fillStyle = "white";
         ctx.font = "14px Arial";
         ctx.textAlign = "left";
         ctx.fillText("VOLUME", this.sliderX, this.sliderY - 8);
 
-        // Background track
         ctx.fillStyle = "#333333";
         ctx.fillRect(this.sliderX, this.sliderY, this.sliderWidth, this.sliderHeight);
 
-        // Filled track
         ctx.fillStyle = this.isDragging ? "#ffff00" : "#ffcc00";
         ctx.fillRect(this.sliderX, this.sliderY, this.sliderWidth * volume, this.sliderHeight);
 
-        // Slider knob
         const knobX = this.sliderX + this.sliderWidth * volume;
         ctx.fillStyle = this.isDragging ? "#ffff00" : "white";
         ctx.beginPath();
         ctx.arc(knobX, this.sliderY + this.sliderHeight / 2, 8, 0, Math.PI * 2);
         ctx.fill();
 
-        // Knob outline
         ctx.strokeStyle = "#ffcc00";
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Volume percentage
         ctx.fillStyle = "white";
         ctx.font = "12px Arial";
         ctx.textAlign = "left";
         ctx.fillText(`${Math.round(volume * 100)}%`, this.sliderX, this.sliderY + 35);
 
-        // Mute checkbox (styled like a checkbox with label under the slider)
         const cbX = this.sliderX;
         const cbY = this.sliderY + 40;
         const cbSize = 24;
 
-        // Checkbox background
         ctx.fillStyle = "#222";
         ctx.fillRect(cbX, cbY, cbSize, cbSize);
         ctx.strokeStyle = "#ffcc00";
         ctx.lineWidth = 2;
         ctx.strokeRect(cbX, cbY, cbSize, cbSize);
 
-        // Checkmark if muted
         if (isMuted) {
             ctx.strokeStyle = "#ffcc00";
             ctx.lineWidth = 3;
@@ -216,7 +240,6 @@ class PauseMenu {
             ctx.stroke();
         }
 
-        // Label next to checkbox
         ctx.fillStyle = "white";
         ctx.font = "16px Arial";
         ctx.textAlign = "left";

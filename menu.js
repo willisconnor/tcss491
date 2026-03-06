@@ -244,6 +244,7 @@ class Menu {
         ctx.fillStyle = "#ffcc00";
         ctx.font = "40px 'Press Start 2P', Arial";
         ctx.textAlign = "center";
+        ctx.fillText("RPG", w / 2, h / 2 - 250);
         ctx.fillText("RAT PLAYING GAME", w / 2, h / 2 - 180);
 
         const centerX = w / 2 - this.btnW / 2;
@@ -257,14 +258,16 @@ class Menu {
         ctx.fillStyle = "white";
         ctx.font = "30px 'Press Start 2P', Arial";
         ctx.textAlign = "center";
-        ctx.fillText("GUIDE for the Chosen One", w / 2, h / 2 - 200);
+        ctx.fillText("GUIDE for the Chosen One", w / 2, h / 2 - 210);
 
         ctx.font = "20px Arial";
+        ctx.fillText("Interact: Press E", w / 2, h / 2 - 150);
         ctx.fillText("Movement: WASD or Arrow Keys", w / 2, h / 2 - 100);
         ctx.fillText("Sprint: Hold SHIFT", w / 2, h / 2 - 50);
         ctx.fillText("Bite: Press SPACE ", w / 2, h / 2);
         ctx.fillText("Poison: Press 1", w / 2, h / 2 + 50);
-        ctx.fillText("Death: Press x", w / 2, h / 2 + 100);
+        ctx.fillText("Tail Whip: Press 2", w / 2, h / 2 + 100);
+        ctx.fillText(" When the dashed circle appears around an enemy, Tail Whip is in the appropriate distance to be used.", w / 2, h / 2 + 135);
 
         this.drawBtn(ctx, w / 2 - this.btnW / 2, h / 2 + 180, "BACK");
     }
