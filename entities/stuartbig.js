@@ -88,14 +88,21 @@ class StuartBig {
     };
 
     draw(ctx) {
+        ctx.save();
         ctx.imageSmoothingEnabled = false;
 
         // ensure animator matches current facing (so cutscene-facing changes immediately apply)
         this.animator = this.animations.get("idle")[this.facing];
 
+        // Fade level defaults to 1 if not on Level 2
+        let currentAlpha = 1;
+        if (this.game.camera && this.game.camera.levelNumber === 2) {
+            currentAlpha = this.game.camera.stuartFadeAlpha;
+        }
+
         // drawing glow outline; pass 0 for tick to avoid advancing animation
         ctx.save();
-        ctx.globalAlpha = 0.5;
+        ctx.globalAlpha = 0.5 * currentAlpha;
         ctx.filter = "brightness(1.5) drop-shadow(0 0 4px white)";
         const offsets = [[-2, 0], [2, 0], [0, -2], [0, 2]];
         offsets.forEach(([ox, oy]) => {
@@ -116,5 +123,6 @@ class StuartBig {
                 InteractionFX.drawSpriteGlow(ctx, this.animator, this.x, this.y, this.scale, "#ffffff", "stuart");
             }
         }
+        ctx.restore();
     }
 }

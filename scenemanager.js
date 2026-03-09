@@ -7,6 +7,9 @@ class SceneManager {
         this.x = 0;
         this.y = 0;
 
+        this.stuartFadeAlpha = 0;
+        this.level2StuartSpawned = false;
+
         // map scale
         this.scale = 4;
 
@@ -318,6 +321,26 @@ class SceneManager {
 
             let viewW = this.game.ctx.canvas.width / this.zoom;
             let viewH = this.game.ctx.canvas.height / this.zoom;
+
+            // Spawn Stuart Big in after you defeat the snake
+            if (this.levelNumber === 2 && this.snakeDefeatTextPlayed && !this.level2StuartSpawned) {
+                let stuart = this.game.entities.find(e => e.constructor.name === "StuartBig");
+
+                // Only spawn him if he doesn't exist yet
+                if (!stuart) {
+                    stuart = new StuartBig(this.game, 817, 104, 2); // Spawn by door
+                    this.game.addEntity(stuart);
+                    this.stuartFadeAlpha = 0;
+                }
+
+                // Gradually fade him in
+                if (this.stuartFadeAlpha < 1) {
+                    this.stuartFadeAlpha += 0.25 * this.game.clockTick;
+                    if (this.stuartFadeAlpha > 1) this.stuartFadeAlpha = 1;
+                } else {
+                    this.level2StuartSpawned = true;
+                }
+            }
 
             if (this.levelNumber === 2 && !this.snakeIntroPlayed) {
                 let snake = this.game.entities.find(e => e.constructor.name === "Snake" && e.id === "level2_snake_main");
@@ -635,6 +658,7 @@ class SceneManager {
             this.game.addEntity(stationarySnake);
 
         }
+
         this.parseInteractableLayers();
         console.log("Level 2 Loaded!");
     }
