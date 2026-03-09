@@ -11,7 +11,8 @@ class Cat extends Enemy {
             5,
             100,
             30,
-            0.75
+            0.75,
+            0.2
         );
         this.facing = 1; // 0=left, 1=right, 2=down, 3=up
 
@@ -403,7 +404,9 @@ class Cat extends Enemy {
     }
 
     onHurt() {
-        this.stateBeforeHurt = this.state;
+        if (this.state !== "HURT") {
+            this.stateBeforeHurt = this.state;
+        }
         this.state = "HURT";
         // don't change animation to sleep pause movement to allow red flash in draw()
         this.velocity.x = 0;

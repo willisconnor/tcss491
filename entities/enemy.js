@@ -3,8 +3,8 @@
 
 class Enemy{
     scale;
-    constructor(game, x, y, maxHealth, attackDamage, detectionRange, attackRange, speed){
-        Object.assign(this, {game, x, y, maxHealth, attackDamage, detectionRange, attackRange, speed});
+    constructor(game, x, y, maxHealth, attackDamage, detectionRange, attackRange, speed, dodgeChance){
+        Object.assign(this, {game, x, y, maxHealth, attackDamage, detectionRange, attackRange, speed, dodgeChance});
 
         //health section
         this.health = maxHealth;

@@ -182,6 +182,8 @@ ASSET_MANAGER.downloadAll(() => {
     const canvas = document.getElementById("gameWorld");
     const ctx = canvas.getContext("2d");
 
+    document.fonts.load('10pt "Press Start 2P"').then(() => {console.log("Retro font loaded successfully!")});
+
     ctx.imageSmoothingEnabled = false;
     gameEngine.init(ctx);
 

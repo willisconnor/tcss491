@@ -15,6 +15,7 @@ class Rat {
         this.loadAnimations();
 
         this.attackCooldownMax = .5
+        this.attackCooldown = 0;
         // 0 = left, 1 = right, 2 = down, 3 = up
         this.facing = 2;
         this.scale = 1.25;
@@ -27,7 +28,6 @@ class Rat {
         this.poisonCooldown = 0;
         this.poisonCooldownMax = 3;
 
-        this.attackCooldown = 0;
         // initialize Bounding Box
         //health system
         this.health = 10;
@@ -56,6 +56,8 @@ class Rat {
         this.slideAttackDamage = 0.5;       // Damage of the dash attack
         this.slideReturnRange = 20;         // Snaps back to start when within this many pixels
         this.dashSafetyBuffer = 0.15;       // Extra seconds added to the timeout calculation
+
+        this.evadedTimer = 200;
     };
 
     loadAnimations() {
@@ -187,7 +189,8 @@ class Rat {
             // Removed early return and forced idle to allow rat movement while refilling
         }
         // stop all movement & action if rat is completely out of lives
-        if (this.health <= 0 && !this.isRecovering && !this.isRefilling) {            this.game.camera.ratLives = 0; // ensure UI updates to 3 gray hearts
+        if (this.health <= 0 && !this.isRecovering && !this.isRefilling) {
+            this.game.camera.ratLives = 0; // ensure UI updates to 3 gray hearts
             this.animator = this.animations.get("dead");
             this.updateBB();
             return;
@@ -261,13 +264,14 @@ class Rat {
                 let dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist < this.slideAttackRange || this.slideTimer >= this.slideTimeoutLimit) {
                     this.slidePhase = 2;
+                    let nextAnim = this.animations.get("attack2")[this.facing];
+                    this.attackCooldown = nextAnim.frameCount * nextAnim.frameDuration;
                 }
             }
             else if (this.slidePhase === 2) {
                 targetAnim = this.animations.get("attack2")[this.facing];
                 targetSpeed = 0;
                 if (this.animator === targetAnim && this.animator.isDone()) {
-                    this.performAttack();
                     // checks if the yorkie is "dead" so the rat doesn't slide back and interfere with the cutscene logic
                     if (this.slideTarget.health <= 0) {
                         this.slidePhase = 0;
@@ -315,6 +319,7 @@ class Rat {
             } else if (this.game.keys["Space"] && this.attackCooldown <= 0) {
                 targetSpeed = 0;
                 targetAnim = this.animations.get("attack")[this.facing];
+                this.attackCooldown = targetAnim.frameCount * targetAnim.frameDuration;
             } else {
                 let inTutorial = (this.game.camera && this.game.camera.tutorialActive);
                 if (!inTutorial) {
@@ -345,15 +350,13 @@ class Rat {
         }
 
         const currentAnim = this.animator;
-        const isPriority = currentAnim === this.animations.get("attack")[this.facing];
+        const isPriority = currentAnim === this.animations.get("attack")[this.facing] ||
+            currentAnim === this.animations.get("attack2")[this.facing];
 
 
         if (isPriority && !currentAnim.isDone()) {
             targetAnim = currentAnim;
             targetSpeed = 0;
-        }
-
-        if (isPriority && currentAnim.isDone() && !this.hasHit) {
             this.performAttack();
         }
 
@@ -463,8 +466,6 @@ class Rat {
         else if (this.facing === 2) hitY += currentRange;
         else if (this.facing === 3) hitY -= currentRange;
 
-        if (this.attackCooldown > 0 || this.hasHit) return;
-
         let attackBox = new BoundingBox(hitX, hitY, 50, 50);
 
         // find Yorkie and check collision
@@ -476,33 +477,26 @@ class Rat {
                 if ((entity.health > 0 && attackBox.collide(entity.BB))) {
                     entity.health -= currentDamage;
                     this.hasHit = true;
-                    this.attackCooldown = this.attackCooldownMax;
+                    //this.attackCooldown = this.attackCooldownMax;
                     break;
                 }
             }
             //check enemies
             if ((entity.constructor.name === "Snake" || entity.constructor.name === "Cat") && !entity.dead && entity.boundingBox){
                 if (attackBox.collide(entity.boundingBox)) {
-                    entity.takeDamage(currentDamage);
+                    this.attackEvaded = (Math.random() <= entity.dodgeChance);
                     this.hasHit = true;
-                    this.attackCooldown = this.attackCooldownMax;
-                    console.log(`Hit ${entity.constructor.name} for ${currentDamage}! Health: ${entity.health}`);
+                    if (!this.attackEvaded) {
+                        entity.takeDamage(currentDamage);
+                        console.log(`Hit ${entity.constructor.name} for ${currentDamage}!`);
+                    } else {
+                        this.evadedTimer = 200;
+                        console.log(`${entity.constructor.name} evaded the rat's attack!`);
+                    }
                     break;
                 }
             }
         }
-
-        /**
-         // validate Yorkie exists, is in training state,  initialized its own BoundingBox
-         let yorkie = this.game.entities.find(e => e.constructor.name === "Yorkie");
-
-         if (yorkie && yorkie.actionState === "TRAINING" && yorkie.BB) {
-         if (attackBox.collide(yorkie.BB)) {
-         yorkie.health -= 0.5;
-         this.hasHit = true;
-         }
-         }
-         */
     }
 
     checkYorkieCollision(newX, newY, colliderW, colliderH) {
@@ -522,6 +516,7 @@ class Rat {
         }
         return false;
     }
+
     checkCatCollision(newX, newY, colliderW, colliderH) {
         let cat = this.game.entities.find(e => e.constructor.name === "Cat");
         // Only block movement when cat is in passive/defeated states
@@ -534,6 +529,7 @@ class Rat {
         }
         return false;
     }
+
     draw(ctx) {
         ctx.imageSmoothingEnabled = false;
         let drawX = this.x;
@@ -577,11 +573,14 @@ class Rat {
         }
         this.animator.drawFrame(this.game.clockTick, ctx, drawX, drawY, this.scale);
         ctx.restore();
+
+        let targetX = 0;
+        let targetY = 0;
         // Attack indicator around enemy, appears with the rat is within range to do the tail whip attack
         if (this.currentTarget && this.slidePhase === 0 && this.attackCooldown <= 0) {
             ctx.save();
-            let targetX = this.currentTarget.x;
-            let targetY = this.currentTarget.y;
+            targetX = this.currentTarget.x;
+            targetY = this.currentTarget.y;
             if (this.currentTarget.boundingBox) {
                 targetX = this.currentTarget.boundingBox.x + (this.currentTarget.boundingBox.width / 2);
                 targetY = this.currentTarget.boundingBox.y + (this.currentTarget.boundingBox.height / 2);
@@ -601,6 +600,23 @@ class Rat {
             ctx.lineDashOffset = -(Date.now() / 20) % 20;
             ctx.stroke();
             ctx.restore();
+        }
+
+        // Display text indicating enemy evaded the rat's attack
+        if (this.attackEvaded && this.evadedTimer > 0) {
+            ctx.save();
+            ctx.font = '10px "Press Start 2P"';
+            ctx.textAlign = "center";
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = "black";
+            ctx.fillStyle = "white";
+            ctx.strokeText("Evaded!", targetX, targetY - 50);
+            ctx.fillText("Evaded!", targetX, targetY - 50);
+            ctx.restore();
+            this.evadedTimer--;
+            if (this.evadedTimer === 0) {
+                this.attackEvaded = false;
+            }
         }
 
         // Debug Hitboxes
