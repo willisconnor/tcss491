@@ -572,7 +572,7 @@ class Menu {
         ctx.font = "20px Arial";
         ctx.fillText("Interact: Press E", w / 2, h / 2 - 150);
         ctx.fillText("Movement: WASD or Arrow Keys", w / 2, h / 2 - 100);
-        ctx.fillText("Sprint: Hold SHIFT", w / 2, h / 2 - 50);
+        ctx.fillText("Sprint: Press SHIFT to toggle", w / 2, h / 2 - 50);
         ctx.fillText("Bite: Press SPACE ", w / 2, h / 2);
         ctx.fillText("Poison: Press 1", w / 2, h / 2 + 50);
         ctx.fillText("Tail Whip: Press 2", w / 2, h / 2 + 100);

@@ -1055,6 +1055,59 @@ class SceneManager {
                 ctx.fillText("POISON", meterX + meterW / 2, meterY + meterH + 16);
                 ctx.restore();
             }
+
+            if (poisonMeterAsset && rat && rat.maxStamina) {
+                const sMeterH = 210;
+                const sMeterW = Math.round(sMeterH * (poisonMeterAsset.width / poisonMeterAsset.height));
+                const sMeterX = ctx.canvas.width - (sMeterW * 2) - 70;
+                const sMeterY = ctx.canvas.height - sMeterH - 30;
+
+                const staminaPct = Math.max(0, Math.min(1, rat.stamina / rat.maxStamina));
+
+                // Using the exact same insets as the poison meter to fit the bottle frame perfectly
+                const sInsetLeft = sMeterW * 0.25;
+                const sInsetRight = sMeterW * 0.3;
+                const sInsetTop = sMeterH * 0.065;
+                const sInsetBottom = sMeterH * 0.02;
+
+                const sFillX = sMeterX + sInsetLeft;
+                const sFillMaxW = sMeterW - sInsetLeft - sInsetRight;
+                const sFillMaxH = sMeterH - sInsetTop - sInsetBottom;
+                const sFillBaseY = sMeterY + sInsetTop;
+
+                ctx.save();
+
+                // Clip to inner area so the blue doesn't bleed out of the bottle
+                ctx.beginPath();
+                ctx.rect(sFillX, sFillBaseY, sFillMaxW, sFillMaxH);
+                ctx.clip();
+
+                // Draw filled portion from bottom up
+                if (staminaPct > 0) {
+                    const fillH = sFillMaxH * staminaPct;
+                    const fillY = sFillBaseY + sFillMaxH - fillH;
+
+                    // Turns grey when the rat is locked in the exhausted state
+                    ctx.fillStyle = rat.isExhausted ? "#888888" : "#00FFFF";
+                    ctx.globalAlpha = 0.7;
+                    ctx.fillRect(sFillX, fillY, sFillMaxW, fillH);
+                    ctx.globalAlpha = 1;
+                }
+
+                ctx.restore();
+
+                // Draw the recycled frame image on top
+                ctx.drawImage(poisonMeterAsset, sMeterX, sMeterY, sMeterW, sMeterH);
+
+                // "STAMINA" label
+                ctx.save();
+                ctx.fillStyle = staminaPct >= 1 ? "#00FFFF" : (rat.isExhausted ? "#888888" : "#00CCCC");
+                ctx.font = "10px 'Press Start 2P', Courier";
+                ctx.textAlign = "center";
+                ctx.fillText("STAMINA", sMeterX + sMeterW / 2, sMeterY + sMeterH + 16);
+                ctx.restore();
+            }
+
             if (this.game.options && this.game.options.debugging) {
                 if (rat) {
                     ctx.save();

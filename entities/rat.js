@@ -58,6 +58,10 @@ class Rat {
         this.dashSafetyBuffer = 0.15;       // Extra seconds added to the timeout calculation
 
         this.evadedTimer = 200;
+        this.maxStamina = 600;
+        this.stamina = this.maxStamina
+        this.runToggle = false;
+        this.prevShift = false;
     };
 
     loadAnimations() {
@@ -340,10 +344,30 @@ class Rat {
                         this.facing = 3;
                         targetAnim = this.animations.get("walk")[this.facing];
                     }
+                    this.isRunning = false;
+                    this.isExhausted = this.stamina <= 0;
 
-                    if (this.game.keys["ShiftLeft"] && targetSpeed > 0 && !this.isRecovering && !this.isRefilling) {
+                    if (this.game.keys["ShiftLeft"] && !this.prevShift) {
+                        this.runToggle = !this.runToggle;
+                    }
+                    // Save the current key state for the next frame
+                    this.prevShift = !!this.game.keys["ShiftLeft"];
+                    if (this.runToggle && targetSpeed > 0 && !this.isRecovering && !this.isRefilling && !this.isExhausted) {
+                        this.isRunning = true;
                         targetSpeed = 200;
                         targetAnim = this.animations.get("run")[this.facing];
+                        this.stamina -= 150 * this.game.clockTick;
+                        if (this.stamina <= 0) {
+                            this.stamina = 0;
+                            this.isExhausted = true;
+                            this.runToggle = false; // Automatically turn off the sprint toggle when exhausted
+                        }
+                    }
+                }
+                if (!this.isRunning && this.stamina < this.maxStamina) {
+                    this.stamina += 100 * this.game.clockTick;
+                    if (this.stamina > this.maxStamina) {
+                        this.stamina = this.maxStamina;
                     }
                 }
             }
