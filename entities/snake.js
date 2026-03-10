@@ -11,7 +11,8 @@ class Snake extends Enemy {
             10,
             200,
             50,
-            0.5  // Slowed down from 1.0
+            0.5,  // Slowed down from 1.0
+            0.4
         );
         this.scale = 2.5;  // Scaled down from 4
         this.facing = 1; // 0=left, 1=right, 2=down, 3=up
@@ -347,7 +348,10 @@ class Snake extends Enemy {
      */
     onHurt() {
         // Store the previous state so we can return to it
-        this.stateBeforeHurt = this.state;
+        if (this.state !== "HURT") {
+            this.stateBeforeHurt = this.state;
+        }
+
         this.state = "HURT";
 
         // Set hurt animation
